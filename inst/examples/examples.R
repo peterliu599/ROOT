@@ -143,7 +143,7 @@ outputROOT$tree_plot
 outputUnderrep <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
   covariateColName_RCT  = gen$covariate_DataRCT,
-  trtColName_RCT.       = gen$treatment_DataRCT,
+  trtColName_RCT        = gen$treatment_DataRCT,
   outcomeColName_RCT    = gen$outcome_DataRCT,
   DataTarget            = gen$DataTarget,
   covariateColName_TargetData  = gen$covariate_DataTarget,

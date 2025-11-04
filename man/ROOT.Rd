@@ -60,8 +60,10 @@ With "baseline", the cutoff is computed by evaluating \code{global_objective_fn}
 
 \item{verbose}{If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.}
 
-\item{global_objective_fn}{Function \code{function(D) -> numeric} that scores the \strong{entire state} (minimize).
-Default \code{objective_default()} reproduces prior behavior (SE proxy of PATE/TATE using \code{vsq} and \code{w}).}
+\item{global_objective_fn}{Function \verb{function(D) -> numeric} scoring the entire state (minimize).
+\strong{Note:} Weighted SEs (WATE/WTATE) are printed only when this is \code{objective_default}.
+If you pass a custom objective, the weighted SE is omitted and set to \code{NA}
+in the return value; please compute your own SE/variance in that case.}
 
 \item{plot_tree}{If TRUE, plots the characterized tree (default TRUE). Guarded by \code{interactive()}.}
 

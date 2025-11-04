@@ -16,25 +16,29 @@ The input \code{object}, invisibly. Printed output is a human-readable summary.
 }
 \description{
 Summarizes a \code{ROOT} object by reporting the primary estimands and key
-model diagnostics. The first two lines report:
+model diagnostics. The first lines report:
 \enumerate{
 \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
 and its \strong{standard error (SE)};
-\item the \strong{weighted} estimate (Weighted ATE in RCT or WTATE, using the learned subgroup
-weights \code{w_opt}) and its \strong{SE}.
+\item the \strong{weighted} estimate (Weighted ATE in RCT or WTATE using \code{w_opt}) and its
+\strong{SE} \emph{when the default objective is used}; if a custom
+\code{global_objective_fn} was supplied in \code{ROOT()}, the weighted SE is omitted.
 }
 Subsequent lines describe the estimand type, number of trees, size of the Rashomon set,
 presence of a summary tree, covariate count, observation count, baseline loss,
 selected-tree losses, and the proportion kept by \code{w_opt}.
 }
 \details{
-This method prefers pre-computed estimates under \code{object$estimate} (as stored by \code{ROOT()}).
+This method prefers pre-computed estimates in \code{object$estimate} (as stored by \code{ROOT()}).
 If unavailable, it recomputes:
 \itemize{
-\item Unweighted mean as \eqn{\mathrm{mean}(v)} over the analysis set
-(all rows in single-sample; \code{S==1} in two-sample);
-\item Unweighted SE as \eqn{\sqrt{\mathrm{var}(v)/(n)}} on the same set;
-\item Weighted mean as \eqn{\sum w v / \sum w} where \code{w = w_opt} (binary),
-and weighted SE as \eqn{\sqrt{\sum w (v - \bar v_w)^2}/\sum w}.
+\item Unweighted effect as \eqn{\bar v}{mean(v)} over the analysis set
+(all rows in single-sample; \code{S == 1} in two-sample);
+\item Unweighted SE as \eqn{\sqrt{\frac{1}{n}\sum_{i=1}^n (v_i - \bar v)^2}}{sqrt(var(v)/n)}
+on the same set;
+\item Weighted effect as \eqn{\frac{\sum_i w_i v_i}{\sum_i w_i}}{sum(w*v)/sum(w)},
+where \code{w = w\_opt} (binary);
+\item Weighted SE as \eqn{\frac{\sqrt{\sum_i w_i (v_i - \bar v_w)^2}}{\sum_i w_i}}{sqrt(sum(w*(v-mu_w)^2))/sum(w)},
+printed only when the default objective was used.
 }
 }

@@ -22,8 +22,10 @@
 #' @param verbose If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.
 #' @param plot_tree If TRUE, plots the characterized tree (default TRUE). Guarded by `interactive()`.
 #' @param plot_tree_args Named list forwarded to `rpart.plot::rpart.plot()`.
-#' @param global_objective_fn Function \code{function(D) -> numeric} that scores the **entire state** (minimize).
-#'   Default `objective_default()` reproduces prior behavior (SE proxy of PATE/TATE using `vsq` and `w`).
+#' @param global_objective_fn Function `function(D) -> numeric` scoring the entire state (minimize).
+#'   **Note:** Weighted SEs (WATE/WTATE) are printed only when this is `objective_default`.
+#'   If you pass a custom objective, the weighted SE is omitted and set to `NA`
+#'   in the return value; please compute your own SE/variance in that case.
 #'
 #' @return S3 object of class "ROOT" with components:
 #'   D_rash, D_forest, w_forest, rashomon_set, f, testing_data, tree_plot, estimate
@@ -52,6 +54,9 @@ ROOT <- function(data,
                    main = "Final Characterized Tree from Rashomon Set"
                  )
 ) {
+
+  # Flag whether we're using the package's default objective
+  is_default_objective <- identical(global_objective_fn, objective_default)
 
   # Helpers
   coerce01 <- function(x, allow_na = TRUE) {
@@ -307,25 +312,35 @@ ROOT <- function(data,
   est_label_unw <- if (single_sample_mode) "SATE" else "TATE"
   mu_unw <- mean(v_sel, na.rm = TRUE)
   n_eff_unw <- sum(!is.na(v_sel))
-  # SE = sqrt( var / n ), where var() uses Bessel correction (n-1)
   se_unw <- if (n_eff_unw > 1) sqrt(stats::var(v_sel, na.rm = TRUE) / n_eff_unw) else NA_real_
 
-  ## Weighted (WATE in RCT or WTATE) — binary weights assumed
+  ## Weighted (WATE in RCT or WTATE)
   est_label_w <- if (single_sample_mode) "WATE" else "WTATE"
-  den_w <- sum(w_sel, na.rm = TRUE)  # effective n when w ∈ {0,1}
+  den_w <- sum(w_sel, na.rm = TRUE)
+
   if (isTRUE(den_w > 0)) {
     mu_w <- sum(w_sel * v_sel, na.rm = TRUE) / den_w
-    # SE of weighted mean (binary weights): sqrt( sum w*(v - mu)^2 / den_w^2 )
-    se_w <- sqrt( sum(w_sel * (v_sel - mu_w)^2, na.rm = TRUE) / (den_w^2) )
+    if (is_default_objective) {
+      # Standard SE under objective_default (matches the objective)
+      se_w <- sqrt(sum(w_sel * (v_sel - mu_w)^2, na.rm = TRUE)) / den_w
+    } else {
+      # Custom objective: do not report SE for weighted estimand
+      se_w <- NA_real_
+    }
   } else {
-    mu_w <- NA_real_; se_w <- NA_real_
+    mu_w <- NA_real_
+    se_w <- NA_real_
   }
 
   if (verbose) {
     message(sprintf("%s (unweighted) = %.6f, SE = %.6f", est_label_unw, mu_unw, se_unw))
-    message(sprintf("%s (weighted)   = %.6f, SE = %.6f", est_label_w,   mu_w,   se_w))
+    if (is_default_objective) {
+      message(sprintf("%s (weighted)   = %.6f, SE = %.6f", est_label_w,   mu_w,   se_w))
+    } else {
+      message(sprintf("%s (weighted)   = %.6f (SE omitted: custom global_objective_fn supplied; please compute your own SE).",
+                      est_label_w, mu_w))
+    }
   }
-
   # Assemble result (SEs only; SDs removed)
   results <- list(
     D_rash = D_rash,
@@ -342,6 +357,9 @@ ROOT <- function(data,
       estimand_weighted   = est_label_w,
       value_weighted      = mu_w,
       se_weighted         = se_w,
+      se_weighted_note    = if (!is_default_objective)
+        "SE omitted: custom global_objective_fn; provide your own variance/SE."
+      else "SE computed under objective_default.",
       n_analysis          = sum(in_S),
       sum_w               = den_w
     )

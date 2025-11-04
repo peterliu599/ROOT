@@ -15,10 +15,11 @@
 \code{object}, invisibly.
 }
 \description{
-Prints the \code{ROOT} summary (un/weighted estimates with standard deviations) and a brief
-overview of terminal rules from the annotated summary tree, if available.
+Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
+\emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
+and a brief overview of terminal rules from the annotated summary tree, if available.
 }
 \details{
 Delegates core statistics to \code{summary(object$root)}; previews up to
-five terminal rules when a summary tree exists, and reports plot availability.
+ten terminal rules when a summary tree exists, and reports plot availability.
 }
