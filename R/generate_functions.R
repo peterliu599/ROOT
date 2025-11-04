@@ -1,4 +1,6 @@
+# ==========================================================
 #' Check for missing values in training data
+# ==========================================================
 #'
 #' Ensures there are no NA values in any of the relevant columns of the dataset.
 #'
@@ -17,7 +19,9 @@ check_no_na <- function(data, cols) {
   invisible(TRUE)
 }
 
+# ==========================================================
 #' Generate covariates `X` and potential outcomes (`Y0`, `Y1`)
+# ==========================================================
 #'
 #' Simulates a regression problem (Friedman #1) and defines a treatment effect.
 #' Uses `mlbench.friedman1` to generate `X` features and a baseline outcome `Y0`.
@@ -39,10 +43,14 @@ check_no_na <- function(data, cols) {
 #'   reset at the start of the function (which affects other random operations).
 gen_XY <- function(n = 1000, seed = NULL) {
   # Input validation
-  if (!requireNamespace("mlbench", quietly = TRUE)) {
-    stop("Package 'mlbench' is required for gen_XY(); please install it or use a custom generator.",
-         call. = FALSE)
+  if (!is.numeric(n) || length(n) != 1 || n <= 0) {
+    stop("`n` must be a positive numeric value.", call. = FALSE)
   }
+  if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
+    stop("`seed` must be NULL or a single numeric value.", call. = FALSE)
+  }
+
+  # Generate data using mlbench's Friedman #1 benchmark problem
   friedman_data <- if (is.null(seed)) {
     mlbench::mlbench.friedman1(n = n, sd = 1)
   } else {
@@ -63,8 +71,10 @@ gen_XY <- function(n = 1000, seed = NULL) {
   return(list(X = X_df, Y = Y_df))
 }
 
+# ==========================================================
 #' Generate sample indicator `S` ~ Bernoulli(plogis(a))
-#'
+# ==========================================================
+
 #' Generates a binary sample inclusion indicator `S` for each observation,
 #' using a logistic model influenced by a rectangular region in the first two covariates (`X0` and `X1`).
 #'
@@ -106,7 +116,9 @@ gen_S <- function(X, seed = NULL) {
   return(data.frame(S = S_vec))
 }
 
+# ==========================================================
 #' Generate treatment indicator `Tr` ~ Bernoulli(pi)
+# ==========================================================
 #'
 #' Assigns a treatment indicator for each observation, combining an experimental design for included samples (S==1)
 #' and an observational assignment for excluded samples (S==0).
@@ -158,8 +170,9 @@ gen_T <- function(X, S, seed = NULL) {
   return(list(Tr = data.frame(Tr = Tr_vec), pi = pi_vec))
 }
 
-
+# ==========================================================
 #' Convenience wrapper to generate a full simulated dataset
+# ==========================================================
 #'
 #' Generates covariates, sample inclusion, treatment assignments, and observed outcomes
 #' for a specified sample size. This wraps `gen_XY()`, `gen_S()`, and `gen_T()` in sequence.
