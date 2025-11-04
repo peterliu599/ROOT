@@ -18,15 +18,12 @@
 #' @param top_k_trees If TRUE, select top-k trees by objective; else use `cutoff` (default FALSE).
 #' @param k Number of top trees if `top_k_trees = TRUE` (default 10).
 #' @param cutoff If `top_k_trees = FALSE`, numeric cutoff or "baseline" (default "baseline").
-#'   With "baseline", the cutoff is computed by evaluating `objective_fn` on the state with all `w=1`.
+#'   With "baseline", the cutoff is computed by evaluating `global_objective_fn` on the state with all `w=1`.
 #' @param verbose If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.
 #' @param plot_tree If TRUE, plots the characterized tree (default TRUE). Guarded by `interactive()`.
 #' @param plot_tree_args Named list forwarded to `rpart.plot::rpart.plot()`.
-#' @param objective_fn Function \code{function(D) -> numeric} that scores the **entire state** (minimize).
+#' @param global_objective_fn Function \code{function(D) -> numeric} that scores the **entire state** (minimize).
 #'   Default `objective_default()` reproduces prior behavior (SE proxy of PATE/TATE using `vsq` and `w`).
-#' @param loss_fn Optional micro-evaluator \code{function(val, indices, D) -> numeric} that returns the
-#'   objective after hypothetically setting `w=val` on `indices`. If `NULL`, ROOT wraps `objective_fn`
-#'   via `loss_from_objective(objective_fn)`.
 #'
 #' @return S3 object of class "ROOT" with components:
 #'   D_rash, D_forest, w_forest, rashomon_set, f, testing_data, tree_plot, estimate
@@ -46,8 +43,7 @@ ROOT <- function(data,
                  k = 10,
                  cutoff = "baseline",
                  verbose = FALSE,
-                 objective_fn = objective_default,
-                 loss_fn = NULL,
+                 global_objective_fn = objective_default,
                  plot_tree = TRUE,
                  plot_tree_args = list(
                    type = 2, extra = 109, under = TRUE, faclen = 0, tweak = 1.1,
@@ -86,8 +82,7 @@ ROOT <- function(data,
     feat_prob
   }
 
-  if (!is.function(objective_fn)) stop("`objective_fn` must be a function(D)->numeric.")
-  if (is.null(loss_fn)) loss_fn <- loss_from_objective(objective_fn)
+  if (!is.function(global_objective_fn)) stop("`global_objective_fn` must be a function(D)->numeric.")
 
   covariate_cols <- setdiff(names(data), c(outcome, treatment, sample))
   if (length(covariate_cols) == 0L) {
@@ -127,7 +122,6 @@ ROOT <- function(data,
     stop("`cutoff` must be \"baseline\" or numeric.", call. = FALSE)
   if (!is.logical(verbose) || length(verbose) != 1L)
     stop("`verbose` must be TRUE or FALSE.", call. = FALSE)
-  if (!is.function(loss_fn)) stop("`loss_fn` must be a function (val, indices, D).", call. = FALSE)
 
   # Coerce treatment/sample to 0/1
   data[[treatment]] <- coerce01(data[[treatment]], allow_na = TRUE)
@@ -239,9 +233,8 @@ ROOT <- function(data,
         X = D_tree, D = D_tree, parent_loss = Inf, depth = 0L,
         explore_proba = explore_proba,
         choose_feature_fn = choose_feature,
-        loss_fn = loss_fn,
         reduce_weight_fn = reduce_weight,
-        objective_fn = objective_fn
+        global_objective_fn = global_objective_fn
       )
     }
     tree_res <- if (is.null(seed)) grow_one() else withr::with_seed(seed + t_idx, grow_one())
@@ -261,7 +254,7 @@ ROOT <- function(data,
     cutoff_val <- if (identical(cutoff, "baseline")) {
       D_base <- D_forest
       D_base$w <- 1
-      objective_fn(D_base)
+      global_objective_fn(D_base)
     } else as.numeric(cutoff)
     if (!is.finite(cutoff_val)) cutoff_val <- Inf
     rashomon_set <- tree_indices[obj_values < cutoff_val]

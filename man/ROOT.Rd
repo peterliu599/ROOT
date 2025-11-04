@@ -20,8 +20,7 @@ ROOT(
   k = 10,
   cutoff = "baseline",
   verbose = FALSE,
-  objective_fn = objective_default,
-  loss_fn = NULL,
+  global_objective_fn = objective_default,
   plot_tree = TRUE,
   plot_tree_args = list(type = 2, extra = 109, under = TRUE, faclen = 0, tweak = 1.1,
     fallen.leaves = TRUE, box.palette = c("pink", "palegreen3"), shadow.col = c("gray"),
@@ -57,16 +56,12 @@ vector of importances; normalized to probabilities (default "Ridge").}
 \item{k}{Number of top trees if \code{top_k_trees = TRUE} (default 10).}
 
 \item{cutoff}{If \code{top_k_trees = FALSE}, numeric cutoff or "baseline" (default "baseline").
-With "baseline", the cutoff is computed by evaluating \code{objective_fn} on the state with all \code{w=1}.}
+With "baseline", the cutoff is computed by evaluating \code{global_objective_fn} on the state with all \code{w=1}.}
 
 \item{verbose}{If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.}
 
-\item{objective_fn}{Function \code{function(D) -> numeric} that scores the \strong{entire state} (minimize).
+\item{global_objective_fn}{Function \code{function(D) -> numeric} that scores the \strong{entire state} (minimize).
 Default \code{objective_default()} reproduces prior behavior (SE proxy of PATE/TATE using \code{vsq} and \code{w}).}
-
-\item{loss_fn}{Optional micro-evaluator \code{function(val, indices, D) -> numeric} that returns the
-objective after hypothetically setting \code{w=val} on \code{indices}. If \code{NULL}, ROOT wraps \code{objective_fn}
-via \code{loss_from_objective(objective_fn)}.}
 
 \item{plot_tree}{If TRUE, plots the characterized tree (default TRUE). Guarded by \code{interactive()}.}
 

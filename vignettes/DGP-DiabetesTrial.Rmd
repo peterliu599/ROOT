@@ -160,11 +160,11 @@ summary(outputROOT.DGP)
 ### Run characterizing_underrep function
 outputUnderrep.DGP <- characterizing_underrep(
   DataRCT               = trial,
-  covariate_DataRCT     = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
-  treatment_DataRCT     = "Tr",
-  outcome_DataRCT       = "Y",
+  covariateColName_RCT  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  trtColName_RCT        = "Tr",
+  outcomeColName_RCT    = "Y",
   DataTarget            = target,
-  covariate_DataTarget  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  covariateColName_TargetData  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,

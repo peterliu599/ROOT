@@ -1,45 +1,34 @@
 #' Recursive split builder for weighted tree (internal function)
-#' Recursive split builder for weighted tree (internal function)
 #'
-#' Recursively builds a weighted decision tree to optimize an objective function,
-#' using an exploration/exploitation trade-off. This function is internal and is
-#' used by `tree_opt()` / `ROOT()` to construct a single tree.
+#' Recursively builds a weighted decision tree to optimize a global objective,
+#' using an exploration/exploitation trade-off. Internal; used by ROOT().
 #'
-#' @param split_feature Named numeric vector of feature selection probabilities (should include a "leaf" option).
-#' @param X Data frame of current observations (must include at least the feature chosen for splitting if applicable; may also include a working copy of weights `w`).
-#' @param D Data frame representing the global state (must include columns `w` for weights and `vsq` for squared pseudo-outcomes, with row names aligning to observations).
+#' @param split_feature Named numeric vector of feature selection probabilities (must include "leaf").
+#' @param X Data frame of current observations (includes candidate split feature columns; may include a working copy of weights `w`).
+#' @param D Data frame representing the global state (must include columns `w` and `vsq`; row names align to observations).
 #' @param parent_loss Numeric, the loss value of the parent node (used to decide if a split improves the objective).
-#' @param depth Integer, current depth of the node in the tree.
-#' @param explore_proba Numeric in `[0,1]`, probability of exploring the suboptimal assignment at a leaf (randomly flipping the chosen weight).
-#' @param choose_feature_fn Function to choose the next feature to split; default `choose_feature`.
-#' @param loss_fn Function to compute loss given a tentative weight assignment; if `NULL`, it is set via `loss_from_objective(objective_fn)`.
-#' @param reduce_weight_fn Function to adjust feature probabilities when a split is rejected; default `reduce_weight`.
-#' @param objective_fn Function that maps `D` → scalar objective; used for node summaries and to derive `loss_fn` when `loss_fn` is `NULL`.
-#' @param max_depth Integer maximum depth of the tree. If the current depth equals `max_depth`, the node is made a leaf.
-#' @param min_leaf_n Integer minimum number of observations required to attempt a split. If `X` has <= `min_leaf_n` rows, the node becomes a leaf.
-#' @param log_fn Function for logging debug messages. Default no-op.
-#' @param max_rejects_per_node Integer. A safety budget for how many times a node
-#'   may *reject* non-improving splits before the algorithm gives up and
-#'   finalizes the node as a leaf. Each rejection halves the probability of the
-#'   last-tried feature (via `reduce_weight_fn`) and samples a new candidate
-#'   feature to try again. This prevents infinite recursion / stack overflows in
-#'   adversarial or flat objective landscapes. Larger values allow more
-#'   exploration at a node (potentially better splits but slower), while smaller
-#'   values make the builder more conservative (fewer retries, faster, more
-#'   leaves). Default: `1000`.
-#' @return A list representing the tree/subtree.
+#' @param depth Integer, current tree depth.
+#' @param explore_proba Numeric, the probability (between 0 and 1) of flipping the exploit choice at a leaf.
+#' @param choose_feature_fn Function to choose next feature (default `choose_feature`).
+#' @param reduce_weight_fn Function to penalize last-tried feature on rejected split (default `reduce_weight`).
+#' @param global_objective_fn Function `function(D) -> numeric` scoring the **entire** state.
+#' @param max_depth Integer max depth (stop and make leaf at this depth).
+#' @param min_leaf_n Integer min rows to attempt a split; else make leaf.
+#' @param log_fn Function for logging; default no-op.
+#' @param max_rejects_per_node Safety budget of rejected splits before forcing a leaf.
+#' @return A list representing the (sub)tree; includes updated `D` and `local objective`.
 #' @importFrom stats rbinom
 split_node <- function(split_feature, X, D, parent_loss, depth,
                        explore_proba = 0.05,
                        choose_feature_fn = choose_feature,   # (renamed arg for clarity)
-                       loss_fn = loss,
                        reduce_weight_fn = reduce_weight,
-                       objective_fn = objective_default,
+                       global_objective_fn = objective_default,
                        max_depth = 8,
                        min_leaf_n = 5,
                        log_fn = function(...) {},
                        max_rejects_per_node = 1000) {
-  if (is.null(loss_fn)) loss_fn <- loss_from_objective(objective_fn)
+  # Derive micro-evaluator: loss(val, indices, D) from global objective
+  loss_fn <- loss_from_objective(global_objective_fn)
 
   # Helpers
   .log <- function(fmt, ...) log_fn(sprintf(fmt, ...))
@@ -104,25 +93,25 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
     # Recurse (random order to break symmetry)
     if (stats::rbinom(1, 1, 0.5) == 1) {
       left_res  <- split_node(split_feature, X_left,  D, new_loss, depth + 1,
-                              explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                              objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                              explore_proba, choose_feature_fn, reduce_weight_fn,
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- left_res$D
       right_res <- split_node(split_feature, X_right, D, new_loss, depth + 1,
-                              explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                              objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                              explore_proba, choose_feature_fn, reduce_weight_fn,
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- right_res$D
     } else {
       right_res <- split_node(split_feature, X_right, D, new_loss, depth + 1,
-                              explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                              objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                              explore_proba, choose_feature_fn, reduce_weight_fn,
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- right_res$D
       left_res  <- split_node(split_feature, X_left,  D, new_loss, depth + 1,
-                              explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                              objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                              explore_proba, choose_feature_fn, reduce_weight_fn,
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- left_res$D
     }
 
-    local_obj <- objective_fn(D); if (!is.finite(local_obj) || is.nan(local_obj)) local_obj <- Inf
+    local_obj <- global_objective_fn(D); if (!is.finite(local_obj) || is.nan(local_obj)) local_obj <- Inf
     return(list(
       node = fj, split = cj,
       left_tree  = left_res, right_tree = right_res,
@@ -173,25 +162,25 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
 
       if (stats::rbinom(1, 1, 0.5) == 1) {
         left_res  <- split_node(rej_sf, X_left,  D, new_loss, depth + 1,
-                                explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                                objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                                explore_proba, choose_feature_fn, reduce_weight_fn,
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- left_res$D
         right_res <- split_node(rej_sf, X_right, D, new_loss, depth + 1,
-                                explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                                objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                                explore_proba, choose_feature_fn, reduce_weight_fn,
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- right_res$D
       } else {
         right_res <- split_node(rej_sf, X_right, D, new_loss, depth + 1,
-                                explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                                objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                                explore_proba, choose_feature_fn, reduce_weight_fn,
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- right_res$D
         left_res  <- split_node(rej_sf, X_left,  D, new_loss, depth + 1,
-                                explore_proba, choose_feature_fn, loss_fn, reduce_weight_fn,
-                                objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
+                                explore_proba, choose_feature_fn, reduce_weight_fn,
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- left_res$D
       }
 
-      local_obj <- objective_fn(D); if (!is.finite(local_obj) || is.nan(local_obj)) local_obj <- Inf
+      local_obj <- global_objective_fn(D); if (!is.finite(local_obj) || is.nan(local_obj)) local_obj <- Inf
       return(list(
         node = fj, split = cj,
         left_tree  = left_res, right_tree = right_res,
@@ -299,50 +288,6 @@ reduce_weight <- function(fj, split_feature) {
   split_feature <- split_feature / sum(split_feature)
   return(split_feature)
 }
-
-
-#' Evaluate splitting objective loss for a given weight assignment
-#'
-#' Computes the approximate standard error (loss) of the treatment effect estimate under a hypothetical assignment of weights `w` for specified rows.
-#'
-#' @param val Numeric scalar (must be 0 or 1). The weight value to assign (0 = exclude, 1 = include).
-#' @param indices Indices or row names in `D` for which the weight should be set to `val`. Can be a numeric vector of row positions or a character vector of row names.
-#' @param D A data frame containing at least columns `vsq` (squared pseudo-outcome) and `w` (current weights).
-#' @return Numeric value representing the loss, defined as \eqn{\sqrt{\sum_i vsq_i * w_i \,/\, (\sum_i w_i)^2}}. Returns `Inf` if the denominator is 0 or if the result is not a number.
-#' @note This function mimics the behavior of numpy's `nan_to_num(..., nan=Inf)` by returning `Inf` when the computation is undefined (e.g., no weights selected). It is used internally to decide whether a proposed split improves the objective.
-loss <- function(val, indices, D) {
-  # Input validation
-  if (!is.numeric(val) || length(val) != 1 || !(val %in% c(0, 1))) {
-    stop("`val` must be a numeric scalar equal to 0 or 1.", call. = FALSE)
-  }
-  if (!is.data.frame(D) || !all(c("vsq", "w") %in% names(D))) {
-    stop("`D` must be a data frame with numeric columns 'vsq' and 'w'.", call. = FALSE)
-  }
-  # Determine rows to update
-  rows_to_update <- integer(0)
-  if (length(indices) > 0) {
-    if (is.numeric(indices)) {
-      rows_to_update <- as.integer(indices)
-    } else {
-      # assume character or factor -> treat as row names
-      rows_to_update <- which(rownames(D) %in% as.character(indices))
-    }
-  }
-  # Copy D to avoid modifying original
-  D_temp <- D
-  if (length(rows_to_update) > 0) {
-    D_temp[rows_to_update, "w"] <- val
-  }
-  # Compute numerator and denominator for loss
-  num <- sum(D_temp$vsq * D_temp$w, na.rm = TRUE)
-  den <- (sum(D_temp$w, na.rm = TRUE))^2
-  loss_val <- sqrt(num / den)
-  if (!is.finite(loss_val) || is.nan(loss_val)) {
-    loss_val <- Inf
-  }
-  return(loss_val)
-}
-
 
 #' Compute the midpoint of a numeric vector
 #'

@@ -4,19 +4,19 @@
 \alias{loss_from_objective}
 \title{Backward/fast-path micro-evaluator adaptor}
 \usage{
-loss_from_objective(objective_fn)
+loss_from_objective(global_objective_fn)
 }
 \arguments{
-\item{objective_fn}{Function of one argument \code{D} returning a numeric
+\item{global_objective_fn}{Function of one argument \code{D} returning a numeric
 scalar to be minimized (e.g., \code{\link{objective_default}}).}
 }
 \value{
 A function \code{loss_fn(val, indices, D)} suitable for use in
 \code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val}
-on \code{indices} (non-mutating), then returns \code{objective_fn(D)}.
+on \code{indices} (non-mutating), then returns \code{global_objective_fn(D)}.
 }
 \description{
-Wrap a global objective \code{objective_fn(D)} into a splitter-compatible
+Wrap a global objective \code{global_objective_fn(D)} into a splitter-compatible
 loss function \code{loss_fn(val, indices, D)} by evaluating
 \code{\link{objective_if}} on a temporary copy of \code{D}.
 }

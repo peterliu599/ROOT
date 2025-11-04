@@ -1,15 +1,16 @@
 test_that("ROOT + Characterization run end-to-end on Box DGP (100-D)", {
   skip_on_cran()
-  skip_if_not_installed("MASS")
-  skip_if_not_installed("rpart")
+  skip_if_not_installed("MASS")   # lm.ridge for feature_est = "Ridge"
+  skip_if_not_installed("rpart")  # characterize_tree()
+  skip_if_not_installed("withr")  # ROOT uses withr::with_seed when seed is set
 
   set.seed(20251028)
 
   expit <- function(z) 1 / (1 + exp(-z))
 
   simulate_box_dgp <- function(n = 600L, p = 100L,
-                               s_shift = 0.10,  # baseline logit intercept
-                               s_box   = -1.0,  # box penalty (weaker than -2)
+                               s_shift = 0.10,    # baseline logit intercept
+                               s_box   = -1.0,    # box penalty (weaker than -2)
                                s_noise_sd = 0.25, # Gaussian noise in logit for S
                                s_label_flip = 0.00  # optional tiny label noise
   ) {
@@ -83,11 +84,11 @@ test_that("ROOT + Characterization run end-to-end on Box DGP (100-D)", {
 
   char_out <- characterizing_underrep(
     DataRCT               = DataRCT,
-    covariate_DataRCT     = covs,
-    treatment_DataRCT     = "Tr",
-    outcome_DataRCT       = "Yobs",
+    covariateColName_RCT     = covs,
+    trtColName_RCT     = "Tr",
+    outcomeColName_RCT       = "Yobs",
     DataTarget            = DataTarget,
-    covariate_DataTarget  = covs,
+    covariateColName_TargetData  = covs,
     seed                  = 99,
     num_trees             = 5,
     top_k_trees           = TRUE,

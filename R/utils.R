@@ -38,11 +38,11 @@ objective_default <- function(D) {
 #'
 #' @param val 0/1 assignment to apply
 #' @param indices integer or rownames to receive `val`
-#' @param D data.frame used by `objective_fn`
-#' @param objective_fn function(D)->scalar
+#' @param D data.frame used by `global_objective_fn`
+#' @param global_objective_fn function(D)->scalar
 #' @return numeric scalar objective after the hypothetical change
-objective_if <- function(val, indices, D, objective_fn) {
-  stopifnot(is.function(objective_fn), length(val) == 1, val %in% c(0,1))
+objective_if <- function(val, indices, D, global_objective_fn) {
+  stopifnot(is.function(global_objective_fn), length(val) == 1, val %in% c(0,1))
   rows <- integer(0)
   if (length(indices)) {
     rows <- if (is.numeric(indices)) as.integer(indices)
@@ -50,22 +50,22 @@ objective_if <- function(val, indices, D, objective_fn) {
   }
   Dtmp <- D
   if (length(rows)) Dtmp[rows, "w"] <- val
-  objective_fn(Dtmp)
+  global_objective_fn(Dtmp)
 }
 
 #' Backward/fast-path micro-evaluator adaptor
 #'
-#' Wrap a global objective \code{objective_fn(D)} into a splitter-compatible
+#' Wrap a global objective \code{global_objective_fn(D)} into a splitter-compatible
 #' loss function \code{loss_fn(val, indices, D)} by evaluating
 #' \code{\link{objective_if}} on a temporary copy of \code{D}.
 #'
-#' @param objective_fn Function of one argument \code{D} returning a numeric
+#' @param global_objective_fn Function of one argument \code{D} returning a numeric
 #'   scalar to be minimized (e.g., \code{\link{objective_default}}).
 #'
 #' @return A function \code{loss_fn(val, indices, D)} suitable for use in
 #'   \code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val}
-#'   on \code{indices} (non-mutating), then returns \code{objective_fn(D)}.
-loss_from_objective <- function(objective_fn) {
-  force(objective_fn)
-  function(val, indices, D) objective_if(val, indices, D, objective_fn)
+#'   on \code{indices} (non-mutating), then returns \code{global_objective_fn(D)}.
+loss_from_objective <- function(global_objective_fn) {
+  force(global_objective_fn)
+  function(val, indices, D) objective_if(val, indices, D, global_objective_fn)
 }

@@ -6,11 +6,11 @@
 \usage{
 characterizing_underrep(
   DataRCT,
-  covariate_DataRCT,
-  treatment_DataRCT,
-  outcome_DataRCT,
+  covariateColName_RCT,
+  trtColName_RCT,
+  outcomeColName_RCT,
   DataTarget,
-  covariate_DataTarget,
+  covariateColName_TargetData,
   leaf_proba = 0.25,
   seed = 123,
   num_trees = 10,
@@ -22,8 +22,7 @@ characterizing_underrep(
   k = 10,
   cutoff = "baseline",
   verbose = FALSE,
-  objective_fn = objective_default,
-  loss_fn = NULL,
+  global_objective_fn = objective_default,
   root_plot_tree = TRUE,
   root_plot_args = list(type = 2, extra = 109, under = TRUE, faclen = 0, tweak = 1.1,
     fallen.leaves = TRUE, box.palette = c("pink", "palegreen3"), shadow.col = c("gray"),
@@ -35,23 +34,21 @@ characterizing_underrep(
 )
 }
 \arguments{
-\item{DataRCT}{data.frame with trial data; must include \code{treatment_DataRCT}, \code{outcome_DataRCT}, and the covariates named in \code{covariate_DataRCT}.}
+\item{DataRCT}{data.frame with trial data; must include \code{trtColName_RCT}, \code{outcomeColName_RCT}, and the covariates named in \code{covariateColName_RCT}.}
 
-\item{covariate_DataRCT}{character vector of covariate column names in \code{DataRCT}.}
+\item{covariateColName_RCT}{character vector of covariate column names in \code{DataRCT}.}
 
-\item{treatment_DataRCT}{single string: treatment column name in \code{DataRCT} (0/1).}
+\item{trtColName_RCT}{single string: treatment column name in \code{DataRCT} (0/1).}
 
-\item{outcome_DataRCT}{single string: outcome column name in \code{DataRCT}.}
+\item{outcomeColName_RCT}{single string: outcome column name in \code{DataRCT}.}
 
 \item{DataTarget}{data.frame with target-population covariates (no treatment/outcome required).}
 
-\item{covariate_DataTarget}{character vector of covariate column names in \code{DataTarget}.}
+\item{covariateColName_TargetData}{character vector of covariate column names in \code{DataTarget}.}
 
 \item{leaf_proba, seed, num_trees, vote_threshold, explore_proba, feature_est, feature_est_args, top_k_trees, k, cutoff, verbose}{Passed to \code{ROOT()}.}
 
-\item{objective_fn}{Objective function for ROOT (default \code{objective_default}).}
-
-\item{loss_fn}{Optional loss micro-evaluator; if \code{NULL}, ROOT will wrap \code{objective_fn}.}
+\item{global_objective_fn}{Global bjective/loss function for ROOT (default \code{objective_default}).}
 
 \item{root_plot_tree}{Logical; pass-through to \code{ROOT(plot_tree=...)}.}
 

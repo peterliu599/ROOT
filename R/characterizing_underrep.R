@@ -4,15 +4,14 @@
 #' a binary selector \code{w(x)}, and (optionally) renders an annotated tree that
 #' highlights represented (w=1) vs underrepresented (w=0) leaves.
 #'
-#' @param DataRCT data.frame with trial data; must include \code{treatment_DataRCT}, \code{outcome_DataRCT}, and the covariates named in \code{covariate_DataRCT}.
-#' @param covariate_DataRCT character vector of covariate column names in \code{DataRCT}.
-#' @param treatment_DataRCT single string: treatment column name in \code{DataRCT} (0/1).
-#' @param outcome_DataRCT single string: outcome column name in \code{DataRCT}.
+#' @param DataRCT data.frame with trial data; must include \code{trtColName_RCT}, \code{outcomeColName_RCT}, and the covariates named in \code{covariateColName_RCT}.
+#' @param covariateColName_RCT character vector of covariate column names in \code{DataRCT}.
+#' @param trtColName_RCT single string: treatment column name in \code{DataRCT} (0/1).
+#' @param outcomeColName_RCT single string: outcome column name in \code{DataRCT}.
 #' @param DataTarget data.frame with target-population covariates (no treatment/outcome required).
-#' @param covariate_DataTarget character vector of covariate column names in \code{DataTarget}.
+#' @param covariateColName_TargetData character vector of covariate column names in \code{DataTarget}.
 #' @param leaf_proba,seed,num_trees,vote_threshold,explore_proba,feature_est,feature_est_args,top_k_trees,k,cutoff,verbose Passed to \code{ROOT()}.
-#' @param objective_fn Objective function for ROOT (default \code{objective_default}).
-#' @param loss_fn Optional loss micro-evaluator; if \code{NULL}, ROOT will wrap \code{objective_fn}.
+#' @param global_objective_fn Global bjective/loss function for ROOT (default \code{objective_default}).
 #' @param root_plot_tree Logical; pass-through to \code{ROOT(plot_tree=...)}.
 #' @param root_plot_args Optional list passed to \code{ROOT(plot_tree_args=...)}.
 #' @param plot_underrep Logical; if \code{TRUE}, draws an annotated represented/underrepresented tree.
@@ -28,11 +27,11 @@
 #' @export
 characterizing_underrep <- function(
     DataRCT,
-    covariate_DataRCT,
-    treatment_DataRCT,
-    outcome_DataRCT,
+    covariateColName_RCT,
+    trtColName_RCT,
+    outcomeColName_RCT,
     DataTarget,
-    covariate_DataTarget,
+    covariateColName_TargetData,
     leaf_proba = 0.25,
     seed = 123,
     num_trees = 10,
@@ -44,8 +43,7 @@ characterizing_underrep <- function(
     k = 10,
     cutoff = "baseline",
     verbose = FALSE,
-    objective_fn = objective_default,
-    loss_fn = NULL,
+    global_objective_fn = objective_default,
     root_plot_tree = TRUE,
     root_plot_args = list(
       type = 2, extra = 109, under = TRUE, faclen = 0, tweak = 1.1,
@@ -62,23 +60,23 @@ characterizing_underrep <- function(
   if (!is.data.frame(DataRCT) || !is.data.frame(DataTarget)) {
     stop("DataRCT and DataTarget must be data.frames.", call. = FALSE)
   }
-  if (!all(c(treatment_DataRCT, outcome_DataRCT) %in% names(DataRCT))) {
-    stop("treatment_DataRCT and/or outcome_DataRCT not found in DataRCT.", call. = FALSE)
+  if (!all(c(trtColName_RCT, outcomeColName_RCT) %in% names(DataRCT))) {
+    stop("trtColName_RCT and/or outcomeColName_RCT not found in DataRCT.", call. = FALSE)
   }
-  if (!all(covariate_DataRCT %in% names(DataRCT))) {
-    miss <- setdiff(covariate_DataRCT, names(DataRCT))
+  if (!all(covariateColName_RCT %in% names(DataRCT))) {
+    miss <- setdiff(covariateColName_RCT, names(DataRCT))
     stop("Missing RCT covariates in DataRCT: ", paste(miss, collapse = ", "), call. = FALSE)
   }
-  if (!all(covariate_DataTarget %in% names(DataTarget))) {
-    miss <- setdiff(covariate_DataTarget, names(DataTarget))
+  if (!all(covariateColName_TargetData %in% names(DataTarget))) {
+    miss <- setdiff(covariateColName_TargetData, names(DataTarget))
     stop("Missing target covariates in DataTarget: ", paste(miss, collapse = ", "), call. = FALSE)
   }
 
   # Harmonize covariates
-  common_covs <- intersect(covariate_DataRCT, covariate_DataTarget)
+  common_covs <- intersect(covariateColName_RCT, covariateColName_TargetData)
   if (length(common_covs) == 0L) stop("No overlapping covariate names between RCT and Target.", call. = FALSE)
-  if (!identical(sort(common_covs), sort(covariate_DataRCT)) ||
-      !identical(sort(common_covs), sort(covariate_DataTarget))) {
+  if (!identical(sort(common_covs), sort(covariateColName_RCT)) ||
+      !identical(sort(common_covs), sort(covariateColName_TargetData))) {
     warning("Using intersection of covariates: ", paste(common_covs, collapse = ", "))
   }
 
@@ -88,8 +86,8 @@ characterizing_underrep <- function(
   # 1 = RCT (has Y, Tr), 0 = Target (covariates only)
   combined_rct <- data.frame(
     X_rct,
-    Y  = DataRCT[[outcome_DataRCT]],
-    Tr = DataRCT[[treatment_DataRCT]],
+    Y  = DataRCT[[outcomeColName_RCT]],
+    Tr = DataRCT[[trtColName_RCT]],
     S  = 1L
   )
   combined_tgt <- data.frame(
@@ -121,8 +119,7 @@ characterizing_underrep <- function(
     cutoff = cutoff,
     verbose = verbose,
     plot_tree = root_plot_tree,
-    objective_fn = objective_fn,   # <-- pass user-supplied objective
-    loss_fn      = loss_fn,        # <-- pass user-supplied loss if any
+    global_objective_fn = global_objective_fn,   # <-- pass user-supplied objective
     plot_tree_args = root_plot_args
   )
   if (!is.null(root_plot_args) && length(root_plot_args)) {

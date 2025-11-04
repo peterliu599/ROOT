@@ -1,4 +1,4 @@
-test_that("objective_default and loss behave and are monotone in weights", {
+test_that("objective_default and derived loss are monotone in weights", {
   D <- data.frame(vsq = c(4, 1, 9, 16), w = c(1, 1, 1, 1))
   base <- objective_default(D)
 
@@ -6,16 +6,25 @@ test_that("objective_default and loss behave and are monotone in weights", {
   D2 <- D; D2$w[which.max(D2$vsq)] <- 0
   expect_lte(objective_default(D2), base)
 
-  # loss() matches objective_default() when indices cover all rows
-  L0 <- loss(0, indices = seq_len(nrow(D)), D = D)  # all excluded → Inf
+  # Derive the micro-loss from the global objective (replaces direct calls to loss())
+  losser <- loss_from_objective(objective_default)
+
+  # loss_from_objective() matches objective_default() when indices cover all rows
+  L0 <- losser(0, indices = seq_len(nrow(D)), D = D)  # all excluded → Inf
   expect_true(is.infinite(L0))
-  L1 <- loss(1, indices = seq_len(nrow(D)), D = D)  # all included
+
+  L1 <- losser(1, indices = seq_len(nrow(D)), D = D)  # all included → equals objective_default(D)
   expect_equal(L1, objective_default(D), tolerance = 1e-12)
 
   # Local change reduces objective if we drop a high vsq row
   i_big <- which.max(D$vsq)
-  L_drop_big <- loss(0, indices = i_big, D = D)
+  L_drop_big <- losser(0, indices = i_big, D = D)
   expect_lte(L_drop_big, base)
+
+  # Sanity: the loss evaluator must not mutate D in-place
+  D_copy <- D
+  invisible(losser(0, indices = i_big, D = D_copy))
+  expect_identical(D$w, c(1, 1, 1, 1))
 })
 
 test_that("check_no_na detects NAs and returns invisibly TRUE otherwise", {
@@ -47,3 +56,9 @@ test_that("midpoint, choose_feature, and reduce_weight work", {
   expect_error(choose_feature(unname(sf), 0), "must have names")
   expect_error(reduce_weight("X9", sf), "not found")
 })
+
+
+
+
+
+

@@ -142,11 +142,11 @@ outputROOT$tree_plot
 ### Output underrepresented population characterization tree
 outputUnderrep <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
-  covariate_DataRCT     = gen$covariate_DataRCT,
-  treatment_DataRCT     = gen$treatment_DataRCT,
-  outcome_DataRCT       = gen$outcome_DataRCT,
+  covariateColName_RCT  = gen$covariate_DataRCT,
+  trtColName_RCT.       = gen$treatment_DataRCT,
+  outcomeColName_RCT    = gen$outcome_DataRCT,
   DataTarget            = gen$DataTarget,
-  covariate_DataTarget  = gen$covariate_DataTarget,
+  covariateColName_TargetData  = gen$covariate_DataTarget,
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,
@@ -190,8 +190,7 @@ outputROOT2 <- ROOT(
   top_k_trees    = FALSE,
   verbose  = TRUE,
   cutoff         = "baseline",
-  objective_fn = obj,
-  loss_fn = loss
+  global_objective_fn = obj,
 )
 summary(outputROOT2)
 outputROOT2$tree_plot
@@ -202,17 +201,16 @@ outputROOT2$tree_plot
 ### Also output tree figure from ROOT
 outputUnderrep2 <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
-  covariate_DataRCT     = gen$covariate_DataRCT,
-  treatment_DataRCT     = gen$treatment_DataRCT,
-  outcome_DataRCT       = gen$outcome_DataRCT,
+  covariateColName_RCT  = gen$covariate_DataRCT,
+  trtColName_RCT        = gen$treatment_DataRCT,
+  outcomeColName_RCT    = gen$outcome_DataRCT,
   DataTarget            = gen$DataTarget,
-  covariate_DataTarget  = gen$covariate_DataTarget,
+  covariateColName_TargetData  = gen$covariate_DataTarget,
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,
   plot_underrep         = TRUE,
-  objective_fn = obj,
-  loss_fn = loss
+  global_objective_fn = obj
 )
 summary(outputUnderrep2)
 outputUnderrep2$tree_plot_root
@@ -352,11 +350,11 @@ outputROOT.DGP$tree_plot
 ### Run characterizing_underrep function
 outputUnderrep.DGP <- characterizing_underrep(
   DataRCT               = trial,
-  covariate_DataRCT     = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
-  treatment_DataRCT     = "Tr",
-  outcome_DataRCT       = "Y",
+  covariateColName_RCT  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  trtColName_RCT        = "Tr",
+  outcomeColName_RCT    = "Y",
   DataTarget            = target,
-  covariate_DataTarget  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  covariateColName_TargetData  = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,

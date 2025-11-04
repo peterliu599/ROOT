@@ -4,16 +4,16 @@
 \alias{objective_if}
 \title{Helper: evaluate objective after a hypothetical local change}
 \usage{
-objective_if(val, indices, D, objective_fn)
+objective_if(val, indices, D, global_objective_fn)
 }
 \arguments{
 \item{val}{0/1 assignment to apply}
 
 \item{indices}{integer or rownames to receive \code{val}}
 
-\item{D}{data.frame used by \code{objective_fn}}
+\item{D}{data.frame used by \code{global_objective_fn}}
 
-\item{objective_fn}{function(D)->scalar}
+\item{global_objective_fn}{function(D)->scalar}
 }
 \value{
 numeric scalar objective after the hypothetical change

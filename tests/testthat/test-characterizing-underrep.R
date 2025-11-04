@@ -11,11 +11,11 @@ test_that("characterizing_underrep integrates ROOT and returns leaf summaries", 
 
   out <- characterizing_underrep(
     DataRCT               = DataRCT,
-    covariate_DataRCT     = covs,
-    treatment_DataRCT     = "Tr",
-    outcome_DataRCT       = "Yobs",
+    covariateColName_RCT     = covs,
+    trtColName_RCT     = "Tr",
+    outcomeColName_RCT       = "Yobs",
     DataTarget            = DataTarget,
-    covariate_DataTarget  = covs,
+    covariateColName_TargetData  = covs,
     seed                  = 99,
     num_trees             = 5,
     top_k_trees           = TRUE,
@@ -48,8 +48,8 @@ test_that("characterizing_underrep validation errors on mismatched covariates", 
 
   expect_error(
     characterizing_underrep(
-      DataRCT, covariate_DataRCT = covs, treatment_DataRCT = "Tr", outcome_DataRCT = "Yobs",
-      DataTarget, covariate_DataTarget = covs
+      DataRCT, covariateColName_RCT = covs, trtColName_RCT = "Tr", outcomeColName_RCT = "Yobs",
+      DataTarget, covariateColName_TargetData = covs
     ),
     "Missing target covariates"
   )

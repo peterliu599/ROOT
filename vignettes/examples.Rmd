@@ -137,11 +137,11 @@ summary(outputROOT)
 ```{r}
 outputUnderrep <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
-  covariate_DataRCT     = gen$covariate_DataRCT,
-  treatment_DataRCT     = gen$treatment_DataRCT,
-  outcome_DataRCT       = gen$outcome_DataRCT,
+  covariateColName_RCT  = gen$covariate_DataRCT,
+  trtColName_RCT        = gen$treatment_DataRCT,
+  outcomeColName_RCT    = gen$outcome_DataRCT,
   DataTarget            = gen$DataTarget,
-  covariate_DataTarget  = gen$covariate_DataTarget,
+  covariateColName_TargetData  = gen$covariate_DataTarget,
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,
@@ -150,7 +150,7 @@ outputUnderrep <- characterizing_underrep(
 summary(outputUnderrep)
 ```
 
-## Using a new loss function and the same data sets, visualize final characterized tree from Rashomon Set
+## Using a new global objective/loss function and the same data sets, visualize final characterized tree from Rashomon Set
 
 ```{r}
 # Factory returning an objective_fn(D) -> scalar
@@ -168,7 +168,7 @@ objective_variance_plus_drop <- function(lambda = 0.05) {
 }
 obj <- objective_variance_plus_drop(lambda = 0.05)
 
-### Run ROOT directly using an arbitrary data with a user-specified loss function
+### Run ROOT directly using an arbitrary data with a user-specified global objective/loss function
 outputROOT2 <- ROOT(
   data     = gen$D_root,
   outcome  = "Yobs",
@@ -183,14 +183,13 @@ outputROOT2 <- ROOT(
   top_k_trees    = FALSE,
   verbose  = TRUE,
   cutoff         = "baseline",
-  objective_fn = obj,
-  loss_fn = NULL
+  global_objective_fn = obj,
 )
 summary(outputROOT2)
 ```
 
 
-## Using a new loss function and the same data sets, visualize underrepresented population in characterization tree
+## Using a new global objective/loss function and the same data sets, visualize underrepresented population in characterization tree
 
 ```{r}
 ### Run characterizing_underrep function with a user-specified loss function
@@ -198,17 +197,16 @@ summary(outputROOT2)
 ### Also output tree figure from ROOT
 outputUnderrep2 <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
-  covariate_DataRCT     = gen$covariate_DataRCT,
-  treatment_DataRCT     = gen$treatment_DataRCT,
-  outcome_DataRCT       = gen$outcome_DataRCT,
+  covariateColName_RCT  = gen$covariate_DataRCT,
+  trtColName_RCT        = gen$treatment_DataRCT,
+  outcomeColName_RCT    = gen$outcome_DataRCT,
   DataTarget            = gen$DataTarget,
-  covariate_DataTarget  = gen$covariate_DataTarget,
+  covariateColName_TargetData  = gen$covariate_DataTarget,
   num_trees             = 50,
   seed                  = 3,
   verbose               = TRUE,
   plot_underrep         = TRUE,
-  objective_fn = obj,
-  loss_fn = NULL
+  global_objective_fn = obj,
 )
 summary(outputUnderrep2)
 ```
