@@ -29,10 +29,10 @@ test_that("ROOT runs in two-sample mode and returns structured outputs", {
   expect_true(length(out$rashomon_set) >= 1L)
   expect_true(all(out$D_rash$w_opt %in% 0:1))
 
-  # Estimates present with labels and SDs
+  # Estimates present with labels and SEs
   est <- out$estimate
-  expect_true(all(c("estimand_unweighted","value_unweighted","sd_unweighted",
-                    "estimand_weighted","value_weighted","sd_weighted",
+  expect_true(all(c("estimand_unweighted","value_unweighted","se_unweighted",
+                    "estimand_weighted","value_weighted","se_weighted",
                     "n_analysis","sum_w") %in% names(est)))
   expect_true(is.numeric(est$value_unweighted))
   expect_true(is.numeric(est$value_weighted) || is.na(est$value_weighted))

@@ -59,7 +59,7 @@ vector of importances; normalized to probabilities (default "Ridge").}
 \item{cutoff}{If \code{top_k_trees = FALSE}, numeric cutoff or "baseline" (default "baseline").
 With "baseline", the cutoff is computed by evaluating \code{objective_fn} on the state with all \code{w=1}.}
 
-\item{verbose}{If TRUE, prints 2 lines with (unweighted and weighted) estimate + SD. Default FALSE.}
+\item{verbose}{If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.}
 
 \item{objective_fn}{Function \code{function(D) -> numeric} that scores the \strong{entire state} (minimize).
 Default \code{objective_default()} reproduces prior behavior (SE proxy of PATE/TATE using \code{vsq} and \code{w}).}

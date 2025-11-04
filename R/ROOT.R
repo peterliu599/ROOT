@@ -19,7 +19,7 @@
 #' @param k Number of top trees if `top_k_trees = TRUE` (default 10).
 #' @param cutoff If `top_k_trees = FALSE`, numeric cutoff or "baseline" (default "baseline").
 #'   With "baseline", the cutoff is computed by evaluating `objective_fn` on the state with all `w=1`.
-#' @param verbose If TRUE, prints 2 lines with (unweighted and weighted) estimate + SD. Default FALSE.
+#' @param verbose If TRUE, prints 2 lines with (unweighted and weighted) estimate + SE. Default FALSE.
 #' @param plot_tree If TRUE, plots the characterized tree (default TRUE). Guarded by `interactive()`.
 #' @param plot_tree_args Named list forwarded to `rpart.plot::rpart.plot()`.
 #' @param objective_fn Function \code{function(D) -> numeric} that scores the **entire state** (minimize).
@@ -305,32 +305,35 @@ ROOT <- function(data,
     }
   }
 
-  # Estimands: unweighted vs weighted (with SDs)
-  in_S <- if (single_sample_mode) rep(TRUE, n) else (S_vec == 1L)
+  # Estimands: unweighted vs weighted (with SEs only)
+  in_S  <- if (single_sample_mode) rep(TRUE, n) else (S_vec == 1L)
   v_sel <- v_vals[in_S]
   w_sel <- if ("w_opt" %in% names(D_rash)) D_rash$w_opt[in_S] else rep(1L, length(v_sel))
 
-  # Unweighted (ATE in RCT or TATE): average v over analysis set; SD = sd(v)
+  ## Unweighted (ATE in RCT or TATE)
   est_label_unw <- if (single_sample_mode) "SATE" else "TATE"
   mu_unw <- mean(v_sel, na.rm = TRUE)
-  sd_unw <- stats::sd(v_sel, na.rm = TRUE)
+  n_eff_unw <- sum(!is.na(v_sel))
+  # SE = sqrt( var / n ), where var() uses Bessel correction (n-1)
+  se_unw <- if (n_eff_unw > 1) sqrt(stats::var(v_sel, na.rm = TRUE) / n_eff_unw) else NA_real_
 
-  # Weighted (Weighte ATE in RCT or WTATE): renormalized by sum(w); SD = sqrt( sum w*(v-mu)^2 / sum w )
+  ## Weighted (WATE in RCT or WTATE) — binary weights assumed
   est_label_w <- if (single_sample_mode) "WATE" else "WTATE"
-  den_w <- sum(w_sel, na.rm = TRUE)
+  den_w <- sum(w_sel, na.rm = TRUE)  # effective n when w ∈ {0,1}
   if (isTRUE(den_w > 0)) {
     mu_w <- sum(w_sel * v_sel, na.rm = TRUE) / den_w
-    sd_w <- sqrt( sum(w_sel * (v_sel - mu_w)^2, na.rm = TRUE) / den_w )
+    # SE of weighted mean (binary weights): sqrt( sum w*(v - mu)^2 / den_w^2 )
+    se_w <- sqrt( sum(w_sel * (v_sel - mu_w)^2, na.rm = TRUE) / (den_w^2) )
   } else {
-    mu_w <- NA_real_; sd_w <- NA_real_
+    mu_w <- NA_real_; se_w <- NA_real_
   }
 
   if (verbose) {
-    message(sprintf("%s (unweighted) = %.6f, SD = %.6f", est_label_unw, mu_unw, sd_unw))
-    message(sprintf("%s (weighted)   = %.6f, SD = %.6f", est_label_w,   mu_w,   sd_w))
+    message(sprintf("%s (unweighted) = %.6f, SE = %.6f", est_label_unw, mu_unw, se_unw))
+    message(sprintf("%s (weighted)   = %.6f, SE = %.6f", est_label_w,   mu_w,   se_w))
   }
 
-  # Assemble result
+  # Assemble result (SEs only; SDs removed)
   results <- list(
     D_rash = D_rash,
     D_forest = D_forest,
@@ -342,10 +345,10 @@ ROOT <- function(data,
     estimate = list(
       estimand_unweighted = est_label_unw,
       value_unweighted    = mu_unw,
-      sd_unweighted       = sd_unw,
+      se_unweighted       = se_unw,
       estimand_weighted   = est_label_w,
       value_weighted      = mu_w,
-      sd_weighted         = sd_w,
+      se_weighted         = se_w,
       n_analysis          = sum(in_S),
       sum_w               = den_w
     )

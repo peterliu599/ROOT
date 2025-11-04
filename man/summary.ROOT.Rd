@@ -12,32 +12,29 @@
 \item{...}{Unused; included for S3 compatibility.}
 }
 \value{
-The input \code{object}, \emph{invisibly}. Printed output is a human-readable
-summary suitable for console use and logs.
+The input \code{object}, invisibly. Printed output is a human-readable summary.
 }
 \description{
 Summarizes a \code{ROOT} object by reporting the primary estimands and key
 model diagnostics. The first two lines report:
 \enumerate{
 \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
-and its standard deviation (SD);
+and its \strong{standard error (SE)};
 \item the \strong{weighted} estimate (Weighted ATE in RCT or WTATE, using the learned subgroup
-weights \code{w_opt}) and its SD.
+weights \code{w_opt}) and its \strong{SE}.
 }
-Subsequent lines describe the estimand tyoe, number of trees, size of the Rashomon set,
+Subsequent lines describe the estimand type, number of trees, size of the Rashomon set,
 presence of a summary tree, covariate count, observation count, baseline loss,
 selected-tree losses, and the proportion kept by \code{w_opt}.
 }
 \details{
-The method prefers pre-computed estimates under \code{object$estimate} (as stored by
-\code{ROOT()}). If unavailable, it recomputes:
+This method prefers pre-computed estimates under \code{object$estimate} (as stored by \code{ROOT()}).
+If unavailable, it recomputes:
 \itemize{
 \item Unweighted mean as \eqn{\mathrm{mean}(v)} over the analysis set
 (all rows in single-sample; \code{S==1} in two-sample);
-\item Unweighted SD as \eqn{\mathrm{sd}(v)} on the same set;
+\item Unweighted SE as \eqn{\sqrt{\mathrm{var}(v)/(n)}} on the same set;
 \item Weighted mean as \eqn{\sum w v / \sum w} where \code{w = w_opt} (binary),
-and weighted SD as \eqn{\sqrt{\sum w (v - \bar v_w)^2 / \sum w}}.
+and weighted SE as \eqn{\sqrt{\sum w (v - \bar v_w)^2}/\sum w}.
 }
-The unweighted line corresponds to ATE in RCT/TATE, while the weighted
-line corresponds to Weighted ATE in RCT/WTATE over the selected subgroup.
 }
