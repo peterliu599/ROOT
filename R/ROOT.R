@@ -23,9 +23,8 @@
 #' @param plot_tree If TRUE, plots the characterized tree (default TRUE). Guarded by `interactive()`.
 #' @param plot_tree_args Named list forwarded to `rpart.plot::rpart.plot()`.
 #' @param global_objective_fn Function `function(D) -> numeric` scoring the entire state (minimize).
-#'   **Note:** Weighted SEs (WATE/WTATE) are printed only when this is `objective_default`.
-#'   If you pass a custom objective, the weighted SE is omitted and set to `NA`
-#'   in the return value; please compute your own SE/variance in that case.
+#'   Note: Weighted SEs (WATE/WTATE) are printed only when weights are binary (subset-mean). For non-binary
+#'   weights (custom objectives), SE is omitted by default.
 #'
 #' @return S3 object of class "ROOT" with components:
 #'   D_rash, D_forest, w_forest, rashomon_set, f, testing_data, tree_plot, estimate
@@ -54,10 +53,6 @@ ROOT <- function(data,
                    main = "Final Characterized Tree from Rashomon Set"
                  )
 ) {
-
-  # Flag whether we're using the package's default objective
-  is_default_objective <- identical(global_objective_fn, objective_default)
-
   # Helpers
   coerce01 <- function(x, allow_na = TRUE) {
     if (is.numeric(x) || is.logical(x)) return(as.integer(x))
@@ -310,43 +305,89 @@ ROOT <- function(data,
 
   ## Unweighted (ATE in RCT or TATE)
   est_label_unw <- if (single_sample_mode) "SATE" else "TATE"
-  mu_unw <- mean(v_sel, na.rm = TRUE)
-  n_eff_unw <- sum(!is.na(v_sel))
-  se_unw <- if (n_eff_unw > 1) sqrt(stats::var(v_sel, na.rm = TRUE) / n_eff_unw) else NA_real_
+  ok_unw   <- !is.na(v_sel)
+  n_eff_unw <- sum(ok_unw)
+  mu_unw   <- if (n_eff_unw > 0) mean(v_sel[ok_unw]) else NA_real_
+  # SE(tbar) = sqrt( 1 / ( n * (n - 1) ) * sum_i (t_i - tbar)^2 )
+  se_unw <- if (n_eff_unw > 1) {
+    diffs2 <- (v_sel[ok_unw] - mu_unw)^2
+    sqrt( sum(diffs2) / (n_eff_unw * (n_eff_unw - 1)) )
+  } else NA_real_
 
   ## Weighted (WATE in RCT or WTATE)
   est_label_w <- if (single_sample_mode) "WATE" else "WTATE"
-  den_w <- sum(w_sel, na.rm = TRUE)
 
-  if (isTRUE(den_w > 0)) {
-    mu_w <- sum(w_sel * v_sel, na.rm = TRUE) / den_w
-    if (is_default_objective) {
-      # Standard SE under objective_default (matches the objective)
-      se_w <- sqrt(sum(w_sel * (v_sel - mu_w)^2, na.rm = TRUE)) / den_w
+  # Is the final weight vector binary? (subset-mean WTATE is appropriate only then)
+  is_binary_w <- all(is.na(w_sel) | (w_sel %in% c(0, 1)))
+  # For completeness, still compute weighted mean even if non-binary
+  den_w_any <- sum(w_sel, na.rm = TRUE)
+  mu_w_any  <- if (den_w_any > 0) sum(w_sel * v_sel, na.rm = TRUE) / den_w_any else NA_real_
+
+  if (is_binary_w) {
+    # Subset mean over A = {w_opt == 1}
+    ok_w <- ok_unw & !is.na(w_sel) & (w_sel == 1L)
+    n_A  <- sum(ok_w)
+    den_w <- sum(w_sel == 1L, na.rm = TRUE)  # equals n_A for binary w
+    if (n_A > 0) {
+      mu_w <- mean(v_sel[ok_w])
+      # SE(vbar_A) = sqrt( 1 / { n_A * (n_A - 1) } * sum_{i in A} (v_i - vbar_A)^2 )
+      se_w <- if (n_A > 1) {
+        diffs2_A <- (v_sel[ok_w] - mu_w)^2
+        sqrt( sum(diffs2_A) / (n_A * (n_A - 1)) )
+      } else NA_real_
+
+      # Compose the explanatory note that will always print under WTATE
+      se_w_note <- paste0(
+        "Calculation of SE for WTATE uses sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
+        "  Here A = { i : w_i = 1 }, n_A = |A|, v_i are unit-level orthogonal scores, and vbar_A is their mean. \n"
+        )
+
+      if (!identical(global_objective_fn, objective_default)) {
+        se_w_note <- paste0(
+          se_w_note,
+          "\nYou supplied a custom global_objective_fn; please verify this SE matches your ",
+          "estimand, or perform additional variance analysis (e.g., bootstrap or ",
+          "influence-function methods)."
+        )
+      }
     } else {
-      # Custom objective: do not report SE for weighted estimand
-      se_w <- NA_real_
+      mu_w <- NA_real_; se_w <- NA_real_
+      den_w <- 0L
+      se_w_note <- "SE omitted: no kept observations (A = { i : w_i = 1 } is empty)."
     }
   } else {
-    mu_w <- NA_real_
-    se_w <- NA_real_
+    # Non-binary weights: subset-mean SE is not appropriate.
+    mu_w <- mu_w_any
+    den_w <- den_w_any
+    n_A   <- NA_integer_
+    se_w  <- NA_real_
+    se_w_note <- paste0(
+      "SE omitted: non-binary weights detected; the subset-mean SE above is not appropriate.",
+      " If you intentionally use a custom global_objective_fn with non-binary weights, ",
+      " please conduct further variance analysis tailored to that objective."
+    )
+    warning("Non-binary w_opt detected; omitting weighted SE.", call. = FALSE)
   }
 
+  # Verbose printing
   if (verbose) {
     message(sprintf("%s (unweighted) = %.6f, SE = %.6f", est_label_unw, mu_unw, se_unw))
-    if (is_default_objective) {
-      message(sprintf("%s (weighted)   = %.6f, SE = %.6f", est_label_w,   mu_w,   se_w))
+    if (is.finite(se_w) || (!is.na(se_w) && !is.nan(se_w))) {
+      message(sprintf("%s (weighted)   = %.6f, SE = %.6f", est_label_w, mu_w, se_w))
+      message(paste0("  Note: ", se_w_note))
     } else {
-      message(sprintf("%s (weighted)   = %.6f (SE omitted: custom global_objective_fn supplied; please compute your own SE).",
-                      est_label_w, mu_w))
+      message(sprintf("%s (weighted)   = %.6f", est_label_w, mu_w))
+      message(paste0("  Note: ", se_w_note))
     }
   }
+
   # Assemble result (SEs only; SDs removed)
   results <- list(
     D_rash = D_rash,
     D_forest = D_forest,
     w_forest = w_forest,
     rashomon_set = rashomon_set,
+    global_objective_fn = global_objective_fn,
     f = final_classifier,
     testing_data = testing_data,
     tree_plot = tree_plot,
@@ -357,11 +398,10 @@ ROOT <- function(data,
       estimand_weighted   = est_label_w,
       value_weighted      = mu_w,
       se_weighted         = se_w,
-      se_weighted_note    = if (!is_default_objective)
-        "SE omitted: custom global_objective_fn; provide your own variance/SE."
-      else "SE computed under objective_default.",
+      se_weighted_note    = se_w_note,  # <- keep the exact note we printed
       n_analysis          = sum(in_S),
-      sum_w               = den_w
+      sum_w               = den_w,
+      n_A                 = if (is_binary_w) n_A else NA_integer_
     )
   )
   results$single_sample_mode <- single_sample_mode

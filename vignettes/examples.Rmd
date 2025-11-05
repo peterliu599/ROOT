@@ -193,8 +193,6 @@ summary(outputROOT2)
 
 ```{r}
 ### Run characterizing_underrep function with a user-specified loss function
-### Output underrepresented population characterization tree
-### Also output tree figure from ROOT
 outputUnderrep2 <- characterizing_underrep(
   DataRCT               = gen$DataRCT,
   covariateColName_RCT  = gen$covariate_DataRCT,

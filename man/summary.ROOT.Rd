@@ -20,25 +20,26 @@ model diagnostics. The first lines report:
 \enumerate{
 \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
 and its \strong{standard error (SE)};
-\item the \strong{weighted} estimate (Weighted ATE in RCT or WTATE using \code{w_opt}) and its
-\strong{SE} \emph{when the default objective is used}; if a custom
-\code{global_objective_fn} was supplied in \code{ROOT()}, the weighted SE is omitted.
+\item the \strong{weighted} estimate (WATE in RCT or WTATE using \code{w_opt}) and its
+\strong{SE} whenever \code{w_opt} is effectively \emph{binary} (subset-mean SE);
+if \code{w_opt} is non-binary, the SE is omitted with a note.
 }
 Subsequent lines describe the estimand type, number of trees, size of the Rashomon set,
 presence of a summary tree, covariate count, observation count, baseline loss,
 selected-tree losses, and the proportion kept by \code{w_opt}.
 }
 \details{
-This method prefers pre-computed estimates in \code{object$estimate} (as stored by \code{ROOT()}).
-If unavailable, it recomputes:
+This method prefers pre-computed estimates. If unavailable, it recomputes:
 \itemize{
 \item Unweighted effect as \eqn{\bar v}{mean(v)} over the analysis set
-(all rows in single-sample; \code{S == 1} in two-sample);
-\item Unweighted SE as \eqn{\sqrt{\frac{1}{n}\sum_{i=1}^n (v_i - \bar v)^2}}{sqrt(var(v)/n)}
-on the same set;
-\item Weighted effect as \eqn{\frac{\sum_i w_i v_i}{\sum_i w_i}}{sum(w*v)/sum(w)},
-where \code{w = w\_opt} (binary);
-\item Weighted SE as \eqn{\frac{\sqrt{\sum_i w_i (v_i - \bar v_w)^2}}{\sum_i w_i}}{sqrt(sum(w*(v-mu_w)^2))/sum(w)},
-printed only when the default objective was used.
+(all rows in single-sample; \code{S = 1} in two-sample);
+\item Unweighted SE as \eqn{\sqrt{ \frac{1}{n(n-1)} \sum (v_i - \bar v)^2 }}
+{\code{sqrt( sum((v - vbar)^2) / ( n * (n - 1) ) )}};
+\item Weighted effect when \code{w_opt} is binary, with
+\eqn{A = \{ i : w_i = 1 \}}{\code{A <- which(w == 1)}}, i.e.
+\eqn{\bar v_A = \frac{1}{n_A}\sum_{i \in A} v_i}{\code{mean(v[w == 1])}};
+\item Weighted SE (WTATE/WATE), for binary \code{w_opt}, as
+\eqn{\sqrt{ \frac{1}{n_A(n_A-1)} \sum_{i \in A} (v_i - \bar v_A)^2 }}
+{\code{sqrt( sum( (v[w == 1] - vbarA)^2 ) / ( nA * (nA - 1) ) )}}.
 }
 }
