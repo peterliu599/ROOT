@@ -27,6 +27,14 @@ jobs:
           extra-packages: any::covr, any::xml2
           needs: coverage
 
+      - name: Debug Codecov token
+        run: |
+          echo "Token prefix:"
+          echo "${CODECOV_TOKEN:0:6}"
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+
       - name: Test coverage
         run: |
           cov <- covr::package_coverage(
