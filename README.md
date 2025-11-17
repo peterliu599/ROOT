@@ -51,16 +51,12 @@ population**.
 
 ------------------------------------------------------------------------
 
-## Requirements
+## Installation
 
-Core packages: `mlbench`, `rpart`, `MASS`, `withr`, `dplyr` Optional:
-`gbm`, `ggplot2`
+You can install the development version of `ROOT` from
+[GitHub](https://github.com/) with:
 
 ``` r
-pkgs <- c("mlbench","rpart","MASS","gbm","rpart.plot","ggplot2","dplyr","withr")
-inst <- pkgs[!pkgs %in% installed.packages()[,1]]
-if (length(inst)) install.packages(inst, repos = "https://cloud.r-project.org")
-invisible(lapply(pkgs, library, character.only = TRUE))
-
-remotes::install_github("peterliu599/ROOT-R-Package")
+# install.packages("devtools")
+devtools::install_github("peterliu599/ROOT-R-Package")
 ```
