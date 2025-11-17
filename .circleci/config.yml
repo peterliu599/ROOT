@@ -15,7 +15,9 @@ jobs:
       - run:
           name: Run tests and collect coverage
           command: pytest --cov api.calculator
-      - codecov/upload
+      - codecov/upload:
+          token: CODECOV_TOKEN
+
 
 workflows:
   version: 2.1
