@@ -1,0 +1,66 @@
+ROOT: Weighted Trees/Forests for ROOT-style Functional Optimization
+================
+
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml)
+[![Codecov test
+coverage](https://codecov.io/gh/peterliu599/ROOT-R-Package/graph/badge.svg)](https://app.codecov.io/gh/peterliu599/ROOT-R-Package)
+<!-- badges: end -->
+
+# Overview
+
+**ROOT (Rashomon set of Optimal Trees)** is a **general functional
+optimization framework** for learning interpretable binary weight
+functions, represented as sparse decision trees.
+
+At its core, ROOT searches over functions $w(X) \in \{0,1\}$ that assign
+inclusion or exclusion weights to units based on their covariates $X$.
+The optimization objective (or **loss function**) can be chosen to
+reflect different scientific goals.
+
+- **Framework flexibility:** By substituting different loss functions,
+  ROOT can be applied to diverse settings.
+- **Interpretability:** Solutions are restricted to sparse decision
+  trees, ensuring outputs are human-readable and suitable for
+  communication with collaborators.  
+- **Rashomon principle:** Rather than return a single solution, ROOT
+  identifies a **Rashomon set** of near-optimal trees, highlighting
+  multiple plausible explanations. A **characteristic tree** can then be
+  extracted to summarize common patterns.
+
+------------------------------------------------------------------------
+
+## ROOT for generalizability
+
+The original ROOT paper demonstrates this framework in the context of
+**generalizing causal effects from randomized trials to a target
+population**.
+
+- **Problem:** Randomized trials are internally valid but often differ
+  from the target population. If trial participants underrepresent
+  certain effect-modifying subgroups, estimates of the **Target Average
+  Treatment Effect (TATE)** can be imprecise or misleading.  
+- **Solution:** ROOT introduces a refined estimand, the **Weighted
+  Target Average Treatment Effect (WTATE)**, defined over the subset of
+  the population that is sufficiently represented.
+  - Units are either included ($w(X) = 1$) or excluded ($w(X) = 0$)
+    according to learned tree-structured rules.  
+  - The loss function is designed to minimize the variance of the
+    estimator while retaining as much of the target population as
+    possible.  
+- **Interpretation:** ROOT’s decision trees explicitly describe *who is
+  underrepresented* and *why they are excluded*. The Rashomon set
+  provides multiple, equally valid ways of describing these subgroups.
+
+------------------------------------------------------------------------
+
+## Installation
+
+You can install the development version of `ROOT` from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("peterliu599/ROOT-R-Package")
+```
