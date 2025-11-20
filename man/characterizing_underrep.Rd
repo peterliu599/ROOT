@@ -107,3 +107,8 @@ summary(res)
 plot(res)
 }
 }
+\references{
+Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025).
+Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population.
+\emph{Journal of the American Statistical Association}, 1-32.
+}

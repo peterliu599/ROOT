@@ -31,6 +31,11 @@
 #'   \item{combined}{The combined data frame (RCT + Target) used for analysis.}
 #'   \item{leaf_summary}{A data frame summarizing the terminal nodes (rules, counts, and labels).}
 #'
+#' @references
+#' Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025).
+#' Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population.
+#' \emph{Journal of the American Statistical Association}, 1-32.
+#'
 #' @examples
 #' \dontrun{
 #' # Load example data
