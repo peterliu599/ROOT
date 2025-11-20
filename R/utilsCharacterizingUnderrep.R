@@ -32,12 +32,6 @@ summary.characterizing_underrep <- function(object, ...) {
     print(prev, row.names = FALSE)
     if (nrow(object$leaf_summary) > 10) cat("  ...\n")
   }
-
-  # Plots availability
-  cat("  Plots available:\n")
-  cat("    * ROOT tree:          ", if (!is.null(object$tree_plot_root))     "yes" else "no", "\n", sep = "")
-  cat("    * Underrep tree:      ", if (!is.null(object$tree_plot_underrep)) "yes" else "no", "\n", sep = "")
-
   invisible(object)
 }
 
@@ -54,8 +48,11 @@ summary.characterizing_underrep <- function(object, ...) {
 #' @return No return value; draws a plot.
 #' @importFrom rpart.plot prp
 #' @importFrom graphics par legend
+#' @importFrom stats predict
+#' @importFrom stats setNames
 #' @export
 plot.characterizing_underrep <- function(x, ...) {
+  # --- 1. Safety Checks ---
   if (is.null(x$root$f)) {
     message("No summary tree available to plot (possibly no covariates or tree failed to grow).")
     return(invisible(NULL))
@@ -65,85 +62,109 @@ plot.characterizing_underrep <- function(x, ...) {
   frm <- f$frame
   is_leaf <- frm$var == "<leaf>"
 
-  # --- colors
-  col_keep <- "#4E79A7" # represented (w=1)
-  col_drop <- "#F28E2B" # underrepresented (w=0)
+  # --- 2. Identify the 'Represented' (w=1) Class Index ---
+  # We need to know if 'yval=1' means Represented or if 'yval=2' means Represented.
+  ylevels <- attr(f, "ylevels")
+  if (is.null(ylevels)) ylevels <- f$ylevels
 
-  # helper to interpret labels as "keep"
-  is_keep_label <- function(lbl) {
-    lbl %in% c("1", "1.0", "1L", "TRUE", "True", "yes", "Yes", "w=1", "keep")
+  pos_class_idx <- 2 # Default assumption: 2nd level is '1' (e.g. levels are "0", "1")
+
+  if (!is.null(ylevels)) {
+    # Robustly find the level named "1", "w=1", "yes", etc.
+    # This handles cases where levels might be c("1", "0") or c("No", "Yes")
+    hits <- which(tolower(ylevels) %in% c("1", "w=1", "yes", "represented", "keep", "true"))
+    if (length(hits) > 0) {
+      pos_class_idx <- hits[1]
+    } else {
+      # Fallback: use the last level (standard R behavior for 0 vs 1)
+      pos_class_idx <- length(ylevels)
+    }
   }
 
-  # Determine predicted class/value at leaves and map to keep/drop
-  keep_leaf <- rep(FALSE, nrow(frm))
-  if (!is.null(f$ylevels)) {
-    # classification tree: yval indexes into ylevels
-    ylv <- f$ylevels
-    leaf_lbl <- character(nrow(frm))
-    leaf_lbl[is_leaf] <- ylv[frm$yval[is_leaf]]
-    keep_leaf[is_leaf] <- is_keep_label(leaf_lbl[is_leaf])
+  # --- 3. Determine Status using rpart's predicted class (yval) ---
+  # This guarantees the color matches the tree's actual decision (0 or 1).
+  if (!is.null(ylevels)) {
+    # Classification: Node is represented if its predicted class index matches the positive index
+    is_represented <- (frm$yval == pos_class_idx)
   } else {
-    # regression/probability tree: treat >= 0.5 as keep
-    keep_leaf[is_leaf] <- frm$yval[is_leaf] >= 0.5
+    # Regression: Node is represented if prediction >= 0.5
+    is_represented <- (frm$yval >= 0.5)
   }
 
-  box_col <- rep(NA_character_, nrow(frm))
-  box_col[is_leaf] <- ifelse(keep_leaf[is_leaf], col_keep, col_drop)
+  # --- 4. Define Colors ---
+  col_keep <- "#4E79A7" # Blue   (Represented)
+  col_drop <- "#F28E2B" # Orange (Underrepresented)
 
+  # Create a color vector for all nodes (initially white)
+  box_col <- rep("white", nrow(frm))
+
+  # Color only the leaves based on status
+  box_col[is_leaf] <- ifelse(is_represented[is_leaf], col_keep, col_drop)
+
+  # --- 5. Custom Labeling Function ---
   total_n <- frm$n[1]
 
-  # --- IMPORTANT: the formal args must be (x, labs, digits, varlen)
   node_fun <- function(x, labs, digits, varlen) {
-    fr <- x$frame
-    is_leaf <- fr$var == "<leaf>"
-    # percent of total in each node
-    pct <- if (total_n > 0) fr$n / total_n else 0
+    rows <- x$frame
+    out  <- character(nrow(rows))
+    pct  <- if (total_n > 0) rows$n / total_n else 0
 
-    out <- character(nrow(fr))
-    for (i in seq_len(nrow(fr))) {
-      if (is_leaf[i]) {
-        pct_str <- sprintf("%.0f%%", 100 * pct[i])
-        if (keep_leaf[i]) {
-          out[i] <- pct_str
+    for (i in seq_len(nrow(rows))) {
+      if (rows$var[i] == "<leaf>") {
+        # Re-check representation status for this specific node
+        node_yval <- rows$yval[i]
+
+        # Determine if this node is "Represented"
+        node_is_rep <- FALSE
+        if (!is.null(ylevels)) {
+          node_is_rep <- (node_yval == pos_class_idx)
         } else {
-          out[i] <- paste0("UNDERREP\n", pct_str)
+          node_is_rep <- (node_yval >= 0.5)
+        }
+
+        pct_str <- sprintf("%.0f%%", 100 * pct[i])
+
+        # Apply the requested labels
+        if (node_is_rep) {
+          out[i] <- paste0("REPRESENTED\n", pct_str)
+        } else {
+          out[i] <- paste0("UNDERREPRESENTED\n", pct_str)
         }
       } else {
-        out[i] <- labs[i]  # use prp's default split text for internal nodes
+        # Internal nodes get standard split labels
+        out[i] <- labs[i]
       }
     }
     out
   }
 
+  # --- 6. Plot Arguments ---
   args <- list(...)
-  if (is.null(args$type))             args$type <- 2
-  if (is.null(args$extra))            args$extra <- 0
-  if (is.null(args$under))            args$under <- TRUE
-  if (is.null(args$faclen))           args$faclen <- 0
-  if (is.null(args$tweak))            args$tweak <- 1.1
-  if (is.null(args$fallen.leaves))    args$fallen.leaves <- TRUE
-  if (is.null(args$shadow.col))       args$shadow.col <- "gray"
-  if (is.null(args$branch.lty))       args$branch.lty <- 3
-  if (is.null(args$split.border.col)) args$split.border.col <- "gray40"
-  if (is.null(args$branch.col))       args$branch.col <- "gray40"
-  if (is.null(args$roundint))         args$roundint <- FALSE
-  if (is.null(args$main))             args$main <- "Underrepresented Population Characterization Tree"
+  # Set defaults if not provided by user
+  if (is.null(args$type))          args$type <- 2
+  if (is.null(args$extra))         args$extra <- 0
+  if (is.null(args$under))         args$under <- TRUE
+  if (is.null(args$tweak))         args$tweak <- 1.1
+  if (is.null(args$fallen.leaves)) args$fallen.leaves <- TRUE
+  if (is.null(args$shadow.col))    args$shadow.col <- "gray"
 
+  # Force our calculated values
   args$x <- f
   args$box.col <- box_col
   args$node.fun <- node_fun
-  args$split.box.col <- NA
+  args$split.box.col <- NA # Transparent background for split labels
 
+  # Draw the plot
   do.call(rpart.plot::prp, args)
 
-  old_par <- graphics::par(xpd = NA)
-  on.exit(graphics::par(old_par), add = TRUE)
+  # Legend
+  op <- graphics::par(xpd = NA); on.exit(graphics::par(op), add = TRUE)
   graphics::legend(
     "topleft",
     legend = c("w(x) = 1 Represented", "w(x) = 0 Underrepresented"),
-    fill = c(col_keep, col_drop),
-    border = NA,
-    bty = "n",
-    cex = 0.9
+    fill   = c(col_keep, col_drop),
+    border = NA, bty = "n", cex = 0.9
   )
+
+  invisible(NULL)
 }
