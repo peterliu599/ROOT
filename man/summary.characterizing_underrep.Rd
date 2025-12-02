@@ -12,14 +12,38 @@
 \item{...}{Unused; included for S3 compatibility.}
 }
 \value{
-\code{object}, invisibly.
+\code{object}
 }
 \description{
-Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
+Summarizes the \code{ROOT} summary (un/weighted estimates with standard errors; the
 \emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
 and a brief overview of terminal rules from the annotated summary tree, if available.
 }
 \details{
 Delegates core statistics to \code{summary(object$root)}; previews up to
 ten terminal rules when a summary tree exists, and reports plot availability.
+}
+\examples{
+\dontrun{
+# Load example data
+data(diabetes_data)
+
+# Split into Trial (S=1) and Target (S=0)
+trial  <- subset(diabetes_data, S == 1)
+target <- subset(diabetes_data, S == 0)
+
+# Run characterization
+res <- characterizing_underrep(
+  DataRCT = trial,
+  covariateColName_RCT = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  trtColName_RCT = "Tr",
+  outcomeColName_RCT = "Y",
+  DataTarget = target,
+  covariateColName_TargetData = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+  seed = 123
+)
+
+# View Summary
+summary(res)
+}
 }

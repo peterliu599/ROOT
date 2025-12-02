@@ -55,12 +55,6 @@
 #'   covariateColName_TargetData = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
 #'   seed = 123
 #' )
-#'
-#' # View Summary
-#' summary(res)
-#'
-#' # Plot the annotated tree
-#' plot(res)
 #' }
 #' @export
 characterizing_underrep <- function(

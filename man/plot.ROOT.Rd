@@ -17,3 +17,15 @@ No return value; the plot is drawn to the active graphics device.
 \description{
 Visualizes the decision tree that characterizes the weighted subgroup identified by ROOT.
 }
+\examples{
+\dontrun{
+# Load example data
+data(diabetes_data)
+
+# Run ROOT
+res <- ROOT(data = diabetes_data, outcome = "Y", treatment = "Tr", sample = "S")
+
+# Plot characterization tree
+plot(res)
+}
+}

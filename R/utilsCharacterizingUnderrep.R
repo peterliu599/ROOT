@@ -1,18 +1,42 @@
 #' Summarize a characterizing_underrep fit
 #'
-#' Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
+#' Summarizes the \code{ROOT} summary (un/weighted estimates with standard errors; the
 #' \emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
 #' and a brief overview of terminal rules from the annotated summary tree, if available.
 #'
 #' @param object A \code{characterizing_underrep} object.
 #' @param ... Unused; included for S3 compatibility.
 #'
-#' @return \code{object}, invisibly.
+#' @return \code{object}
 #'
 #' @details Delegates core statistics to \code{summary(object$root)}; previews up to
 #'   ten terminal rules when a summary tree exists, and reports plot availability.
 #'
 #' @method summary characterizing_underrep
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Split into Trial (S=1) and Target (S=0)
+#' trial  <- subset(diabetes_data, S == 1)
+#' target <- subset(diabetes_data, S == 0)
+#'
+#' # Run characterization
+#' res <- characterizing_underrep(
+#'   DataRCT = trial,
+#'   covariateColName_RCT = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   trtColName_RCT = "Tr",
+#'   outcomeColName_RCT = "Y",
+#'   DataTarget = target,
+#'   covariateColName_TargetData = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   seed = 123
+#' )
+#'
+#' # View Summary
+#' summary(res)
+#' }
 #' @export
 summary.characterizing_underrep <- function(object, ...) {
   if (!inherits(object, "characterizing_underrep")) stop("Not a characterizing_underrep object.")
@@ -32,9 +56,58 @@ summary.characterizing_underrep <- function(object, ...) {
     print(prev, row.names = FALSE)
     if (nrow(object$leaf_summary) > 10) cat("  ...\n")
   }
-  invisible(object)
+  return(invisible(object))
 }
 
+
+
+#' Print a characterizing_underrep fit
+#'
+#' Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
+#' \emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
+#' and a shorter overview.
+#'
+#' @param x A \code{characterizing_underrep} object.
+#' @param ... Unused; included for S3 compatibility.
+#'
+#' @return \code{object}
+#'
+#' @details Delegates core statistics, number of trees grown and Rashomon size,
+#' and percentage of observations with ensemble vote w_opt=1 to \code{print(object$root)}.
+#'
+#' @method print characterizing_underrep
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Split into Trial (S=1) and Target (S=0)
+#' trial  <- subset(diabetes_data, S == 1)
+#' target <- subset(diabetes_data, S == 0)
+#'
+#' # Run characterization
+#' res <- characterizing_underrep(
+#'   DataRCT = trial,
+#'   covariateColName_RCT = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   trtColName_RCT = "Tr",
+#'   outcomeColName_RCT = "Y",
+#'   DataTarget = target,
+#'   covariateColName_TargetData = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   seed = 123
+#' )
+#'
+#' # Print core results
+#' print(res)
+#' }
+#' @export
+print.characterizing_underrep <- function(x, ...) {
+  if (!inherits(x, "characterizing_underrep")) stop("Not a characterizing_underrep object.")
+
+  cat("characterizing_underrep object\n")
+  cat("  --- ROOT summary ---\n")
+  invisible(print(x$root))  # uses print.ROOT()
+}
 
 
 
@@ -48,8 +121,30 @@ summary.characterizing_underrep <- function(object, ...) {
 #' @return No return value; draws a plot.
 #' @importFrom rpart.plot prp
 #' @importFrom graphics par legend
-#' @importFrom stats predict
-#' @importFrom stats setNames
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Split into Trial (S=1) and Target (S=0)
+#' trial  <- subset(diabetes_data, S == 1)
+#' target <- subset(diabetes_data, S == 0)
+#'
+#' # Run characterization
+#' res <- characterizing_underrep(
+#'   DataRCT = trial,
+#'   covariateColName_RCT = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   trtColName_RCT = "Tr",
+#'   outcomeColName_RCT = "Y",
+#'   DataTarget = target,
+#'   covariateColName_TargetData = c("Race_Black", "Sex_Male", "DietYes", "Age45"),
+#'   seed = 123
+#' )
+#'
+#' # Plot the annotated tree
+#' plot(res)
+#' }
 #' @export
 plot.characterizing_underrep <- function(x, ...) {
   # --- 1. Safety Checks ---
@@ -165,6 +260,4 @@ plot.characterizing_underrep <- function(x, ...) {
     fill   = c(col_keep, col_drop),
     border = NA, bty = "n", cex = 0.9
   )
-
-  invisible(NULL)
 }

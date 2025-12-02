@@ -130,10 +130,12 @@ outputROOT <- ROOT(
   explore_proba  = 0.05,
   feature_est    = "Ridge",
   top_k_trees    = FALSE,
-  verbose  = TRUE,
+  k = 5,
+  verbose  = FALSE,
   cutoff         = "baseline"
 )
 summary(outputROOT)
+print(outputROOT)
 plot(outputROOT)
 
 
@@ -151,6 +153,7 @@ outputUnderrep <- characterizing_underrep(
   verbose               = TRUE
  )
 summary(outputUnderrep)
+print(outputUnderrep)
 plot(outputUnderrep)
 
 

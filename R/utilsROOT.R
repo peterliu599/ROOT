@@ -86,7 +86,7 @@
 #' @param object A \code{ROOT} object returned by \code{ROOT()}.
 #' @param ... Unused; included for S3 compatibility.
 #'
-#' @return The input \code{object}, invisibly. Printed output is a human-readable summary.
+#' @return The input \code{object}. Printed output is a human-readable summary.
 #'
 #' @details
 #' This method prefers pre-computed estimates. If unavailable, it recomputes:
@@ -104,6 +104,18 @@
 #' }
 #'
 #' @method summary ROOT
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Run ROOT
+#' res <- ROOT(data = diabetes_data, outcome = "Y", treatment = "Tr", sample = "S")
+#'
+#' # Summary of results
+#' summary(res)
+#' }
 #' @export
 summary.ROOT <- function(object, ...) {
   if (!inherits(object, "ROOT")) stop("Not a ROOT object.")
@@ -165,7 +177,7 @@ summary.ROOT <- function(object, ...) {
           "Calculation of SE for WTATE uses sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
           "  Here A = { i : w_i = 1 }, n_A = |A|, v_i are unit-level orthogonal scores, and vbar_A is their mean. \n"
         )
-        if (exists("global_objective_fn") && !identical(object$global_objective_fn, objective_default)) {
+        if (!is.null(object$global_objective_fn) && !identical(object$global_objective_fn, objective_default)) {
           se_note <- paste0(
             se_note,
             "\nYou supplied a custom global_objective_fn; please verify this SE matches your ",
@@ -188,7 +200,7 @@ summary.ROOT <- function(object, ...) {
         "  SE omitted: non-binary w_opt detected; the subset-mean SE above is not appropriate.\n",
         "  Consider bootstrap or influence-function methods tailored to your objective.\n"
       )
-      if (exists("global_objective_fn") && !identical(object$global_objective_fn, objective_default)) {
+      if (!is.null(object$global_objective_fn) && !identical(object$global_objective_fn, objective_default)) {
         se_note <- paste0(
           se_note,
           "\nYou supplied a custom global_objective_fn; please ensure your variance method ",
@@ -231,8 +243,153 @@ summary.ROOT <- function(object, ...) {
     cat("  Kept (w_opt=1): ", sprintf("%.1f%%", 100 * keep_rate), "\n", sep = "")
   }
 
-  invisible(object)
+  return(invisible(object))
 }
+
+
+
+
+#' Print a ROOT fit
+#'
+#' Prints a \code{ROOT} object by reporting the primary estimands and a few core reports.
+#' The first lines report:
+#' \enumerate{
+#'   \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
+#'         and its \strong{standard error (SE)};
+#'   \item the \strong{weighted} estimate (WATE in RCT or WTATE using \code{w_opt}) and its
+#'         \strong{SE} whenever \code{w_opt} is effectively \emph{binary} (subset-mean SE);
+#'         if \code{w_opt} is non-binary, the SE is omitted with a note.
+#' }
+#' Subsequent lines describe the number of trees grown and Rashomon size,
+#' and percentage of observations with ensemble vote w_opt=1.
+#'
+#' @param x A \code{ROOT} object returned by \code{ROOT()}.
+#' @param ... Unused; included for S3 compatibility.
+#'
+#' @return The input \code{object}. Printed output is a human-readable summary.
+#'
+#' @details
+#' This method prefers pre-computed estimates. If unavailable, it recomputes:
+#' \itemize{
+#'   \item Unweighted effect as \eqn{\bar v}{mean(v)} over the analysis set
+#'         (all rows in single-sample; \code{S = 1} in two-sample);
+#'   \item Unweighted SE as \eqn{\sqrt{ \frac{1}{n(n-1)} \sum (v_i - \bar v)^2 }}
+#'         {\code{sqrt( sum((v - vbar)^2) / ( n * (n - 1) ) )}};
+#'   \item Weighted effect when \code{w_opt} is binary, with
+#'         \eqn{A = \{ i : w_i = 1 \}}{\code{A <- which(w == 1)}}, i.e.
+#'         \eqn{\bar v_A = \frac{1}{n_A}\sum_{i \in A} v_i}{\code{mean(v[w == 1])}};
+#'   \item Weighted SE (WTATE/WATE), for binary \code{w_opt}, as
+#'         \eqn{\sqrt{ \frac{1}{n_A(n_A-1)} \sum_{i \in A} (v_i - \bar v_A)^2 }}
+#'         {\code{sqrt( sum( (v[w == 1] - vbarA)^2 ) / ( nA * (nA - 1) ) )}}.
+#' }
+#'
+#' @method print ROOT
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Run ROOT
+#' res <- ROOT(data = diabetes_data, outcome = "Y", treatment = "Tr", sample = "S")
+#'
+#' # Print core results
+#' print(res)
+#' }
+#' @export
+print.ROOT <- function(x, ...) {
+  if (!inherits(x, "ROOT")) stop("Not a ROOT object.")
+
+  single <- .root_is_single_sample(x)
+  in_S <- if (single) rep(TRUE, nrow(x$D_forest)) else (x$D_forest$S == 1L)
+
+  if (!is.null(x$estimate)) {
+    eu <- x$estimate
+    if (!is.null(eu$estimand_unweighted) && !is.null(eu$value_unweighted) && !is.null(eu$se_unweighted)) {
+      cat(sprintf("%s (unweighted) = %.6f, SE = %.6f\n",
+                  eu$estimand_unweighted, eu$value_unweighted, eu$se_unweighted))
+    }
+    if (!is.null(eu$estimand_weighted) && !is.null(eu$value_weighted)) {
+      if (!is.null(eu$se_weighted) && is.finite(eu$se_weighted)) {
+        cat(sprintf("%s (weighted)   = %.6f, SE = %.6f\n",
+                    eu$estimand_weighted, eu$value_weighted, eu$se_weighted))
+      } else {
+        cat(sprintf("%s (weighted)   = %.6f\n", eu$estimand_weighted, eu$value_weighted))
+      }
+      if (!is.null(eu$se_weighted_note) && nzchar(eu$se_weighted_note)) {
+        cat(sprintf("  Note: %s\n", eu$se_weighted_note))
+      }
+    }
+  } else {
+    label_unw <- if (single) "ATE in RCT" else "TATE"
+    label_w   <- if (single) "Weighted ATE in RCT" else "WTATE"
+
+    v <- x$D_forest$v[in_S]
+    w <- if ("w_opt" %in% names(x$D_rash)) x$D_rash$w_opt[in_S] else rep(1L, length(v))
+
+    ok_unw <- !is.na(v)
+    n_unw  <- sum(ok_unw)
+    mu_unw <- if (n_unw > 0) mean(v[ok_unw]) else NA_real_
+    se_unw <- if (n_unw > 1) sqrt(sum((v[ok_unw] - mu_unw)^2) / (n_unw * (n_unw - 1))) else NA_real_
+    cat(sprintf("%s (unweighted) = %.6f, SE = %.6f\n", label_unw, mu_unw, se_unw))
+
+    is_binary_w <- all(is.na(w) | (w %in% c(0L, 1L)))
+    if (is_binary_w) {
+      ok_w <- ok_unw & (w == 1L) & !is.na(w)
+      n_A  <- sum(ok_w)
+      if (n_A > 0) {
+        mu_w <- mean(v[ok_w])
+        se_w <- if (n_A > 1) sqrt(sum((v[ok_w] - mu_w)^2) / (n_A * (n_A - 1))) else NA_real_
+        cat(sprintf("%s (weighted)   = %.6f, SE = %.6f\n", label_w, mu_w, se_w))
+        se_note <- paste0(
+          "Calculation of SE for WTATE uses sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
+          "  Here A = { i : w_i = 1 }, n_A = |A|, v_i are unit-level orthogonal scores, and vbar_A is their mean. \n"
+        )
+        if (!is.null(x$global_objective_fn) && !identical(x$global_objective_fn, objective_default)) {
+          se_note <- paste0(
+            se_note,
+            "\nYou supplied a custom global_objective_fn; please verify this SE matches your ",
+            "estimand, or perform additional variance analysis (e.g., bootstrap or ",
+            "influence-function methods)."
+          )
+        }
+        cat(se_note)
+      } else {
+        cat(sprintf("%s (weighted)   = NA (no kept observations)\n", label_w))
+        cat("Note on SE:\n  SE omitted because no kept observations (A = { i : w_i = 1 } is empty).\n")
+      }
+    } else {
+      mu_w <- sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
+      cat(sprintf("%s (weighted)   = %.6f\n", label_w, mu_w))
+      se_note <- paste0(
+        "Note on SE:\n",
+        "  SE omitted: non-binary w_opt detected; the subset-mean SE above is not appropriate.\n",
+        "  Consider bootstrap or influence-function methods tailored to your objective.\n"
+      )
+      if (!is.null(x$global_objective_fn) && !identical(x$global_objective_fn, objective_default)) {
+        se_note <- paste0(
+          se_note,
+          "\nYou supplied a custom global_objective_fn; please ensure your variance method ",
+          "matches that estimand.\n"
+        )
+      }
+      cat(se_note)
+    }
+  }
+
+  wt_cols <- grep("^w_tree_", names(x$D_forest), value = TRUE)
+  cat("  Trees grown:    ", length(wt_cols), "\n", sep = "")
+  cat("  Rashomon size:  ", length(x$rashomon_set), "\n", sep = "")
+
+  if ("w_opt" %in% names(x$D_rash)) {
+    keep_rate <- mean(x$D_rash$w_opt[in_S] %in% c(1L, 1), na.rm = TRUE)
+    cat("  Kept (w_opt=1): ", sprintf("%.1f%%", 100 * keep_rate), "\n", sep = "")
+  }
+
+  invisible(x)
+}
+
+
 
 #' Plot the ROOT Summary Tree
 #'
@@ -243,6 +400,18 @@ summary.ROOT <- function(object, ...) {
 #'
 #' @return No return value; the plot is drawn to the active graphics device.
 #' @importFrom rpart.plot prp
+#'
+#' @examples
+#' \dontrun{
+#' # Load example data
+#' data(diabetes_data)
+#'
+#' # Run ROOT
+#' res <- ROOT(data = diabetes_data, outcome = "Y", treatment = "Tr", sample = "S")
+#'
+#' # Plot characterization tree
+#' plot(res)
+#' }
 #' @export
 plot.ROOT <- function(x, ...) {
   if (is.null(x$f)) {
