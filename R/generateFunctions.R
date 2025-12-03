@@ -1,23 +1,18 @@
-#' Generate covariates `X` and potential outcomes (`Y0`, `Y1`)
+#' Generate covariates \code{X} and potential outcomes (\code{Y0}, \code{Y1})
 #'
-#' Simulates a regression problem (Friedman #1) and defines a treatment effect.
-#' Uses `mlbench.friedman1` to generate `X` features and a baseline outcome `Y0`.
-#' The treatment potential outcome `Y1` is defined as `Y1 = Y0 + log(Y0 + 1)`,
-#' introducing a heterogeneous treatment effect.
+#' Simulates a regression problem based on Friedman number one and defines a treatment effect.
+#' Uses \code{mlbench.friedman1} to generate feature matrix \code{X} and a baseline outcome \code{Y0}.
+#' The treatment potential outcome \code{Y1} is defined as \code{Y1 = Y0 + log(Y0 + 1)} which introduces heterogeneous treatment effect.
 #'
-#' @param n Integer or numeric. Number of observations to simulate (must be positive).
-#' @param seed Optional. Single numeric value for RNG seed. If provided, a global
-#'   seed is set for reproducibility. If `NULL` (default), no seed is set (results
-#'   will vary on each run).
-#' @return A list with two components:
-#' \item{X}{A data frame of simulated covariates with columns `X0, X1, ...` up to `X(p-1)`.}
-#' \item{Y}{A data frame of potential outcomes with columns `Y0` (baseline outcome)
-#'   and `Y1` (outcome under treatment).}
-#' @details The `mlbench.friedman1` function from the \pkg{mlbench} package is used
-#'   to generate 10 independent continuous features and a baseline outcome `Y0` with additive noise.
-#'   The treatment outcome `Y1` is defined by adding a non-linear term `log(Y0 + 1)`
-#'   to the baseline. If a seed is specified, the random number generator state is
-#'   reset at the start of the function (which affects other random operations).
+#' @param n A \code{numeric(1)} or \code{integer(1)} giving the number of observations to simulate. Must be positive.
+#' @param seed Optional \code{numeric(1)} for the random number generator seed. If \code{NULL} no seed is set.
+#'
+#' @return A \code{list} with two components:
+#' \item{X}{\code{data.frame} of simulated covariates with columns \code{X0, X1, ...} up to \code{X(p-1)}.}
+#' \item{Y}{\code{data.frame} with columns \code{Y0} and \code{Y1}.}
+#'
+#' @details The \code{mlbench.friedman1} generator creates ten continuous features and a baseline outcome \code{Y0} with additive noise.
+#' The potential outcome \code{Y1} adds a nonlinear term \code{log(Y0 + 1)} to \code{Y0}.
 gen_XY <- function(n = 1000, seed = NULL) {
   # Input validation
   if (!requireNamespace("mlbench", quietly = TRUE)) {
@@ -44,21 +39,18 @@ gen_XY <- function(n = 1000, seed = NULL) {
   return(list(X = X_df, Y = Y_df))
 }
 
-#' Generate sample indicator `S` ~ Bernoulli(plogis(a))
+#' Generate sample indicator \code{S} drawn from a Bernoulli distribution
 #'
-#' Generates a binary sample inclusion indicator `S` for each observation,
-#' using a logistic model influenced by a rectangular region in the first two covariates (`X0` and `X1`).
+#' Generates a binary sample inclusion indicator \code{S} for each observation
+#' using a logistic model influenced by a rectangular region in \code{X0} and \code{X1}.
 #'
-#' @param X A data frame of covariates (must contain at least columns `X0` and `X1`).
-#' @param seed Optional numeric seed for RNG. If provided, `set.seed(seed + 1)`
-#'   is invoked for reproducibility. If `NULL` (default), no specific seed is set.
-#' @return A data frame with a single column `S` of 0/1 values indicating inclusion (1) or exclusion (0).
-#' @details The inclusion probability is defined as \eqn{p = \mathrm{plogis}(a)},
-#'   where \eqn{a = 0.25 - 2 * I\{X0, X1 \text{ in region } (0.5,1)\}}.
-#'   In other words, observations for which both `X0` and `X1` lie in (0.5, 1)
-#'   have a lower odds of being included (due to a negative contribution in the linear predictor).
-#'   This mirrors a scenario where a specific region in feature space is under-sampled.
-#'   If a seed is set, it uses `seed + 1` to differentiate from other generators.
+#' @param X A \code{data.frame} of covariates that contains at least \code{X0} and \code{X1}.
+#' @param seed Optional \code{numeric(1)} seed. If \code{NULL} no seed is set.
+#'
+#' @return A \code{data.frame} with one column \code{S} of values in \code{0} or \code{1}.
+#'
+#' @details The inclusion probability is \eqn{p = \mathrm{plogis}(a)} where
+#' \eqn{a = 0.25 - 2 \cdot I\{X0 \in (0.5,1) \land X1 \in (0.5,1)\}}.
 gen_S <- function(X, seed = NULL) {
   # Input validation
   if (!is.data.frame(X)) {
@@ -67,7 +59,7 @@ gen_S <- function(X, seed = NULL) {
   if (!all(c("X0", "X1") %in% names(X))) {
     stop("`X` must contain columns 'X0' and 'X1' for computing the inclusion probabilities.", call. = FALSE)
   }
-  check_no_na(X, c("X0", "X1"))
+  .check_no_na(X, c("X0", "X1"))
   if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
     stop("`seed` must be NULL or a single numeric value.", call. = FALSE)
   }
@@ -87,21 +79,22 @@ gen_S <- function(X, seed = NULL) {
   return(data.frame(S = S_vec))
 }
 
-#' Generate treatment indicator `Tr` ~ Bernoulli(pi)
+#' Generate treatment indicator \code{Tr} drawn from a Bernoulli distribution
 #'
-#' Assigns a treatment indicator for each observation, combining an experimental design for included samples (S==1)
-#' and an observational assignment for excluded samples (S==0).
+#' Assigns treatment indicators combining a randomized design for \code{S == 1} and
+#' an observational assignment driven by \code{X0} for \code{S == 0}.
 #'
-#' @param X A data frame of covariates.
-#' @param S A data frame with column `S` (0/1 indicating sample inclusion for each observation).
-#' @param seed Optional numeric seed for RNG. If provided, `set.seed(seed - 1)` is used. Default `NULL` means no explicit seeding.
-#' @return A list with two elements:
-#' \item{Tr}{A data frame with a single column `Tr` (treatment assignments 0/1 for each observation).}
-#' \item{pi}{A numeric vector of length equal to number of observations, giving the treatment probability used for each observation.}
-#' @details For observations with `S==1` (in sample), treatment is assigned with probability `0.5` (mimicking a randomized experiment).
-#'   For those with `S==0` (out of sample), treatment probability is \eqn{\mathrm{plogis}(X0)}, i.e., it increases with the value of covariate `X0`.
-#'   The overall assignment probability for each observation is \eqn{\pi_i = S_i * 0.5 + (1 - S_i) * \mathrm{plogis}(X0_i)}.
-#'   If a seed is provided, an offset `seed - 1` is used to differentiate from other generation steps.
+#' @param X A \code{data.frame} of covariates.
+#' @param S A \code{data.frame} with column \code{S} in \code{0} or \code{1}.
+#' @param seed Optional \code{numeric(1)} seed. If \code{NULL} no seed is set.
+#'
+#' @return A \code{list} with:
+#' \item{Tr}{\code{data.frame} with one column \code{Tr} in \code{0} or \code{1}.}
+#' \item{pi}{\code{numeric} vector of assignment probabilities per observation.}
+#'
+#' @details For \code{S == 1} the treatment probability is \code{0.5}. For \code{S == 0}
+#' the treatment probability is \code{plogis(X0)}. The combined probability is
+#' \eqn{\pi_i = S_i \cdot 0.5 + (1 - S_i) \cdot \mathrm{plogis}(X0_i)}.
 gen_T <- function(X, S, seed = NULL) {
   # Input validation
   if (!is.data.frame(X)) {
@@ -113,8 +106,8 @@ gen_T <- function(X, S, seed = NULL) {
   if (nrow(S) != nrow(X)) {
     stop("`X` and `S` must have the same number of rows.", call. = FALSE)
   }
-  check_no_na(S, colnames(S))
-  check_no_na(X, colnames(X))
+  .check_no_na(S, colnames(S))
+  .check_no_na(X, colnames(X))
   if (!all(S$S %in% c(0, 1))) {
     stop("`S$S` must contain only 0 or 1 values.", call. = FALSE)
   }
@@ -143,21 +136,20 @@ gen_T <- function(X, S, seed = NULL) {
 #' Convenience wrapper to generate a full simulated dataset
 #'
 #' Generates covariates, sample inclusion, treatment assignments, and observed outcomes
-#' for a specified sample size. This wraps `gen_XY()`, `gen_S()`, and `gen_T()` in sequence.
+#' for a given sample size by calling \code{gen_XY()}, \code{gen_S()}, and \code{gen_T()}.
 #'
-#' @param n Integer or numeric. Sample size (number of observations to generate).
-#' @param seed Optional base seed for reproducibility. If provided, internal generators use
-#'   offsets of this seed to ensure independent randomness. Default `NULL` means no explicit seeding.
-#' @return A list with two components:
-#' \item{data}{A data frame of length `n` containing covariates `X0,...`, sample indicator `S`, treatment indicator `Tr`, and observed outcome `Yobs`.}
-#' \item{Y}{A data frame of length `n` containing the potential outcomes `Y0` and `Y1` for each observation.}
-#' @details This function first generates covariates and potential outcomes with `gen_XY`.
-#'   It then generates `S` (sample inclusion) and `Tr` (treatment assignment). The observed outcome `Yobs` is computed as \eqn{Y_{\mathrm{obs}} = Tr * Y1 + (1 - Tr) * Y0} for each observation.
+#' @param n A \code{numeric(1)} or \code{integer(1)} sample size.
+#' @param seed Optional \code{numeric(1)} base seed. If provided, internal generators use simple offsets.
+#'
+#' @return A \code{list} with:
+#' \item{data}{\code{data.frame} of length \code{n} with covariates \code{X0,...}, sample indicator \code{S}, treatment indicator \code{Tr}, and observed outcome \code{Yobs}.}
+#' \item{Y}{\code{data.frame} of length \code{n} with potential outcomes \code{Y0} and \code{Y1}.}
+#'
 #' @examples
 #' sim <- get_data(n = 100, seed = 599)
-#' dim(sim$data)    # should be 100 x (p + 3) columns (p features + S + Tr + Yobs)
-#' head(sim$data$Yobs)  # observed outcomes
-#' head(sim$Y)     # potential outcomes corresponding to those observations
+#' dim(sim$data)
+#' head(sim$data$Yobs)
+#' head(sim$Y)
 #' @export
 get_data <- function(n = 1000, seed = NULL) {
   # Input validation

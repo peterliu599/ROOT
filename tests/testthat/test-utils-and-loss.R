@@ -27,12 +27,12 @@ test_that("objective_default and derived loss are monotone in weights", {
   expect_identical(D$w, c(1, 1, 1, 1))
 })
 
-test_that("check_no_na detects NAs and returns invisibly TRUE otherwise", {
+test_that(".check_no_na detects NAs and returns invisibly TRUE otherwise", {
   df <- data.frame(a = 1:3, b = c(1, NA, 3))
-  expect_error(check_no_na(df, c("a","b")), "contains missing values")
+  expect_error(.check_no_na(df, c("a","b")), "contains missing values")
 
   df2 <- data.frame(a = 1:3, b = 11:13)
-  expect_invisible(check_no_na(df2, c("a","b")))
+  expect_invisible(.check_no_na(df2, c("a","b")))
 })
 
 test_that("midpoint, choose_feature, and reduce_weight work", {

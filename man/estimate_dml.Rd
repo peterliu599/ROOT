@@ -2,34 +2,30 @@
 % Please edit documentation in R/dml.R
 \name{estimate_dml}
 \alias{estimate_dml}
-\title{Cross-fitted estimation of pseudo-outcomes (Double ML)}
+\title{Cross fitted estimation of pseudo outcomes for two sample Double ML}
 \usage{
 estimate_dml(data, outcome, treatment, sample, crossfit = 5)
 }
 \arguments{
-\item{data}{A data frame containing at least the outcome, treatment, and sample indicator columns.}
+\item{data}{A \code{data.frame} containing at least the outcome, treatment, and sample indicator columns.}
 
-\item{outcome}{Name of the outcome column.}
+\item{outcome}{A \code{character(1)} name of the outcome column.}
 
-\item{treatment}{Name of the treatment column (0/1).}
+\item{treatment}{A \code{character(1)} name of the treatment column with values \code{0} or \code{1}.}
 
-\item{sample}{Name of the sample indicator column (0/1).}
+\item{sample}{A \code{character(1)} name of the sample indicator column with values \code{0} or \code{1}.}
 
-\item{crossfit}{Integer number of folds for cross-fitting (>= 2).}
+\item{crossfit}{An \code{integer(1)} number of folds for cross fitting where the value is at least \code{2}. Default \code{5}.}
 }
 \value{
-A list with:
-\item{df_v}{Data frame with one row per kept observation (indexed by \code{primary_index}),
-containing: \code{te} (pseudo-outcome v), \code{a}, \code{b}, and squared deviations
-\code{te_sq}, \code{a_sq}. Only S==1 rows with finite values are kept.}
-\item{data2}{Subset of original \code{data} corresponding to \code{df_v$primary_index}.}
+A \code{list} with:
+\item{df_v}{\code{data.frame} with one row per kept observation indexed by \code{primary_index}. Contains \code{te}, \code{a}, \code{b}, \code{te_sq}, \code{a_sq}. Only \code{S == 1} rows with finite values are kept.}
+\item{data2}{\code{data.frame} subset of the original \code{data} corresponding to \code{df_v$primary_index}.}
 }
 \description{
-Trains nuisance models on each training fold and computes pseudo-outcomes on
-the corresponding test fold, then aggregates results. Returns only what is
-needed downstream: the pseudo-outcome table and the aligned evaluation data.
+Trains nuisance models on each training fold and computes pseudo outcomes on
+the corresponding test fold, then aggregates results. Returns the pseudo outcome table and aligned evaluation data.
 }
 \note{
-Rows with infinite or undefined weights (e.g., where the predicted propensity scores were 0 or 1) are removed from \code{df_v} (and the corresponding rows in \code{data2}). The \code{primary_index} in \code{df_v} corresponds to the row index in the original \code{data}.
-Squared deviation columns (\code{te_sq}, \code{a_sq}) are centered around the mean of \code{te} and \code{a} for the \code{S==1} group.
+Rows with infinite or undefined weights are removed. Squared deviation columns are centered in the \code{S == 1} group.
 }

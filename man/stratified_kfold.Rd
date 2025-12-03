@@ -2,24 +2,20 @@
 % Please edit documentation in R/dml.R
 \name{stratified_kfold}
 \alias{stratified_kfold}
-\title{Stratified K-fold index generator}
+\title{Stratified K fold index generator}
 \usage{
 stratified_kfold(S, K = 5)
 }
 \arguments{
-\item{S}{A vector or factor indicating class membership (typically 0/1 or two-class factor) for stratification.}
+\item{S}{A \code{vector} or \code{factor} indicating class membership for stratification. Typical values are \code{0} or \code{1}.}
 
-\item{K}{Integer number of folds (K >= 2). If K is larger than the number of observations, it will be reduced to that number.}
+\item{K}{An \code{integer(1)} number of folds. If \code{K} exceeds the number of observations it is reduced to that number.}
 }
 \value{
-A list of length K, where each element is an integer vector of row indices assigned to that fold.
-The union of all folds equals \code{1:length(S)}, and folds are roughly equal in size.
+A \code{list} of length \code{K} where each element is an \code{integer} vector of row indices assigned to that fold.
+The union of all folds equals \code{seq_along(S)} and folds are close in size.
 }
 \description{
-Splits indices into K folds while preserving the class distribution of a binary factor.
-This mimics scikit-learn's \code{StratifiedKFold}, ensuring each fold has a representative ratio of the two classes in \code{S}.
-}
-\details{
-The function deterministically allocates indices to folds by class. For each class in \code{S}, indices are cyclically assigned to folds to balance counts.
-If \code{K == 1}, a single fold containing all indices is returned (though typically K should be >= 2 for cross-validation).
+Splits indices into \code{K} folds while preserving the class distribution of a binary factor.
+This mimics the behavior of stratified K fold allocation to keep the ratio of classes in each fold.
 }

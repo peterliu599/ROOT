@@ -1,40 +1,44 @@
-#' Characterize under-represented subgroups (wraps ROOT)
+#' Characterize under-represented subgroups (wraps \code{ROOT})
 #'
-#' Combines an RCT (S=1) and a target dataset (S=0), then calls \code{ROOT()} to
+#' Combines an RCT (\code{S = 1}) and a target dataset (\code{S = 0}), then calls \code{ROOT()} to
 #' learn a weighted tree that identifies subgroups with different representation
 #' in the target population compared to the trial.
 #'
-#' @param DataRCT A data frame containing the randomized clinical trial data.
-#'   Must include treatment, outcome, and covariate columns.
-#' @param covariateColName_RCT A character vector of covariate column names in \code{DataRCT}.
-#' @param trtColName_RCT A character string specifying the treatment column name in \code{DataRCT} (0/1).
-#' @param outcomeColName_RCT A character string specifying the outcome column name in \code{DataRCT}.
-#' @param DataTarget A data frame containing the target population data (covariates only).
-#' @param covariateColName_TargetData A character vector of covariate column names in \code{DataTarget}.
-#' @param leaf_proba A numeric value for the "leaf" probability in the ROOT tree growth (default 0.25).
-#' @param seed An integer seed for reproducibility (default 123).
-#' @param num_trees An integer specifying the number of trees to grow (default 10).
-#' @param vote_threshold A numeric value (0.5, 1] for the majority vote threshold (default 2/3).
-#' @param explore_proba A numeric value for exploration probability (default 0.05).
-#' @param feature_est A string ("Ridge", "GBM") or function for feature importance estimation.
-#' @param feature_est_args A named list of arguments passed to the feature estimator.
-#' @param top_k_trees Logical; if TRUE, selects the top k trees instead of using a cutoff.
-#' @param k Integer; number of trees to select if \code{top_k_trees} is TRUE.
-#' @param cutoff A numeric value or "baseline" to determine the Rashomon set cutoff.
-#' @param verbose Logical; if TRUE, prints progress and estimand summaries.
-#' @param global_objective_fn A function(D) -> numeric to minimize (default \code{objective_default}).
-#' @param keep_threshold Unused; kept for backward compatibility.
-#' @param lX_threshold Unused; kept for backward compatibility.
+#' @section Abbreviations:
+#' RCT means randomized clinical trial. ATE means Average Treatment Effect.
+#' WTATE means Weighted Transported ATE. SE means Standard Error.
 #'
-#' @return A \code{characterizing_underrep} object (S3 list) containing:
-#'   \item{root}{The resulting \code{ROOT} object.}
-#'   \item{combined}{The combined data frame (RCT + Target) used for analysis.}
-#'   \item{leaf_summary}{A data frame summarizing the terminal nodes (rules, counts, and labels).}
+#' @param DataRCT A \code{data.frame} containing the randomized clinical trial data.
+#'   Must include treatment, outcome, and covariate columns.
+#' @param covariateColName_RCT A \code{character} vector of covariate column names in \code{DataRCT}.
+#' @param trtColName_RCT A \code{character(1)} naming the treatment column in \code{DataRCT} with values \code{0} or \code{1}.
+#' @param outcomeColName_RCT A \code{character(1)} naming the outcome column in \code{DataRCT}.
+#' @param DataTarget A \code{data.frame} containing the target population covariates only.
+#' @param covariateColName_TargetData A \code{character} vector of covariate column names in \code{DataTarget}.
+#' @param leaf_proba A \code{numeric(1)} giving the probability for the \code{"leaf"} option in \code{ROOT} tree growth. Default \code{0.25}.
+#' @param seed An \code{integer(1)} seed for reproducibility. Default \code{123}.
+#' @param num_trees An \code{integer(1)} number of trees to grow. Default \code{10}.
+#' @param vote_threshold A \code{numeric(1)} in \code{(0.5, 1]} for the majority vote threshold. Default \code{2/3}.
+#' @param explore_proba A \code{numeric(1)} exploration probability. Default \code{0.05}.
+#' @param feature_est Either a \code{character(1)} in \code{c("Ridge","GBM")} or a \code{function(X, y, ...)} that returns a named nonnegative \code{numeric} vector of importances.
+#' @param feature_est_args A named \code{list} of extra arguments passed to the user supplied \code{feature_est} function.
+#' @param top_k_trees A \code{logical(1)}. If \code{TRUE}, selects top \code{k} trees by objective; otherwise uses \code{cutoff}. Default \code{FALSE}.
+#' @param k An \code{integer(1)} number of trees used when \code{top_k_trees = TRUE}. Default \code{10}.
+#' @param cutoff A \code{numeric(1)} or the value \code{"baseline"} used as the Rashomon set cutoff when \code{top_k_trees = FALSE}.
+#' @param verbose A \code{logical(1)}. If \code{TRUE}, prints progress and estimand summaries. Default \code{FALSE}.
+#' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric} to minimize. Default \code{objective_default}.
+#' @param keep_threshold Unused; kept for backward compatibility. A \code{numeric(1)} if provided.
+#' @param lX_threshold Unused; kept for backward compatibility. A \code{numeric(1)} if provided.
+#'
+#' @return A \code{characterizing_underrep} S3 object (a \code{list}) with components:
+#'   \item{root}{The resulting \code{ROOT} object returned by \code{ROOT()}.}
+#'   \item{combined}{A \code{data.frame} with the stacked RCT and target data used for analysis.}
+#'   \item{leaf_summary}{A \code{data.frame} of terminal node summaries with rules, counts, percentages, and labels when a summary tree exists; otherwise \code{NULL}.}
 #'
 #' @references
-#' Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025).
+#' Parikh, H., Ross, R. K., Stuart, E., and Rudolph, K. E. (2025).
 #' Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population.
-#' \emph{Journal of the American Statistical Association}, 1-32.
+#' \emph{Journal of the American Statistical Association}, 1–32.
 #'
 #' @examples
 #' \dontrun{

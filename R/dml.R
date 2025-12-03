@@ -1,21 +1,19 @@
-#' Cross-fitted estimation of pseudo-outcomes (Double ML)
+#' Cross fitted estimation of pseudo outcomes for two sample Double ML
 #'
-#' Trains nuisance models on each training fold and computes pseudo-outcomes on
-#' the corresponding test fold, then aggregates results. Returns only what is
-#' needed downstream: the pseudo-outcome table and the aligned evaluation data.
+#' Trains nuisance models on each training fold and computes pseudo outcomes on
+#' the corresponding test fold, then aggregates results. Returns the pseudo outcome table and aligned evaluation data.
 #'
-#' @param data A data frame containing at least the outcome, treatment, and sample indicator columns.
-#' @param outcome Name of the outcome column.
-#' @param treatment Name of the treatment column (0/1).
-#' @param sample Name of the sample indicator column (0/1).
-#' @param crossfit Integer number of folds for cross-fitting (>= 2).
-#' @return A list with:
-#'   \item{df_v}{Data frame with one row per kept observation (indexed by `primary_index`),
-#'               containing: `te` (pseudo-outcome v), `a`, `b`, and squared deviations
-#'               `te_sq`, `a_sq`. Only S==1 rows with finite values are kept.}
-#'   \item{data2}{Subset of original `data` corresponding to `df_v$primary_index`.}
-#' @note Rows with infinite or undefined weights (e.g., where the predicted propensity scores were 0 or 1) are removed from `df_v` (and the corresponding rows in `data2`). The `primary_index` in `df_v` corresponds to the row index in the original `data`.
-#'   Squared deviation columns (`te_sq`, `a_sq`) are centered around the mean of `te` and `a` for the `S==1` group.
+#' @param data A \code{data.frame} containing at least the outcome, treatment, and sample indicator columns.
+#' @param outcome A \code{character(1)} name of the outcome column.
+#' @param treatment A \code{character(1)} name of the treatment column with values \code{0} or \code{1}.
+#' @param sample A \code{character(1)} name of the sample indicator column with values \code{0} or \code{1}.
+#' @param crossfit An \code{integer(1)} number of folds for cross fitting where the value is at least \code{2}. Default \code{5}.
+#'
+#' @return A \code{list} with:
+#' \item{df_v}{\code{data.frame} with one row per kept observation indexed by \code{primary_index}. Contains \code{te}, \code{a}, \code{b}, \code{te_sq}, \code{a_sq}. Only \code{S == 1} rows with finite values are kept.}
+#' \item{data2}{\code{data.frame} subset of the original \code{data} corresponding to \code{df_v$primary_index}.}
+#'
+#' @note Rows with infinite or undefined weights are removed. Squared deviation columns are centered in the \code{S == 1} group.
 estimate_dml <- function(data, outcome, treatment, sample, crossfit = 5) {
   # Input validation
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
@@ -113,28 +111,19 @@ estimate_dml <- function(data, outcome, treatment, sample, crossfit = 5) {
   list(df_v = df_v_grp, data2 = data_s1)
 }
 
-
 #' Train nuisance models for weighting
 #'
-#' Fits models to estimate sampling and treatment propensities on training data.
-#' Specifically, it computes:
-#' \itemize{
-#'   \item \code{pi}: The prevalence of sample inclusion (estimated as mean of `S`).
-#'   \item \code{pi_m}: A logistic regression model for \eqn{P(S=1 \mid X)} using all covariates.
-#'   \item \code{e_m}: A logistic regression model for \eqn{P(Tr=1 \mid X, S=1)}, fit only on the subset where `S==1`.
-#' }
+#' Fits models to estimate sampling and treatment propensities on training data by logistic regression.
 #'
-#' @param training_data A data frame containing the training dataset.
-#' @param outcome Name of the outcome column (typically observed outcome, e.g. "Yobs").
-#' @param treatment Name of the treatment indicator column (e.g. "Tr").
-#' @param sample Name of the sample inclusion indicator column (e.g. "S").
-#' @return A list with components:
-#' \item{pi}{Numeric scalar giving the overall sample inclusion rate \eqn{P(S=1)} in the training data.}
-#' \item{pi_m}{A fitted `glm` model (binomial family) for \eqn{P(S=1 \mid X)}.}
-#' \item{e_m}{A fitted `glm` model (binomial family) for \eqn{P(Tr=1 \mid X, S=1)}.}
-#' @details This function uses simple logistic regression (`glm` with logit link) to estimate the necessary nuisance parameters for weighting.
-#'   It requires that both `S` and `Tr` have variation (both 0 and 1 must be present in training data); if not, the fitting is not possible and an error is raised.
-#'   All covariates other than the specified outcome, treatment, and sample columns are used as predictors.
+#' @param training_data A \code{data.frame} that contains the training dataset.
+#' @param outcome A \code{character(1)} name of the outcome column. Typically this is the observed outcome such as \code{"Yobs"}.
+#' @param treatment A \code{character(1)} name of the treatment indicator column such as \code{"Tr"}.
+#' @param sample A \code{character(1)} name of the sample inclusion indicator column such as \code{"S"}.
+#'
+#' @return A \code{list} with:
+#' \item{pi}{\code{numeric(1)} prevalence of \code{S == 1} in the training data.}
+#' \item{pi_m}{\code{glm} model with binomial family for \eqn{P(S=1 \mid X)}.}
+#' \item{e_m}{\code{glm} model with binomial family for \eqn{P(Tr=1 \mid X, S=1)}.}
 train <- function(training_data, outcome, treatment, sample) {
   # Helper function
   to01 <- function(x, allow_na = TRUE) {
@@ -244,33 +233,24 @@ train <- function(training_data, outcome, treatment, sample) {
 }
 
 
-#' Compute pseudo-outcome components (a, b) and their product (v)
+#' Compute pseudo outcome components \code{a} and \code{b} and their product \code{v}
 #'
-#' Using the outputs of the nuisance models, computes intermediate values for the
-#' treatment effect estimation via inverse probability weighting (IPW) for the Average Treatment Effect (ATE) in trial sample.
+#' Uses nuisance model outputs to compute inverse probability weighted quantities for ATE in the trial sample.
 #'
-#' Specifically, it computes:
-#' \itemize{
-#'   \item \code{a}: IPW-adjusted outcome difference, \eqn{a_i = S_i \left(\frac{Tr_i Y_i}{p_{t1|x,i}} - \frac{(1-Tr_i) Y_i}{1 - p_{t1|x,i}}\right)}.
-#'   \item \code{b}: Overlap weight factor, \eqn{b_i = \frac{1}{\ell(X_i)}}, where \eqn{\ell(X) = \frac{P(S=1|X)/\pi}{P(S=0|X)/(1-\pi)}}.
-#'   \item \code{v}: The pseudo-outcome, defined as \eqn{v_i = a_i \times b_i}.
-#' }
+#' @param testing_data A \code{data.frame} that contains at least outcome, treatment, and sample indicator columns.
+#' @param outcome A \code{character(1)} name of the outcome column in \code{testing_data}.
+#' @param treatment A \code{character(1)} name of the treatment column in \code{testing_data} with values \code{0} or \code{1}.
+#' @param sample A \code{character(1)} name of the sample indicator column in \code{testing_data} with values \code{0} or \code{1}.
+#' @param pi A \code{numeric(1)} giving the estimated prevalence \eqn{P(S=1)} from the training data.
+#' @param pi_m A fitted \code{glm} model for \eqn{P(S=1 \mid X)}.
+#' @param e_m A fitted \code{glm} model for \eqn{P(Tr=1 \mid X, S=1)}.
 #'
-#' @param testing_data A data frame of test data (or evaluation data) containing at least the columns for outcome, treatment, and sample indicators.
-#' @param outcome Name of the outcome column in `testing_data`.
-#' @param treatment Name of the treatment column in `testing_data` (0/1).
-#' @param sample Name of the sample indicator column in `testing_data` (0/1).
-#' @param pi Numeric scalar, the estimated \eqn{P(S=1)} (prevalence) from the training data.
-#' @param pi_m A fitted model (e.g., `glm`) for \eqn{P(S=1 \mid X)}; typically from `train()`.
-#' @param e_m A fitted model (`glm`) for \eqn{P(Tr=1 \mid X, S=1)}; typically from `train()`.
-#' @return A list with numeric vectors:
-#' \item{v}{Pseudo-outcome values for each observation (numeric vector length = nrow(testing_data)).}
-#' \item{a}{Intermediate "IPW-adjusted outcome" values (same length as v).}
-#' \item{b}{Overlap weight factors (same length as v).}
-#' @details The predicted probabilities from `pi_m` and `e_m` are constrained to `[1e-8, 1-1e-8]` to avoid instability (extremely small or large probabilities are clamped).
-#'   If the provided `pi` is 0 or 1 (indicating no variation in sample inclusion in training), the computation is undefined and an error will be thrown.
-#'   Ensure that `pi_m` and `e_m` correspond to models trained on compatible data (same covariates) for accurate predictions.
-#' @seealso \code{\link{train}} for obtaining `pi`, `pi_m`, and `e_m`; \code{\link{estimate_dml}} for cross-fitted estimation.
+#' @return A \code{list} with \code{numeric} vectors of length \code{nrow(testing_data)}:
+#' \item{v}{Pseudo outcome values.}
+#' \item{a}{IPW adjusted outcome contrast.}
+#' \item{b}{Overlap weight factors.}
+#'
+#' @details Predictions from \code{pi_m} and \code{e_m} are clamped to \code{[1e-8, 1 - 1e-8]} for stability.
 estimate <- function(testing_data, outcome, treatment, sample, pi, pi_m, e_m) {
   # Input validation
   if (!is.data.frame(testing_data)) {
@@ -338,18 +318,16 @@ estimate <- function(testing_data, outcome, treatment, sample, pi, pi_m, e_m) {
   return(list(v = as.numeric(v_val), a = as.numeric(a_val), b = as.numeric(b_val)))
 }
 
-
-#' Stratified K-fold index generator
+#' Stratified K fold index generator
 #'
-#' Splits indices into K folds while preserving the class distribution of a binary factor.
-#' This mimics scikit-learn's `StratifiedKFold`, ensuring each fold has a representative ratio of the two classes in `S`.
+#' Splits indices into \code{K} folds while preserving the class distribution of a binary factor.
+#' This mimics the behavior of stratified K fold allocation to keep the ratio of classes in each fold.
 #'
-#' @param S A vector or factor indicating class membership (typically 0/1 or two-class factor) for stratification.
-#' @param K Integer number of folds (K >= 2). If K is larger than the number of observations, it will be reduced to that number.
-#' @return A list of length K, where each element is an integer vector of row indices assigned to that fold.
-#'   The union of all folds equals \code{1:length(S)}, and folds are roughly equal in size.
-#' @details The function deterministically allocates indices to folds by class. For each class in `S`, indices are cyclically assigned to folds to balance counts.
-#'   If `K == 1`, a single fold containing all indices is returned (though typically K should be >= 2 for cross-validation).
+#' @param S A \code{vector} or \code{factor} indicating class membership for stratification. Typical values are \code{0} or \code{1}.
+#' @param K An \code{integer(1)} number of folds. If \code{K} exceeds the number of observations it is reduced to that number.
+#'
+#' @return A \code{list} of length \code{K} where each element is an \code{integer} vector of row indices assigned to that fold.
+#' The union of all folds equals \code{seq_along(S)} and folds are close in size.
 stratified_kfold <- function(S, K = 5) {
   # Input validation
   if (is.data.frame(S) || is.matrix(S)) {
@@ -388,21 +366,18 @@ stratified_kfold <- function(S, K = 5) {
   return(folds)
 }
 
-
-#' Train treatment propensity model (single-sample mode)
+#' Train treatment propensity model for single sample mode
 #'
-#' Fits a logistic regression for \eqn{P(T=1 \mid X)} on the provided training
-#' data. Used by the single-sample Double ML path where no sample-selection
-#' model is needed.
+#' Fits a logistic regression model for \eqn{P(T = 1 \mid X)} on the provided training data.
+#' Used by the single sample Double ML path where no sample selection model is required.
 #'
-#' @param training_data A data frame containing the outcome, treatment, and covariates.
-#'   Only `treatment` and covariates are used for fitting.
-#' @param outcome Name of the outcome column (character). Present for a consistent
-#'   signature but not used in this function.
-#' @param treatment Name of the binary treatment indicator column (0/1).
+#' @param training_data A \code{data.frame} containing the outcome, treatment, and covariates.
+#'   Only \code{treatment} and covariates are used for fitting.
+#' @param outcome A \code{character(1)} name of the outcome column. Present for a consistent signature and not used here.
+#' @param treatment A \code{character(1)} name of the binary treatment indicator column with values \code{0} or \code{1}.
 #'
-#' @return A list with one element:
-#' \item{e_m}{A `glm` (binomial) object for the treatment propensity model.}
+#' @return A \code{list} with:
+#' \item{e_m}{A \code{glm} model with binomial family for the treatment propensity.}
 train_single <- function(training_data, outcome, treatment) {
   covariate_cols <- setdiff(names(training_data), c(outcome, treatment))
   X_tr <- training_data[, covariate_cols, drop = FALSE]
@@ -419,25 +394,20 @@ train_single <- function(training_data, outcome, treatment) {
   list(e_m = e_m)
 }
 
-
-#' Compute single-sample pseudo-outcomes
+#' Compute single sample pseudo outcomes
 #'
-#' Computes the single-sample pseudo-outcome components for ATE-style estimation:
-#' \eqn{a_i = T_i Y_i / e_i - (1 - T_i) Y_i / (1 - e_i)}, with
-#' \eqn{v_i = a_i} and \eqn{b_i \equiv 1}. The treatment propensity \eqn{e_i}
-#' is predicted from a supplied model.
+#' Computes single sample pseudo outcome components for ATE style estimation:
+#' \eqn{a_i = T_i Y_i / e_i - (1 - T_i) Y_i / (1 - e_i)} with \eqn{v_i = a_i} and \eqn{b_i \equiv 1}.
 #'
-#' @param testing_data A data frame containing at least `outcome`, `treatment`,
-#'   and covariates (the latter are used for prediction).
-#' @param outcome Name of the outcome column (character).
-#' @param treatment Name of the binary treatment indicator column (0/1).
-#' @param e_m A fitted `glm`(binomial) model for \eqn{P(T=1 \mid X)}; typically
-#'   the result of \code{\link{train_single}}.
+#' @param testing_data A \code{data.frame} containing at least \code{outcome}, \code{treatment}, and covariates.
+#' @param outcome A \code{character(1)} name of the outcome column.
+#' @param treatment A \code{character(1)} name of the binary treatment indicator column with values \code{0} or \code{1}.
+#' @param e_m A fitted \code{glm} model for \eqn{P(T = 1 \mid X)} such as the result of \code{\link{train_single}}.
 #'
-#' @return A list with numeric vectors of length \code{nrow(testing_data)}:
-#' \item{v}{Pseudo-outcome values (equal to \code{a} in single-sample mode).}
-#' \item{a}{IPW-adjusted outcome contrast.}
-#' \item{b}{Vector of ones (no sample-overlap weighting in single-sample mode).}
+#' @return A \code{list} with \code{numeric} vectors of length \code{nrow(testing_data)}:
+#' \item{v}{Pseudo outcome values which equal \code{a} in single sample mode.}
+#' \item{a}{IPW adjusted outcome contrast.}
+#' \item{b}{Vector of ones because there is no sample overlap weighting in single sample mode.}
 estimate_single <- function(testing_data, outcome, treatment, e_m) {
   covariate_cols <- setdiff(names(testing_data), c(outcome, treatment))
   X_te <- testing_data[, covariate_cols, drop = FALSE]
@@ -452,33 +422,25 @@ estimate_single <- function(testing_data, outcome, treatment, e_m) {
   list(v = as.numeric(a), a = as.numeric(a), b = rep(1, nrow(testing_data)))
 }
 
-
-#' Cross-fitted Double ML (single-sample mode)
+#' Cross fitted Double ML for single sample mode
 #'
-#' Runs K-fold cross-fitting to produce pseudo-outcomes for ATE estimation when
-#' no sample-membership indicator is available (or has no variation). On each
-#' fold, a treatment propensity model is trained on the training split and used
-#' to compute pseudo-outcomes on the test split. Results are combined and
-#' centered to create variance proxies.
+#' Runs K fold cross fitting to produce pseudo outcomes for ATE estimation when
+#' no sample membership indicator is available or has no variation.
 #'
-#' @param data A data frame containing `outcome`, `treatment`, and covariates.
-#' @param outcome Name of the outcome column.
-#' @param treatment Name of the binary treatment indicator column (0/1).
-#' @param crossfit Integer number of folds for cross-fitting (default `5`; must be \eqn{\ge 2}).
+#' @param data A \code{data.frame} containing \code{outcome}, \code{treatment}, and covariates.
+#' @param outcome A \code{character(1)} name of the outcome column.
+#' @param treatment A \code{character(1)} name of the binary treatment indicator column with values \code{0} or \code{1}.
+#' @param crossfit An \code{integer(1)} number of folds for cross fitting where the value is at least \code{2}. Default \code{5}.
 #'
-#' @return A list with:
-#' \item{df_v}{Data frame with one row per kept observation, containing:
-#'   \code{te} (pseudo-outcome \eqn{v}), \code{a}, \code{b} (all ones),
-#'   and centered squares \code{te_sq}, \code{a_sq}, plus \code{primary_index}
-#'   mapping back to the original `data` rows.}
-#' \item{data2}{Subset of `data` corresponding to \code{df_v$primary_index}
-#'   (i.e., rows kept after cross-fitting and finite checks).}
+#' @return A \code{list} with:
+#' \item{df_v}{\code{data.frame} with one row per kept observation that contains \code{te}, \code{a}, \code{b}, \code{te_sq}, \code{a_sq}, and \code{primary_index}.}
+#' \item{data2}{\code{data.frame} subset of \code{data} that corresponds to \code{df_v$primary_index}.}
 estimate_dml_single <- function(data, outcome, treatment, crossfit = 5) {
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
   for (col in c(outcome, treatment)) {
     if (!col %in% names(data)) stop(sprintf("Column '%s' not found in data.", col), call. = FALSE)
   }
-  check_no_na(data, colnames(data))
+  .check_no_na(data, colnames(data))
   if (!is.numeric(crossfit) || length(crossfit) != 1 || crossfit < 2) {
     stop("`crossfit` must be an integer >= 2.", call. = FALSE)
   }

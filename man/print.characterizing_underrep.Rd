@@ -7,22 +7,33 @@
 \method{print}{characterizing_underrep}(x, ...)
 }
 \arguments{
-\item{x}{A \code{characterizing_underrep} object.}
+\item{x}{A \code{characterizing_underrep} S3 object. Expected components include
+\code{root} which is a \code{ROOT} object. The \code{ROOT} object may contain
+\code{D_forest} which is data frame like, \code{D_rash} which may include \code{w_opt},
+and \code{rashomon_set} which is an \code{integer} vector of selected tree indices.}
 
-\item{...}{Unused; included for S3 compatibility.}
+\item{...}{Currently unused. Included for S3 compatibility.}
 }
 \value{
-\code{object}
+\code{x} returned invisibly. Printed output is a human readable summary.
 }
 \description{
-Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
-\emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
-and a shorter overview.
+Prints the \code{ROOT} summary which includes unweighted and weighted estimates
+with standard errors. The weighted SE is omitted when a custom \code{global_objective_fn}
+was used in \code{ROOT()}. Provides a shorter overview of results.
 }
 \details{
 Delegates core statistics, number of trees grown and Rashomon size,
-and percentage of observations with ensemble vote w_opt=1 to \code{print(object$root)}.
+and the percentage of observations with ensemble vote \code{w_opt == 1} to
+\code{print(x$root)}.
 }
+\section{Abbreviations}{
+
+ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+WATE means Weighted ATE. PATE means Population ATE.
+}
+
 \examples{
 \dontrun{
 # Load example data

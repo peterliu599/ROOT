@@ -2,7 +2,7 @@
 % Please edit documentation in R/ROOT.R
 \name{ROOT}
 \alias{ROOT}
-\title{Ensemble of weighted trees (loss/objective-agnostic) and Rashomon selection}
+\title{Ensemble of weighted trees (loss/objective agnostic) and Rashomon selection}
 \usage{
 ROOT(
   data,
@@ -24,49 +24,60 @@ ROOT(
 )
 }
 \arguments{
-\item{data}{A data frame containing the dataset. Must include outcome, treatment, and sample indicator columns.}
+\item{data}{A \code{data.frame} containing the dataset. Must include outcome, treatment, and sample indicator columns.}
 
-\item{outcome}{A character string specifying the name of the outcome column in \code{data}.}
+\item{outcome}{A \code{character(1)} specifying the name of the outcome column in \code{data}.}
 
-\item{treatment}{A character string specifying the name of the treatment indicator column (0/1) in \code{data}.}
+\item{treatment}{A \code{character(1)} specifying the name of the treatment indicator column in \code{data}. Values should be \code{0} or \code{1}.}
 
-\item{sample}{A character string specifying the name of the sample indicator column (0/1) in \code{data}. Use \code{NULL} for single-sample SATE mode.}
+\item{sample}{A \code{character(1)} specifying the name of the sample indicator column in \code{data} with values \code{0} or \code{1}. Use \code{NULL} for single sample SATE mode.}
 
-\item{leaf_proba}{A numeric value specifying the probability mass for the "leaf" option in each tree (default \code{0.25}).}
+\item{leaf_proba}{A \code{numeric(1)} giving the probability mass for the \code{"leaf"} option in each tree. Default \code{0.25}.}
 
-\item{seed}{An integer seed for reproducibility (default \code{NULL}).}
+\item{seed}{An optional \code{numeric(1)} seed for reproducibility. Default \code{NULL}.}
 
-\item{num_trees}{An integer specifying the number of trees to grow in the forest (default \code{10}).}
+\item{num_trees}{An \code{integer(1)} giving the number of trees to grow in the forest. Default \code{10}.}
 
-\item{vote_threshold}{A numeric value in (0.5, 1] specifying the majority vote threshold for final \code{weight=1} (default \code{2/3}).}
+\item{vote_threshold}{A \code{numeric(1)} in \code{(0.5, 1]} giving the majority vote threshold for final \code{weight = 1}. Default \code{2/3}.}
 
-\item{explore_proba}{A numeric value specifying the probability of exploration at leaves in each tree (default \code{0.05}).}
+\item{explore_proba}{A \code{numeric(1)} giving the probability of exploration at leaves in each tree. Default \code{0.05}.}
 
-\item{feature_est}{A character string (\code{"Ridge"}, \code{"GBM"}) or a function \code{function(X, y, ...)} returning a named, non-negative vector of importances.}
+\item{feature_est}{Either a \code{character(1)} in \code{c("Ridge","GBM")} or a \code{function(X, y, ...)} returning a named nonnegative \code{numeric} vector of importances where names match columns of \code{X}.}
 
-\item{feature_est_args}{A named list of extra arguments for a user-supplied \code{feature_est} function.}
+\item{feature_est_args}{A \code{list} of extra arguments passed to a user supplied \code{feature_est} function.}
 
-\item{top_k_trees}{A logical value. If \code{TRUE}, select top-k trees by objective; else use cutoff (default \code{FALSE}).}
+\item{top_k_trees}{A \code{logical(1)}. If \code{TRUE}, select top \code{k} trees by objective; otherwise use \code{cutoff}. Default \code{FALSE}.}
 
-\item{k}{An integer specifying the number of top trees if \code{top_k_trees=TRUE} (default \code{10}).}
+\item{k}{An \code{integer(1)} giving the number of top trees used when \code{top_k_trees = TRUE}. Default \code{10}.}
 
-\item{cutoff}{A numeric value or character string "baseline". If \code{top_k_trees=FALSE}, this defines the Rashomon set cutoff.}
+\item{cutoff}{A \code{numeric(1)} or the \code{character(1)} value \code{"baseline"}. Used as the Rashomon set cutoff when \code{top_k_trees = FALSE}.}
 
-\item{verbose}{A logical value. If \code{TRUE}, prints 2 lines with (unweighted and weighted) estimate + SE. Default \code{FALSE}.}
+\item{verbose}{A \code{logical(1)}. If \code{TRUE}, prints two lines with unweighted and weighted estimates and their SE. Default \code{FALSE}.}
 
-\item{global_objective_fn}{A function scoring the entire state (minimize).}
+\item{global_objective_fn}{A \code{function} with signature \code{function(D) -> numeric} that scores the entire state and is minimized. Default \code{objective_default}.}
 }
 \value{
-An S3 object of class \code{"ROOT"}. This object is a list with the following elements:
-\item{D_rash}{The data frame with weights from the Rashomon set.}
-\item{f}{The summary \code{rpart} tree object.}
-\item{estimate}{A list containing the unweighted and weighted estimates.}
-\item{...}{Other elements containing the internal forest structures.}
+An S3 object of class \code{"ROOT"} which is a \code{list} with elements including:
+\item{D_rash}{\code{data.frame} that contains the Rashomon set votes and \code{w_opt}.}
+\item{D_forest}{\code{data.frame} with forest level working columns including \code{v}, \code{vsq}, \code{S}, and the \code{w_tree_*} columns.}
+\item{w_forest}{\code{list} of per tree results returned by \code{split_node()}.}
+\item{rashomon_set}{\code{integer} vector of selected tree indices.}
+\item{global_objective_fn}{The \code{function} used for the global objective.}
+\item{f}{An \code{rpart} object for the summary tree or \code{NULL} when no covariates exist.}
+\item{testing_data}{\code{data.frame} aligned to the rows used to compute scores.}
+\item{estimate}{\code{list} with elements \code{estimand_unweighted}, \code{value_unweighted}, \code{se_unweighted}, \code{estimand_weighted}, \code{value_weighted}, \code{se_weighted}, \code{se_weighted_note}, \code{n_analysis}, \code{sum_w}, \code{n_A}.}
 }
 \description{
 Builds multiple weighted trees, then identifies a "Rashomon set" of
-top-performing trees and aggregates their weight assignments by majority vote.
+top performing trees and aggregates their weight assignments by majority vote.
 }
+\section{Abbreviations}{
+
+ATE means Average Treatment Effect. SATE means Sample Average Treatment Effect.
+WTATE means Weighted Transported ATE. WATE means Weighted ATE.
+PATE means Population ATE. SE means Standard Error.
+}
+
 \examples{
 \dontrun{
 # Load example data
@@ -76,7 +87,8 @@ data(diabetes_data)
 res <- ROOT(data = diabetes_data, outcome = "Y", treatment = "Tr", sample = "S")
 }
 }
-\seealso{
-\code{\link{summary.ROOT}} for summarizing results,
-\code{\link{plot.ROOT}} for visualizing the decision tree.
+\references{
+Parikh, H., Ross, R. K., Stuart, E., and Rudolph, K. E. (2025).
+Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population.
+\emph{Journal of the American Statistical Association}, 1–32.
 }

@@ -1,19 +1,28 @@
 #' Summarize a characterizing_underrep fit
 #'
-#' Summarizes the \code{ROOT} summary (un/weighted estimates with standard errors; the
-#' \emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
-#' and a brief overview of terminal rules from the annotated summary tree, if available.
+#' Summarizes the \code{ROOT} summary which includes unweighted and weighted estimates
+#' with standard errors. The weighted SE is omitted when a custom \code{global_objective_fn}
+#' was used in \code{ROOT()}. Provides a brief overview of terminal rules from the
+#' annotated summary tree when available.
 #'
-#' @param object A \code{characterizing_underrep} object.
-#' @param ... Unused; included for S3 compatibility.
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
 #'
-#' @return \code{object}
+#' @param object A \code{characterizing_underrep} S3 object. Expected components include
+#'   \code{root} which is a \code{ROOT} object and may contain \code{f} which is an
+#'   \code{rpart} object for the summary tree, and \code{leaf_summary} which is a
+#'   \code{data.frame} with one row per terminal node and may include a \code{rule}
+#'   column of type \code{character}.
+#' @param ... Currently unused. Included for S3 compatibility.
 #'
-#' @details Delegates core statistics to \code{summary(object$root)}; previews up to
-#'   ten terminal rules when a summary tree exists, and reports plot availability.
+#' @return \code{object} returned invisibly. Printed output is a human readable summary.
+#'
+#' @details Delegates core statistics to \code{summary(object$root)}. Previews up to
+#'   ten terminal rules when a summary tree exists and reports plot availability.
 #'
 #' @method summary characterizing_underrep
-#'
 #' @examples
 #' \dontrun{
 #' # Load example data
@@ -63,20 +72,28 @@ summary.characterizing_underrep <- function(object, ...) {
 
 #' Print a characterizing_underrep fit
 #'
-#' Prints the \code{ROOT} summary (un/weighted estimates with standard errors; the
-#' \emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
-#' and a shorter overview.
+#' Prints the \code{ROOT} summary which includes unweighted and weighted estimates
+#' with standard errors. The weighted SE is omitted when a custom \code{global_objective_fn}
+#' was used in \code{ROOT()}. Provides a shorter overview of results.
 #'
-#' @param x A \code{characterizing_underrep} object.
-#' @param ... Unused; included for S3 compatibility.
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
 #'
-#' @return \code{object}
+#' @param x A \code{characterizing_underrep} S3 object. Expected components include
+#'   \code{root} which is a \code{ROOT} object. The \code{ROOT} object may contain
+#'   \code{D_forest} which is data frame like, \code{D_rash} which may include \code{w_opt},
+#'   and \code{rashomon_set} which is an \code{integer} vector of selected tree indices.
+#' @param ... Currently unused. Included for S3 compatibility.
+#'
+#' @return \code{x} returned invisibly. Printed output is a human readable summary.
 #'
 #' @details Delegates core statistics, number of trees grown and Rashomon size,
-#' and percentage of observations with ensemble vote w_opt=1 to \code{print(object$root)}.
+#'   and the percentage of observations with ensemble vote \code{w_opt == 1} to
+#'   \code{print(x$root)}.
 #'
 #' @method print characterizing_underrep
-#'
 #' @examples
 #' \dontrun{
 #' # Load example data
@@ -111,17 +128,25 @@ print.characterizing_underrep <- function(x, ...) {
 
 
 
-#' Plot Under-represented Population Characterization
+#' Plot Under represented Population Characterization
 #'
-#' Visualizes the decision tree derived from the ROOT analysis, highlighting
-#' which subgroups are represented (w=1) versus underrepresented (w=0).
+#' Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
+#' which subgroups are represented where \code{w = 1} versus underrepresented where \code{w = 0}.
 #'
-#' @param x A \code{characterizing_underrep} object.
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
+#'
+#' @param x A \code{characterizing_underrep} S3 object with \code{x$root$f} present as an
+#'   \code{rpart} object for the summary or characterization tree. The \code{rpart} model
+#'   should have classification levels that allow identification of the represented class.
 #' @param ... Additional arguments passed to \code{rpart.plot::prp()}.
-#' @return No return value; draws a plot.
+#'
+#' @return \code{NULL}. The plot is drawn to the active graphics device.
+#'
 #' @importFrom rpart.plot prp
 #' @importFrom graphics par legend
-#'
 #' @examples
 #' \dontrun{
 #' # Load example data

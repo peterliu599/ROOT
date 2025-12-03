@@ -7,16 +7,16 @@
 choose_feature(split_feature, depth)
 }
 \arguments{
-\item{split_feature}{A named numeric vector of feature selection probabilities. Names should correspond to feature IDs (and may include a special "leaf" entry).}
+\item{split_feature}{A named \code{numeric} vector of feature selection probabilities. Names correspond to feature identifiers and may include \code{"leaf"}.}
 
-\item{depth}{Current tree depth (an integer, used for parity with Python implementation but not affecting probabilities in this implementation).}
+\item{depth}{An \code{integer(1)} giving the current tree depth. Present for parity with the Python version and does not change probabilities here.}
 }
 \value{
-A single feature name (or "leaf") chosen randomly according to the provided probability weights.
+A \code{character(1)} which is the chosen feature name or \code{"leaf"}.
 }
 \description{
-Given a probability distribution over features (and possibly a "leaf" option), selects one feature at random according to those probabilities.
+Selects one feature name at random according to a probability vector that may include a special \code{"leaf"} entry.
 }
 \note{
-The factor \eqn{2^{(0 * depth / 4)}} present in the code is effectively 1 (no effect on the first element's weight) and is included only for parity with an equivalent Python implementation. All probabilities are normalized to sum to 1 before sampling.
+The factor \eqn{2^{(0 \cdot \mathrm{depth} / 4)}} present in the code equals \code{1} and does not change the first element weight. All probabilities are normalized to sum to \code{1} before sampling.
 }

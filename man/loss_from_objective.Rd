@@ -2,21 +2,21 @@
 % Please edit documentation in R/utils.R
 \name{loss_from_objective}
 \alias{loss_from_objective}
-\title{Backward/fast-path micro-evaluator adaptor}
+\title{Backward and fast path micro evaluator adaptor}
 \usage{
 loss_from_objective(global_objective_fn)
 }
 \arguments{
-\item{global_objective_fn}{Function of one argument \code{D} returning a numeric
-scalar to be minimized (e.g., \code{\link{objective_default}}).}
+\item{global_objective_fn}{A \code{function} with signature \code{function(D) -> numeric}
+that returns a scalar to be minimized. For example \code{\link{objective_default}}.}
 }
 \value{
-A function \code{loss_fn(val, indices, D)} suitable for use in
-\code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val}
-on \code{indices} (non-mutating), then returns \code{global_objective_fn(D)}.
+A \code{function} \code{loss_fn(val, indices, D)} suitable for use in
+\code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val} on \code{indices}
+without mutation of the original \code{D} and then returns \code{global_objective_fn(D)}.
 }
 \description{
-Wrap a global objective \code{global_objective_fn(D)} into a splitter-compatible
-loss function \code{loss_fn(val, indices, D)} by evaluating
-\code{\link{objective_if}} on a temporary copy of \code{D}.
+Wraps a global objective \code{global_objective_fn(D)} into a splitter compatible
+loss function \code{loss_fn(val, indices, D)} by calling \code{\link{objective_if}}
+on a temporary copy of \code{D}.
 }

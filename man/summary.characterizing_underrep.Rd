@@ -7,22 +7,34 @@
 \method{summary}{characterizing_underrep}(object, ...)
 }
 \arguments{
-\item{object}{A \code{characterizing_underrep} object.}
+\item{object}{A \code{characterizing_underrep} S3 object. Expected components include
+\code{root} which is a \code{ROOT} object and may contain \code{f} which is an
+\code{rpart} object for the summary tree, and \code{leaf_summary} which is a
+\code{data.frame} with one row per terminal node and may include a \code{rule}
+column of type \code{character}.}
 
-\item{...}{Unused; included for S3 compatibility.}
+\item{...}{Currently unused. Included for S3 compatibility.}
 }
 \value{
-\code{object}
+\code{object} returned invisibly. Printed output is a human readable summary.
 }
 \description{
-Summarizes the \code{ROOT} summary (un/weighted estimates with standard errors; the
-\emph{weighted} SE is omitted when a custom \code{global_objective_fn} was used in \code{ROOT()})
-and a brief overview of terminal rules from the annotated summary tree, if available.
+Summarizes the \code{ROOT} summary which includes unweighted and weighted estimates
+with standard errors. The weighted SE is omitted when a custom \code{global_objective_fn}
+was used in \code{ROOT()}. Provides a brief overview of terminal rules from the
+annotated summary tree when available.
 }
 \details{
-Delegates core statistics to \code{summary(object$root)}; previews up to
-ten terminal rules when a summary tree exists, and reports plot availability.
+Delegates core statistics to \code{summary(object$root)}. Previews up to
+ten terminal rules when a summary tree exists and reports plot availability.
 }
+\section{Abbreviations}{
+
+ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+WATE means Weighted ATE. PATE means Population ATE.
+}
+
 \examples{
 \dontrun{
 # Load example data

@@ -2,22 +2,23 @@
 % Please edit documentation in R/utils.R
 \name{objective_if}
 \alias{objective_if}
-\title{Helper: evaluate objective after a hypothetical local change}
+\title{Helper to evaluate the objective after a hypothetical local change}
 \usage{
 objective_if(val, indices, D, global_objective_fn)
 }
 \arguments{
-\item{val}{0/1 assignment to apply}
+\item{val}{A \code{numeric(1)} that must be either \code{0} or \code{1}.}
 
-\item{indices}{integer or rownames to receive \code{val}}
+\item{indices}{An \code{integer} vector of row indices or a \code{character} vector of row names that receive \code{val}.}
 
-\item{D}{data.frame used by \code{global_objective_fn}}
+\item{D}{A \code{data.frame} used by \code{global_objective_fn}. Must contain columns \code{w} and \code{vsq}.}
 
-\item{global_objective_fn}{function(D)->scalar}
+\item{global_objective_fn}{A \code{function} with signature \code{function(D) -> numeric}.}
 }
 \value{
-numeric scalar objective after the hypothetical change
+A \code{numeric(1)} objective value after the hypothetical change.
 }
 \description{
-Helper: evaluate objective after a hypothetical local change
+Evaluates \code{global_objective_fn} on a temporary copy of \code{D} after setting
+\code{w = val} for the rows selected by \code{indices}.
 }

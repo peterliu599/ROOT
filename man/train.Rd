@@ -7,31 +7,20 @@
 train(training_data, outcome, treatment, sample)
 }
 \arguments{
-\item{training_data}{A data frame containing the training dataset.}
+\item{training_data}{A \code{data.frame} that contains the training dataset.}
 
-\item{outcome}{Name of the outcome column (typically observed outcome, e.g. "Yobs").}
+\item{outcome}{A \code{character(1)} name of the outcome column. Typically this is the observed outcome such as \code{"Yobs"}.}
 
-\item{treatment}{Name of the treatment indicator column (e.g. "Tr").}
+\item{treatment}{A \code{character(1)} name of the treatment indicator column such as \code{"Tr"}.}
 
-\item{sample}{Name of the sample inclusion indicator column (e.g. "S").}
+\item{sample}{A \code{character(1)} name of the sample inclusion indicator column such as \code{"S"}.}
 }
 \value{
-A list with components:
-\item{pi}{Numeric scalar giving the overall sample inclusion rate \eqn{P(S=1)} in the training data.}
-\item{pi_m}{A fitted \code{glm} model (binomial family) for \eqn{P(S=1 \mid X)}.}
-\item{e_m}{A fitted \code{glm} model (binomial family) for \eqn{P(Tr=1 \mid X, S=1)}.}
+A \code{list} with:
+\item{pi}{\code{numeric(1)} prevalence of \code{S == 1} in the training data.}
+\item{pi_m}{\code{glm} model with binomial family for \eqn{P(S=1 \mid X)}.}
+\item{e_m}{\code{glm} model with binomial family for \eqn{P(Tr=1 \mid X, S=1)}.}
 }
 \description{
-Fits models to estimate sampling and treatment propensities on training data.
-Specifically, it computes:
-\itemize{
-\item \code{pi}: The prevalence of sample inclusion (estimated as mean of \code{S}).
-\item \code{pi_m}: A logistic regression model for \eqn{P(S=1 \mid X)} using all covariates.
-\item \code{e_m}: A logistic regression model for \eqn{P(Tr=1 \mid X, S=1)}, fit only on the subset where \code{S==1}.
-}
-}
-\details{
-This function uses simple logistic regression (\code{glm} with logit link) to estimate the necessary nuisance parameters for weighting.
-It requires that both \code{S} and \code{Tr} have variation (both 0 and 1 must be present in training data); if not, the fitting is not possible and an error is raised.
-All covariates other than the specified outcome, treatment, and sample columns are used as predictors.
+Fits models to estimate sampling and treatment propensities on training data by logistic regression.
 }

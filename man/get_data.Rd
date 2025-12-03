@@ -7,27 +7,22 @@
 get_data(n = 1000, seed = NULL)
 }
 \arguments{
-\item{n}{Integer or numeric. Sample size (number of observations to generate).}
+\item{n}{A \code{numeric(1)} or \code{integer(1)} sample size.}
 
-\item{seed}{Optional base seed for reproducibility. If provided, internal generators use
-offsets of this seed to ensure independent randomness. Default \code{NULL} means no explicit seeding.}
+\item{seed}{Optional \code{numeric(1)} base seed. If provided, internal generators use simple offsets.}
 }
 \value{
-A list with two components:
-\item{data}{A data frame of length \code{n} containing covariates \verb{X0,...}, sample indicator \code{S}, treatment indicator \code{Tr}, and observed outcome \code{Yobs}.}
-\item{Y}{A data frame of length \code{n} containing the potential outcomes \code{Y0} and \code{Y1} for each observation.}
+A \code{list} with:
+\item{data}{\code{data.frame} of length \code{n} with covariates \code{X0,...}, sample indicator \code{S}, treatment indicator \code{Tr}, and observed outcome \code{Yobs}.}
+\item{Y}{\code{data.frame} of length \code{n} with potential outcomes \code{Y0} and \code{Y1}.}
 }
 \description{
 Generates covariates, sample inclusion, treatment assignments, and observed outcomes
-for a specified sample size. This wraps \code{gen_XY()}, \code{gen_S()}, and \code{gen_T()} in sequence.
-}
-\details{
-This function first generates covariates and potential outcomes with \code{gen_XY}.
-It then generates \code{S} (sample inclusion) and \code{Tr} (treatment assignment). The observed outcome \code{Yobs} is computed as \eqn{Y_{\mathrm{obs}} = Tr * Y1 + (1 - Tr) * Y0} for each observation.
+for a given sample size by calling \code{gen_XY()}, \code{gen_S()}, and \code{gen_T()}.
 }
 \examples{
 sim <- get_data(n = 100, seed = 599)
-dim(sim$data)    # should be 100 x (p + 3) columns (p features + S + Tr + Yobs)
-head(sim$data$Yobs)  # observed outcomes
-head(sim$Y)     # potential outcomes corresponding to those observations
+dim(sim$data)
+head(sim$data$Yobs)
+head(sim$Y)
 }

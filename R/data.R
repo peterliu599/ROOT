@@ -1,16 +1,19 @@
 #' Simulated Diabetes Dataset for Examples
 #'
-#' A toy dataset for illustrating ROOT examples and tests.
+#' A toy dataset for illustrating \code{ROOT} examples and tests.
 #'
-#' @format A data frame with rows for individuals and the following columns:
+#' @section Abbreviations:
+#' RCT means randomized clinical trial. ATE means Average Treatment Effect.
+#'
+#' @format A \code{data.frame} with one row per individual and the columns:
 #' \describe{
-#'   \item{Age45}{Indicator (0/1): age >= 45.}
-#'   \item{DietYes}{Indicator (0/1): on a diet program.}
-#'   \item{Race_Black}{Indicator (0/1): race is Black.}
-#'   \item{S}{Sample indicator (0/1): 1 = RCT/source, 0 = target.}
-#'   \item{Sex_Male}{Indicator (0/1): male.}
-#'   \item{Tr}{Treatment assignment (0/1).}
-#'   \item{Y}{Observed outcome (numeric or 0/1).}
+#'   \item{Age45}{Indicator in \code{0}/\code{1}: age >= 45.}
+#'   \item{DietYes}{Indicator in \code{0}/\code{1}: on a diet program.}
+#'   \item{Race_Black}{Indicator in \code{0}/\code{1}: race is Black.}
+#'   \item{S}{Sample indicator in \code{0}/\code{1}: \code{1} means RCT or source, \code{0} means target.}
+#'   \item{Sex_Male}{Indicator in \code{0}/\code{1}: male.}
+#'   \item{Tr}{Treatment assignment in \code{0}/\code{1}.}
+#'   \item{Y}{Observed outcome (\code{numeric} or \code{0}/\code{1}).}
 #' }
 #'
 #' @usage data(diabetes_data)

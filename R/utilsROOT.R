@@ -1,10 +1,15 @@
-#' Detect single-sample mode in a ROOT fit
+#' Detect single sample mode in a ROOT fit
 #'
-#' Returns \code{TRUE} if a \code{ROOT} object represents single-sample (trial-only)
-#' mode (ATE in RCT/Weighted ATE in RCT), and \code{FALSE} otherwise (TATE/WTATE).
+#' Returns \code{TRUE} if a \code{ROOT} object represents single sample
+#' (trial only) mode, that is Average Treatment Effect (ATE) in a
+#' Randomized Controlled Trial (RCT) or Weighted ATE in RCT, and
+#' \code{FALSE} otherwise (Transported ATE (TATE) or Weighted TATE (WTATE)).
 #'
-#' @param object A \code{ROOT} object (list with component \code{D_forest}).
-#' @return Logical scalar.
+#' @param object A \code{ROOT} S3 object which is a \code{list} with at least
+#'   component \code{D_forest} which is data frame like. If present,
+#'   \code{single_sample_mode} of type \code{logical(1)} is respected.
+#'
+#' @return \code{logical(1)} indicating whether the fit is single sample.
 #' @keywords internal
 #' @noRd
 .root_is_single_sample <- function(object) {
@@ -17,11 +22,14 @@
 
 #' Extract covariate names used by ROOT
 #'
-#' Returns the names of covariate columns in \code{object$D_forest}, excluding internal
-#' columns such as \code{v}, \code{vsq}, \code{S}, \code{lX}, and any \code{w_tree_*}.
+#' Returns the names of covariate columns in \code{object$D_forest}, excluding
+#' internal columns such as \code{v}, \code{vsq}, \code{S}, \code{lX}, and any
+#' \code{w_tree_*}.
 #'
-#' @param object A \code{ROOT} object.
-#' @return Character vector of column names.
+#' @param object A \code{ROOT} S3 object with \code{D_forest}
+#'   which is data frame like and contains the columns listed.
+#'
+#' @return \code{character()} vector of covariate column names.
 #' @keywords internal
 #' @noRd
 .root_covariate_names <- function(object) {
@@ -31,11 +39,14 @@
 
 #' Compute the baseline loss for a ROOT fit
 #'
-#' Computes the baseline loss (no selection) as \eqn{\sqrt{\sum vsq}/n^2} using
+#' Computes the baseline loss which means no selection as
+#' \eqn{\sqrt{\sum_i \mathrm{vsq}_i} / n^2} using
 #' \code{object$D_forest$vsq} and the number of rows \code{n}.
 #'
-#' @param object A \code{ROOT} object.
-#' @return Numeric scalar (baseline loss).
+#' @param object A \code{ROOT} S3 object with \code{D_forest}
+#'   containing numeric column \code{vsq}.
+#'
+#' @return \code{numeric(1)} giving the baseline loss.
 #' @keywords internal
 #' @noRd
 .root_baseline_loss <- function(object) {
@@ -48,8 +59,12 @@
 #' Returns the vector of objective values for trees included in the Rashomon set.
 #' If none are selected, returns \code{numeric(0)}.
 #'
-#' @param object A \code{ROOT} object.
-#' @return Numeric vector of objectives (possibly empty), named by tree index.
+#' @param object A \code{ROOT} S3 object with components \code{w_forest}
+#'   which is a \code{list} of per tree objects and \code{rashomon_set}
+#'   which is an \code{integer()} vector of indices.
+#'
+#' @return \code{numeric()} vector of objective values which may be empty,
+#'   named by \code{character} tree identifiers such as \code{"w_tree_7"}.
 #' @keywords internal
 #' @noRd
 .root_selected_objectives <- function(object) {
@@ -73,38 +88,51 @@
 #' Summarizes a \code{ROOT} object by reporting the primary estimands and key
 #' model diagnostics. The first lines report:
 #' \enumerate{
-#'   \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
-#'         and its \strong{standard error (SE)};
-#'   \item the \strong{weighted} estimate (WATE in RCT or WTATE using \code{w_opt}) and its
-#'         \strong{SE} whenever \code{w_opt} is effectively \emph{binary} (subset-mean SE);
-#'         if \code{w_opt} is non-binary, the SE is omitted with a note.
+#'   \item the unweighted estimate which is ATE in an RCT for single sample
+#'         or TATE for two sample and its standard error \emph{SE}
+#'   \item the weighted estimate which is WATE in RCT or WTATE using \code{w_opt}
+#'         and its SE whenever \code{w_opt} is effectively binary which means subset mean SE.
+#'         If \code{w_opt} is nonbinary, the SE is omitted with a note.
 #' }
-#' Subsequent lines describe the estimand type, number of trees, size of the Rashomon set,
-#' presence of a summary tree, covariate count, observation count, baseline loss,
-#' selected-tree losses, and the proportion kept by \code{w_opt}.
+#' Subsequent lines describe the estimand type, number of trees, size of the
+#' Rashomon set, presence of a summary tree, covariate count, observation count,
+#' baseline loss, selected tree losses, and the proportion kept by \code{w_opt}.
 #'
-#' @param object A \code{ROOT} object returned by \code{ROOT()}.
-#' @param ... Unused; included for S3 compatibility.
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
 #'
-#' @return The input \code{object}. Printed output is a human-readable summary.
+#' @param object A \code{ROOT} S3 object returned by \code{ROOT()}.
+#'   Expected components include \code{D_forest} which is data frame like with
+#'   columns \code{v}, \code{vsq}, \code{S}, \code{lX}, and \code{w_tree_*},
+#'   \code{D_rash} which may contain \code{w_opt}, \code{rashomon_set}
+#'   which is \code{integer()}, optional \code{estimate} which is a \code{list} with fields
+#'   \code{estimand_unweighted}, \code{value_unweighted}, \code{se_unweighted},
+#'   \code{estimand_weighted}, \code{value_weighted}, \code{se_weighted},
+#'   \code{se_weighted_note}, and optional \code{f} which is an \code{rpart} object.
+#' @param ... Currently unused and included for S3 compatibility.
+#'
+#' @return \code{object} returned invisibly. Printed output is a human readable summary.
 #'
 #' @details
-#' This method prefers pre-computed estimates. If unavailable, it recomputes:
+#' This method prefers precomputed estimates in \code{object$estimate}. If
+#' unavailable, it recomputes:
 #' \itemize{
 #'   \item Unweighted effect as \eqn{\bar v}{mean(v)} over the analysis set
-#'         (all rows in single-sample; \code{S = 1} in two-sample);
+#'         where the analysis set is all rows in single sample and \code{S == 1} in two sample
 #'   \item Unweighted SE as \eqn{\sqrt{ \frac{1}{n(n-1)} \sum (v_i - \bar v)^2 }}
-#'         {\code{sqrt( sum((v - vbar)^2) / ( n * (n - 1) ) )}};
-#'   \item Weighted effect when \code{w_opt} is binary, with
-#'         \eqn{A = \{ i : w_i = 1 \}}{\code{A <- which(w == 1)}}, i.e.
-#'         \eqn{\bar v_A = \frac{1}{n_A}\sum_{i \in A} v_i}{\code{mean(v[w == 1])}};
-#'   \item Weighted SE (WTATE/WATE), for binary \code{w_opt}, as
+#'         which is \code{sqrt( sum((v - vbar)^2) / ( n * (n - 1) ) )}
+#'   \item Weighted effect when \code{w_opt} is binary with
+#'         \eqn{A = \{ i : w_i = 1 \}} which is \code{A <- which(w == 1)}, that is
+#'         \eqn{\bar v_A = \frac{1}{n_A}\sum_{i \in A} v_i}
+#'         which is \code{mean(v[w == 1])}
+#'   \item Weighted SE which is WTATE or WATE for binary \code{w_opt} as
 #'         \eqn{\sqrt{ \frac{1}{n_A(n_A-1)} \sum_{i \in A} (v_i - \bar v_A)^2 }}
-#'         {\code{sqrt( sum( (v[w == 1] - vbarA)^2 ) / ( nA * (nA - 1) ) )}}.
+#'         which is \code{sqrt( sum( (v[w == 1] - vbarA)^2 ) / ( nA * (nA - 1) ) )}
 #' }
 #'
 #' @method summary ROOT
-#'
 #' @examples
 #' \dontrun{
 #' # Load example data
@@ -246,45 +274,35 @@ summary.ROOT <- function(object, ...) {
   return(invisible(object))
 }
 
-
-
-
 #' Print a ROOT fit
 #'
-#' Prints a \code{ROOT} object by reporting the primary estimands and a few core reports.
-#' The first lines report:
+#' Prints a \code{ROOT} object by reporting the primary estimands and core
+#' diagnostics. The first lines report:
 #' \enumerate{
-#'   \item the \strong{unweighted} estimate (ATE in RCT for single-sample or TATE for two-sample)
-#'         and its \strong{standard error (SE)};
-#'   \item the \strong{weighted} estimate (WATE in RCT or WTATE using \code{w_opt}) and its
-#'         \strong{SE} whenever \code{w_opt} is effectively \emph{binary} (subset-mean SE);
-#'         if \code{w_opt} is non-binary, the SE is omitted with a note.
+#'   \item the unweighted estimate which is ATE in an RCT for single sample or
+#'         TATE for two sample and its SE
+#'   \item the weighted estimate which is WATE in RCT or WTATE using \code{w_opt}
+#'         and its SE whenever \code{w_opt} is effectively binary which means subset mean SE.
+#'         If \code{w_opt} is nonbinary, the SE is omitted with a note.
 #' }
-#' Subsequent lines describe the number of trees grown and Rashomon size,
-#' and percentage of observations with ensemble vote w_opt=1.
+#' Subsequent lines include number of trees grown, Rashomon size, and the
+#' percentage of observations with ensemble vote \code{w_opt == 1}.
 #'
-#' @param x A \code{ROOT} object returned by \code{ROOT()}.
-#' @param ... Unused; included for S3 compatibility.
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
 #'
-#' @return The input \code{object}. Printed output is a human-readable summary.
+#' @param x A \code{ROOT} S3 object returned by \code{ROOT()}.
+#' @param ... Currently unused and included for S3 compatibility.
+#'
+#' @return \code{x} returned invisibly. Printed output is a human readable summary.
 #'
 #' @details
-#' This method prefers pre-computed estimates. If unavailable, it recomputes:
-#' \itemize{
-#'   \item Unweighted effect as \eqn{\bar v}{mean(v)} over the analysis set
-#'         (all rows in single-sample; \code{S = 1} in two-sample);
-#'   \item Unweighted SE as \eqn{\sqrt{ \frac{1}{n(n-1)} \sum (v_i - \bar v)^2 }}
-#'         {\code{sqrt( sum((v - vbar)^2) / ( n * (n - 1) ) )}};
-#'   \item Weighted effect when \code{w_opt} is binary, with
-#'         \eqn{A = \{ i : w_i = 1 \}}{\code{A <- which(w == 1)}}, i.e.
-#'         \eqn{\bar v_A = \frac{1}{n_A}\sum_{i \in A} v_i}{\code{mean(v[w == 1])}};
-#'   \item Weighted SE (WTATE/WATE), for binary \code{w_opt}, as
-#'         \eqn{\sqrt{ \frac{1}{n_A(n_A-1)} \sum_{i \in A} (v_i - \bar v_A)^2 }}
-#'         {\code{sqrt( sum( (v[w == 1] - vbarA)^2 ) / ( nA * (nA - 1) ) )}}.
-#' }
+#' When \code{x$estimate} is absent, calculations mirror those described in
+#' \code{\link{summary.ROOT}}.
 #'
 #' @method print ROOT
-#'
 #' @examples
 #' \dontrun{
 #' # Load example data
@@ -391,11 +409,13 @@ print.ROOT <- function(x, ...) {
 
 
 
-#' Plot the ROOT Summary Tree
+#' Plot the ROOT summary tree
 #'
-#' Visualizes the decision tree that characterizes the weighted subgroup identified by ROOT.
+#' Visualizes the decision tree that characterizes the weighted subgroup
+#' identified by ROOT using \code{rpart.plot::prp()}.
 #'
-#' @param x A \code{ROOT} object returned by \code{ROOT()}.
+#' @param x A \code{ROOT} S3 object returned by \code{ROOT()} with
+#'   \code{x$f} an \code{rpart} object which is the summary or characterization tree.
 #' @param ... Additional arguments passed to \code{rpart.plot::prp()}.
 #'
 #' @return No return value; the plot is drawn to the active graphics device.

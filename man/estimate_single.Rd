@@ -2,30 +2,26 @@
 % Please edit documentation in R/dml.R
 \name{estimate_single}
 \alias{estimate_single}
-\title{Compute single-sample pseudo-outcomes}
+\title{Compute single sample pseudo outcomes}
 \usage{
 estimate_single(testing_data, outcome, treatment, e_m)
 }
 \arguments{
-\item{testing_data}{A data frame containing at least \code{outcome}, \code{treatment},
-and covariates (the latter are used for prediction).}
+\item{testing_data}{A \code{data.frame} containing at least \code{outcome}, \code{treatment}, and covariates.}
 
-\item{outcome}{Name of the outcome column (character).}
+\item{outcome}{A \code{character(1)} name of the outcome column.}
 
-\item{treatment}{Name of the binary treatment indicator column (0/1).}
+\item{treatment}{A \code{character(1)} name of the binary treatment indicator column with values \code{0} or \code{1}.}
 
-\item{e_m}{A fitted \code{glm}(binomial) model for \eqn{P(T=1 \mid X)}; typically
-the result of \code{\link{train_single}}.}
+\item{e_m}{A fitted \code{glm} model for \eqn{P(T = 1 \mid X)} such as the result of \code{\link{train_single}}.}
 }
 \value{
-A list with numeric vectors of length \code{nrow(testing_data)}:
-\item{v}{Pseudo-outcome values (equal to \code{a} in single-sample mode).}
-\item{a}{IPW-adjusted outcome contrast.}
-\item{b}{Vector of ones (no sample-overlap weighting in single-sample mode).}
+A \code{list} with \code{numeric} vectors of length \code{nrow(testing_data)}:
+\item{v}{Pseudo outcome values which equal \code{a} in single sample mode.}
+\item{a}{IPW adjusted outcome contrast.}
+\item{b}{Vector of ones because there is no sample overlap weighting in single sample mode.}
 }
 \description{
-Computes the single-sample pseudo-outcome components for ATE-style estimation:
-\eqn{a_i = T_i Y_i / e_i - (1 - T_i) Y_i / (1 - e_i)}, with
-\eqn{v_i = a_i} and \eqn{b_i \equiv 1}. The treatment propensity \eqn{e_i}
-is predicted from a supplied model.
+Computes single sample pseudo outcome components for ATE style estimation:
+\eqn{a_i = T_i Y_i / e_i - (1 - T_i) Y_i / (1 - e_i)} with \eqn{v_i = a_i} and \eqn{b_i \equiv 1}.
 }

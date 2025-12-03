@@ -2,25 +2,23 @@
 % Please edit documentation in R/dml.R
 \name{train_single}
 \alias{train_single}
-\title{Train treatment propensity model (single-sample mode)}
+\title{Train treatment propensity model for single sample mode}
 \usage{
 train_single(training_data, outcome, treatment)
 }
 \arguments{
-\item{training_data}{A data frame containing the outcome, treatment, and covariates.
+\item{training_data}{A \code{data.frame} containing the outcome, treatment, and covariates.
 Only \code{treatment} and covariates are used for fitting.}
 
-\item{outcome}{Name of the outcome column (character). Present for a consistent
-signature but not used in this function.}
+\item{outcome}{A \code{character(1)} name of the outcome column. Present for a consistent signature and not used here.}
 
-\item{treatment}{Name of the binary treatment indicator column (0/1).}
+\item{treatment}{A \code{character(1)} name of the binary treatment indicator column with values \code{0} or \code{1}.}
 }
 \value{
-A list with one element:
-\item{e_m}{A \code{glm} (binomial) object for the treatment propensity model.}
+A \code{list} with:
+\item{e_m}{A \code{glm} model with binomial family for the treatment propensity.}
 }
 \description{
-Fits a logistic regression for \eqn{P(T=1 \mid X)} on the provided training
-data. Used by the single-sample Double ML path where no sample-selection
-model is needed.
+Fits a logistic regression model for \eqn{P(T = 1 \mid X)} on the provided training data.
+Used by the single sample Double ML path where no sample selection model is required.
 }

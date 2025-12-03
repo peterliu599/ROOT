@@ -7,20 +7,19 @@
 characterize_tree(X, w, max_depth = 3)
 }
 \arguments{
-\item{X}{A data frame of covariates (features).}
+\item{X}{A \code{data.frame} of covariates.}
 
-\item{w}{A binary vector (0/1 or a factor with two levels) indicating class membership for each observation (e.g., whether an observation is in the selected subgroup).}
+\item{w}{A \code{vector} of length \code{nrow(X)} that is binary. Accepts \code{0} and \code{1} or a \code{factor} with two levels.}
 
-\item{max_depth}{Integer, the maximum tree depth (default 3).}
+\item{max_depth}{An \code{integer(1)} giving the maximum tree depth. Default is \code{3}.}
 }
 \value{
-An \code{rpart} object representing the fitted decision tree.
+An \code{rpart} object that represents the fitted classification tree.
 }
 \description{
 Trains a classification tree on the covariates \code{X} to predict the binary membership \code{w}.
 This provides an interpretable summary of how the weighted subgroup can be distinguished by \code{X}.
 }
 \details{
-The tree is grown using the Gini index (classification) and is not pruned (complexity parameter \code{cp = 0}), relying solely on \code{max_depth} to control complexity. This mirrors the default behavior of scikit-learn's \code{DecisionTreeClassifier(max_depth=...)}.
-If \code{w} is not already a factor, it will be converted internally. The tree's rules can be interpreted to understand which covariates (and what splits) best separate the two classes defined by \code{w}.
+The tree uses the Gini index for classification and no pruning with complexity parameter \code{cp = 0}. Depth control is through \code{max_depth}. If \code{w} is not a factor it is converted internally. The resulting rules indicate which covariates and splits separate the two classes defined by \code{w}.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/treeBuilding.R
 \name{split_node}
 \alias{split_node}
-\title{Recursive split builder for weighted tree (internal function)}
+\title{Recursive split builder for weighted tree}
 \usage{
 split_node(
   split_feature,
@@ -22,36 +22,36 @@ split_node(
 )
 }
 \arguments{
-\item{split_feature}{Named numeric vector of feature selection probabilities (must include "leaf").}
+\item{split_feature}{A named \code{numeric} vector of feature selection probabilities. Must include the name \code{"leaf"}.}
 
-\item{X}{Data frame of current observations (includes candidate split feature columns; may include a working copy of weights \code{w}).}
+\item{X}{A \code{data.frame} of current observations. Includes candidate split feature columns and may include a working copy of weights \code{w}.}
 
-\item{D}{Data frame representing the global state (must include columns \code{w} and \code{vsq}; row names align to observations).}
+\item{D}{A \code{data.frame} representing the global state. Must include columns \code{w} and \code{vsq}. Row names must align to \code{X}.}
 
-\item{parent_loss}{Numeric, the loss value of the parent node (used to decide if a split improves the objective).}
+\item{parent_loss}{A \code{numeric(1)} giving the loss of the parent node. Used to decide if a split improves the objective.}
 
-\item{depth}{Integer, current tree depth.}
+\item{depth}{An \code{integer(1)} giving the current tree depth.}
 
-\item{explore_proba}{Numeric, the probability (between 0 and 1) of flipping the exploit choice at a leaf.}
+\item{explore_proba}{A \code{numeric(1)} between \code{0} and \code{1} for the probability of flipping the exploit choice at a leaf.}
 
-\item{choose_feature_fn}{Function to choose next feature (default \code{choose_feature}).}
+\item{choose_feature_fn}{A \code{function} to choose the next feature. Default is \code{choose_feature}.}
 
-\item{reduce_weight_fn}{Function to penalize last-tried feature on rejected split (default \code{reduce_weight}).}
+\item{reduce_weight_fn}{A \code{function} to penalize the last tried feature on a rejected split. Default is \code{reduce_weight}.}
 
-\item{global_objective_fn}{Function \verb{function(D) -> numeric} scoring the \strong{entire} state.}
+\item{global_objective_fn}{A \code{function} with signature \code{function(D) -> numeric} that scores the entire state.}
 
-\item{max_depth}{Integer max depth (stop and make leaf at this depth).}
+\item{max_depth}{An \code{integer(1)} giving the maximum depth. A node becomes a leaf at this depth.}
 
-\item{min_leaf_n}{Integer min rows to attempt a split; else make leaf.}
+\item{min_leaf_n}{An \code{integer(1)} giving the minimum number of rows to attempt a split. Otherwise make a leaf.}
 
-\item{log_fn}{Function for logging; default no-op.}
+\item{log_fn}{A \code{function} for logging. Default is a function that performs no operation.}
 
-\item{max_rejects_per_node}{Safety budget of rejected splits before forcing a leaf.}
+\item{max_rejects_per_node}{An \code{integer(1)} giving the safety budget of rejected splits before forcing a leaf.}
 }
 \value{
-A list representing the (sub)tree; includes updated \code{D} and \verb{local objective}.
+A \code{list} representing the subtree. Includes updated \code{D} and a field named \code{"local objective"}.
 }
 \description{
 Recursively builds a weighted decision tree to optimize a global objective,
-using an exploration/exploitation trade-off. Internal; used by ROOT().
+using an exploration versus exploitation choice at leaves. Internal and used by \code{ROOT()}.
 }

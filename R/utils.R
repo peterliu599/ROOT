@@ -1,12 +1,13 @@
 #' Check for missing values in training data
 #'
-#' Ensures there are no NA values in any of the relevant columns of the dataset.
+#' Ensures there are no \code{NA} values in any of the relevant columns of the dataset.
 #'
-#' @param data A data frame.
-#' @param cols Character vector of column names to check.
-#' @return Invisibly returns TRUE if no NA found; otherwise throws an error.
+#' @param data A \code{data.frame}.
+#' @param cols A \code{character} vector of column names to check in \code{data}.
+#'
+#' @return Invisibly returns \code{TRUE} if no \code{NA} is found. Otherwise an error is thrown.
 #' @keywords internal
-check_no_na <- function(data, cols) {
+.check_no_na <- function(data, cols) {
   data_name <- deparse(substitute(data))
   for (col in cols) {
     if (anyNA(data[[col]])) {
@@ -17,15 +18,22 @@ check_no_na <- function(data, cols) {
   invisible(TRUE)
 }
 
-# Generic objective interface (source of truth)
+#' Generic objective interface
 #'
-#' Default objective: SE proxy of (W)TATE/PATE
+#' Default objective that serves as a proxy for Standard Error in Weighted Transported
+#' Average Treatment Effect and Population Average Treatment Effect.
 #'
-#' Computes \eqn{\sqrt{\sum_i vsq_i * w_i / (\sum_i w_i)^2}}.
-#' Requires columns `vsq` and `w` in `D`. Minimize this.
-#' Supply your own function(D) -> scalar to use a different objective.
-#' @param D data.frame with at least numeric columns `vsq` and `w`.
-#' @return numeric scalar objective value; `Inf` if undefined.
+#' Computes \eqn{\sqrt{\sum_i \mathrm{vsq}_i \cdot w_i} \big/ \left(\sum_i w_i\right)^2}.
+#' Requires columns \code{vsq} and \code{w} in \code{D}. The goal is to minimize the value.
+#' Supply your own \code{function(D) -> numeric} to use a different objective.
+#'
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. SE means Standard Error. TATE means Transported ATE.
+#' WTATE means Weighted TATE. WATE means Weighted ATE. PATE means Population ATE.
+#'
+#' @param D A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.
+#'
+#' @return A \code{numeric(1)} objective value. Returns \code{Inf} when undefined.
 objective_default <- function(D) {
   stopifnot(is.data.frame(D), all(c("vsq","w") %in% names(D)))
   num <- sum(D$vsq * D$w, na.rm = TRUE)
@@ -34,13 +42,17 @@ objective_default <- function(D) {
   if (!is.finite(out) || is.nan(out)) Inf else out
 }
 
-#' Helper: evaluate objective after a hypothetical local change
+#' Helper to evaluate the objective after a hypothetical local change
 #'
-#' @param val 0/1 assignment to apply
-#' @param indices integer or rownames to receive `val`
-#' @param D data.frame used by `global_objective_fn`
-#' @param global_objective_fn function(D)->scalar
-#' @return numeric scalar objective after the hypothetical change
+#' Evaluates \code{global_objective_fn} on a temporary copy of \code{D} after setting
+#' \code{w = val} for the rows selected by \code{indices}.
+#'
+#' @param val A \code{numeric(1)} that must be either \code{0} or \code{1}.
+#' @param indices An \code{integer} vector of row indices or a \code{character} vector of row names that receive \code{val}.
+#' @param D A \code{data.frame} used by \code{global_objective_fn}. Must contain columns \code{w} and \code{vsq}.
+#' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric}.
+#'
+#' @return A \code{numeric(1)} objective value after the hypothetical change.
 objective_if <- function(val, indices, D, global_objective_fn) {
   stopifnot(is.function(global_objective_fn), length(val) == 1, val %in% c(0,1))
   rows <- integer(0)
@@ -53,18 +65,18 @@ objective_if <- function(val, indices, D, global_objective_fn) {
   global_objective_fn(Dtmp)
 }
 
-#' Backward/fast-path micro-evaluator adaptor
+#' Backward and fast path micro evaluator adaptor
 #'
-#' Wrap a global objective \code{global_objective_fn(D)} into a splitter-compatible
-#' loss function \code{loss_fn(val, indices, D)} by evaluating
-#' \code{\link{objective_if}} on a temporary copy of \code{D}.
+#' Wraps a global objective \code{global_objective_fn(D)} into a splitter compatible
+#' loss function \code{loss_fn(val, indices, D)} by calling \code{\link{objective_if}}
+#' on a temporary copy of \code{D}.
 #'
-#' @param global_objective_fn Function of one argument \code{D} returning a numeric
-#'   scalar to be minimized (e.g., \code{\link{objective_default}}).
+#' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric}
+#'   that returns a scalar to be minimized. For example \code{\link{objective_default}}.
 #'
-#' @return A function \code{loss_fn(val, indices, D)} suitable for use in
-#'   \code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val}
-#'   on \code{indices} (non-mutating), then returns \code{global_objective_fn(D)}.
+#' @return A \code{function} \code{loss_fn(val, indices, D)} suitable for use in
+#'   \code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val} on \code{indices}
+#'   without mutation of the original \code{D} and then returns \code{global_objective_fn(D)}.
 loss_from_objective <- function(global_objective_fn) {
   force(global_objective_fn)
   function(val, indices, D) objective_if(val, indices, D, global_objective_fn)

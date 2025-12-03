@@ -2,18 +2,28 @@
 % Please edit documentation in R/utils.R
 \name{objective_default}
 \alias{objective_default}
-\title{Default objective: SE proxy of (W)TATE/PATE}
+\title{Generic objective interface}
 \usage{
 objective_default(D)
 }
 \arguments{
-\item{D}{data.frame with at least numeric columns \code{vsq} and \code{w}.}
+\item{D}{A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.}
 }
 \value{
-numeric scalar objective value; \code{Inf} if undefined.
+A \code{numeric(1)} objective value. Returns \code{Inf} when undefined.
 }
 \description{
-Computes \eqn{\sqrt{\sum_i vsq_i * w_i / (\sum_i w_i)^2}}.
-Requires columns \code{vsq} and \code{w} in \code{D}. Minimize this.
-Supply your own function(D) -> scalar to use a different objective.
+Default objective that serves as a proxy for Standard Error in Weighted Transported
+Average Treatment Effect and Population Average Treatment Effect.
 }
+\details{
+Computes \eqn{\sqrt{\sum_i \mathrm{vsq}_i \cdot w_i} \big/ \left(\sum_i w_i\right)^2}.
+Requires columns \code{vsq} and \code{w} in \code{D}. The goal is to minimize the value.
+Supply your own \code{function(D) -> numeric} to use a different objective.
+}
+\section{Abbreviations}{
+
+ATE means Average Treatment Effect. SE means Standard Error. TATE means Transported ATE.
+WTATE means Weighted TATE. WATE means Weighted ATE. PATE means Population ATE.
+}
+

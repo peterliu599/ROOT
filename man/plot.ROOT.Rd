@@ -2,12 +2,13 @@
 % Please edit documentation in R/utilsROOT.R
 \name{plot.ROOT}
 \alias{plot.ROOT}
-\title{Plot the ROOT Summary Tree}
+\title{Plot the ROOT summary tree}
 \usage{
 \method{plot}{ROOT}(x, ...)
 }
 \arguments{
-\item{x}{A \code{ROOT} object returned by \code{ROOT()}.}
+\item{x}{A \code{ROOT} S3 object returned by \code{ROOT()} with
+\code{x$f} an \code{rpart} object which is the summary or characterization tree.}
 
 \item{...}{Additional arguments passed to \code{rpart.plot::prp()}.}
 }
@@ -15,7 +16,8 @@
 No return value; the plot is drawn to the active graphics device.
 }
 \description{
-Visualizes the decision tree that characterizes the weighted subgroup identified by ROOT.
+Visualizes the decision tree that characterizes the weighted subgroup
+identified by ROOT using \code{rpart.plot::prp()}.
 }
 \examples{
 \dontrun{

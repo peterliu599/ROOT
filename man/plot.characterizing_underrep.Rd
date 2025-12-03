@@ -2,22 +2,31 @@
 % Please edit documentation in R/utilsCharacterizingUnderrep.R
 \name{plot.characterizing_underrep}
 \alias{plot.characterizing_underrep}
-\title{Plot Under-represented Population Characterization}
+\title{Plot Under represented Population Characterization}
 \usage{
 \method{plot}{characterizing_underrep}(x, ...)
 }
 \arguments{
-\item{x}{A \code{characterizing_underrep} object.}
+\item{x}{A \code{characterizing_underrep} S3 object with \code{x$root$f} present as an
+\code{rpart} object for the summary or characterization tree. The \code{rpart} model
+should have classification levels that allow identification of the represented class.}
 
 \item{...}{Additional arguments passed to \code{rpart.plot::prp()}.}
 }
 \value{
-No return value; draws a plot.
+\code{NULL}. The plot is drawn to the active graphics device.
 }
 \description{
-Visualizes the decision tree derived from the ROOT analysis, highlighting
-which subgroups are represented (w=1) versus underrepresented (w=0).
+Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
+which subgroups are represented where \code{w = 1} versus underrepresented where \code{w = 0}.
 }
+\section{Abbreviations}{
+
+ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+WATE means Weighted ATE. PATE means Population ATE.
+}
+
 \examples{
 \dontrun{
 # Load example data

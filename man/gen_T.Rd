@@ -2,29 +2,28 @@
 % Please edit documentation in R/generateFunctions.R
 \name{gen_T}
 \alias{gen_T}
-\title{Generate treatment indicator \code{Tr} ~ Bernoulli(pi)}
+\title{Generate treatment indicator \code{Tr} drawn from a Bernoulli distribution}
 \usage{
 gen_T(X, S, seed = NULL)
 }
 \arguments{
-\item{X}{A data frame of covariates.}
+\item{X}{A \code{data.frame} of covariates.}
 
-\item{S}{A data frame with column \code{S} (0/1 indicating sample inclusion for each observation).}
+\item{S}{A \code{data.frame} with column \code{S} in \code{0} or \code{1}.}
 
-\item{seed}{Optional numeric seed for RNG. If provided, \code{set.seed(seed - 1)} is used. Default \code{NULL} means no explicit seeding.}
+\item{seed}{Optional \code{numeric(1)} seed. If \code{NULL} no seed is set.}
 }
 \value{
-A list with two elements:
-\item{Tr}{A data frame with a single column \code{Tr} (treatment assignments 0/1 for each observation).}
-\item{pi}{A numeric vector of length equal to number of observations, giving the treatment probability used for each observation.}
+A \code{list} with:
+\item{Tr}{\code{data.frame} with one column \code{Tr} in \code{0} or \code{1}.}
+\item{pi}{\code{numeric} vector of assignment probabilities per observation.}
 }
 \description{
-Assigns a treatment indicator for each observation, combining an experimental design for included samples (S==1)
-and an observational assignment for excluded samples (S==0).
+Assigns treatment indicators combining a randomized design for \code{S == 1} and
+an observational assignment driven by \code{X0} for \code{S == 0}.
 }
 \details{
-For observations with \code{S==1} (in sample), treatment is assigned with probability \code{0.5} (mimicking a randomized experiment).
-For those with \code{S==0} (out of sample), treatment probability is \eqn{\mathrm{plogis}(X0)}, i.e., it increases with the value of covariate \code{X0}.
-The overall assignment probability for each observation is \eqn{\pi_i = S_i * 0.5 + (1 - S_i) * \mathrm{plogis}(X0_i)}.
-If a seed is provided, an offset \code{seed - 1} is used to differentiate from other generation steps.
+For \code{S == 1} the treatment probability is \code{0.5}. For \code{S == 0}
+the treatment probability is \code{plogis(X0)}. The combined probability is
+\eqn{\pi_i = S_i \cdot 0.5 + (1 - S_i) \cdot \mathrm{plogis}(X0_i)}.
 }

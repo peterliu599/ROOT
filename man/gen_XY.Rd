@@ -7,28 +7,21 @@
 gen_XY(n = 1000, seed = NULL)
 }
 \arguments{
-\item{n}{Integer or numeric. Number of observations to simulate (must be positive).}
+\item{n}{A \code{numeric(1)} or \code{integer(1)} giving the number of observations to simulate. Must be positive.}
 
-\item{seed}{Optional. Single numeric value for RNG seed. If provided, a global
-seed is set for reproducibility. If \code{NULL} (default), no seed is set (results
-will vary on each run).}
+\item{seed}{Optional \code{numeric(1)} for the random number generator seed. If \code{NULL} no seed is set.}
 }
 \value{
-A list with two components:
-\item{X}{A data frame of simulated covariates with columns \verb{X0, X1, ...} up to \code{X(p-1)}.}
-\item{Y}{A data frame of potential outcomes with columns \code{Y0} (baseline outcome)
-and \code{Y1} (outcome under treatment).}
+A \code{list} with two components:
+\item{X}{\code{data.frame} of simulated covariates with columns \code{X0, X1, ...} up to \code{X(p-1)}.}
+\item{Y}{\code{data.frame} with columns \code{Y0} and \code{Y1}.}
 }
 \description{
-Simulates a regression problem (Friedman #1) and defines a treatment effect.
-Uses \code{mlbench.friedman1} to generate \code{X} features and a baseline outcome \code{Y0}.
-The treatment potential outcome \code{Y1} is defined as \code{Y1 = Y0 + log(Y0 + 1)},
-introducing a heterogeneous treatment effect.
+Simulates a regression problem based on Friedman number one and defines a treatment effect.
+Uses \code{mlbench.friedman1} to generate feature matrix \code{X} and a baseline outcome \code{Y0}.
+The treatment potential outcome \code{Y1} is defined as \code{Y1 = Y0 + log(Y0 + 1)} which introduces heterogeneous treatment effect.
 }
 \details{
-The \code{mlbench.friedman1} function from the \pkg{mlbench} package is used
-to generate 10 independent continuous features and a baseline outcome \code{Y0} with additive noise.
-The treatment outcome \code{Y1} is defined by adding a non-linear term \code{log(Y0 + 1)}
-to the baseline. If a seed is specified, the random number generator state is
-reset at the start of the function (which affects other random operations).
+The \code{mlbench.friedman1} generator creates ten continuous features and a baseline outcome \code{Y0} with additive noise.
+The potential outcome \code{Y1} adds a nonlinear term \code{log(Y0 + 1)} to \code{Y0}.
 }

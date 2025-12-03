@@ -2,28 +2,23 @@
 % Please edit documentation in R/generateFunctions.R
 \name{gen_S}
 \alias{gen_S}
-\title{Generate sample indicator \code{S} ~ Bernoulli(plogis(a))}
+\title{Generate sample indicator \code{S} drawn from a Bernoulli distribution}
 \usage{
 gen_S(X, seed = NULL)
 }
 \arguments{
-\item{X}{A data frame of covariates (must contain at least columns \code{X0} and \code{X1}).}
+\item{X}{A \code{data.frame} of covariates that contains at least \code{X0} and \code{X1}.}
 
-\item{seed}{Optional numeric seed for RNG. If provided, \code{set.seed(seed + 1)}
-is invoked for reproducibility. If \code{NULL} (default), no specific seed is set.}
+\item{seed}{Optional \code{numeric(1)} seed. If \code{NULL} no seed is set.}
 }
 \value{
-A data frame with a single column \code{S} of 0/1 values indicating inclusion (1) or exclusion (0).
+A \code{data.frame} with one column \code{S} of values in \code{0} or \code{1}.
 }
 \description{
-Generates a binary sample inclusion indicator \code{S} for each observation,
-using a logistic model influenced by a rectangular region in the first two covariates (\code{X0} and \code{X1}).
+Generates a binary sample inclusion indicator \code{S} for each observation
+using a logistic model influenced by a rectangular region in \code{X0} and \code{X1}.
 }
 \details{
-The inclusion probability is defined as \eqn{p = \mathrm{plogis}(a)},
-where \eqn{a = 0.25 - 2 * I\{X0, X1 \text{ in region } (0.5,1)\}}.
-In other words, observations for which both \code{X0} and \code{X1} lie in (0.5, 1)
-have a lower odds of being included (due to a negative contribution in the linear predictor).
-This mirrors a scenario where a specific region in feature space is under-sampled.
-If a seed is set, it uses \code{seed + 1} to differentiate from other generators.
+The inclusion probability is \eqn{p = \mathrm{plogis}(a)} where
+\eqn{a = 0.25 - 2 \cdot I\{X0 \in (0.5,1) \land X1 \in (0.5,1)\}}.
 }
