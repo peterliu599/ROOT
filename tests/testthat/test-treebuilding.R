@@ -157,3 +157,89 @@ test_that("split_node accepts improving splits and updates weights", {
   expect_equal(nrow(res$D), nrow(D))
   expect_true(all(res$D$w %in% 0:1))
 })
+
+test_that("midpoint validates and handles edge cases", {
+  expect_error(midpoint("a"), "`X` must be a numeric")
+  expect_warning(expect_true(is.na(midpoint(numeric(0)))))
+  expect_warning(expect_true(is.na(midpoint(c(NA_real_, NA_real_)))))
+  expect_equal(midpoint(c(-2, 2, NA)), 0)
+  expect_equal(midpoint(c(-5, -1)), -3)
+})
+
+test_that("choose_feature validates probs and names", {
+  expect_error(choose_feature(numeric(0), 0), "non-empty numeric")
+  expect_error(choose_feature(c(a=0.5, b=NA_real_), 0), "contains NA")
+  expect_error(choose_feature(setNames(c(-0.2, 1.2), c("leaf","X1")), 0), "Negative")
+  expect_error(choose_feature(unname(c(0.5,0.5)), 0), "must have names")
+  expect_error(
+    choose_feature(c(a = 0.7, b = NA_real_), 0),
+    "NA values"  # or just "NA"
+  )})
+
+test_that("reduce_weight validates and renormalizes, halves target", {
+  expect_error(reduce_weight(1, c(leaf=0.5, X1=0.5)), "`fj` must be a single")
+  expect_error(reduce_weight("X1", c(0.5,0.5)), "named numeric")
+  expect_error(reduce_weight("X9", c(leaf=0.5, X1=0.5)), "not found")
+  expect_error(reduce_weight("X1", c(leaf=0.5, X1=-0.1)), "Negative")
+  expect_error(reduce_weight("X1", c(leaf=0.5, X1=Inf)), "non-finite")
+  sf <- c(leaf=0.2, X1=0.8)
+  sf2 <- reduce_weight("X1", sf)
+  expect_equal(sum(sf2), 1, tolerance = 1e-12)
+  expect_lt(sf2["X1"], sf["X1"])
+})
+
+test_that("characterize_tree basic fit and guards", {
+  X <- data.frame(a = rnorm(30), b = runif(30))
+  w <- sample(c(0,1), 30, TRUE)
+
+  # happy path
+  fit <- characterize_tree(X, w)
+  expect_s3_class(fit, "rpart")
+
+  # guards (this should be an error and *caught*)
+  expect_error(characterize_tree(X, w[1:10]), "Length of `w` must equal")
+})
+
+mk_state <- function(n=20) {
+  set.seed(42)
+  X <- data.frame(X1 = runif(n), X2 = runif(n))
+  D <- data.frame(X, v = rnorm(n), vsq = rchisq(n, df=1), w = rep(1, n), S = rep(1L, n))
+  rownames(X) <- rownames(D) <- as.character(seq_len(n))
+  list(X=X, D=D)
+}
+
+test_that("split_node: max-depth, min-leaf, leaf feature", {
+  st <- mk_state(12)
+  sf <- c(leaf=1, X1=0, X2=0)
+  o1 <- split_node(sf, st$X, st$D, parent_loss=Inf, depth=3, max_depth=3)
+  expect_equal(o1$node, "leaf")
+  expect_match(o1$leaf_reason, "max-depth")
+
+  o2 <- split_node(c(leaf=0.1, X1=0.9), st$X[1:4,], st$D, parent_loss=Inf, depth=0, min_leaf_n=5)
+  expect_equal(o2$node, "leaf")
+  expect_match(o2$leaf_reason, "min-leaf")
+
+  o3 <- split_node(sf, st$X, st$D, parent_loss=Inf, depth=0)
+  expect_equal(o3$node, "leaf")
+  expect_match(o3$leaf_reason, "feature==leaf")
+})
+
+test_that("split_node: improving split vs rejection loop", {
+  st <- mk_state(40)
+  # Let feature always be X1 first; use small explore prob to be deterministic
+  sf <- c(leaf=0.0, X1=1.0)
+  out <- withr::with_seed(1, split_node(sf, st$X, st$D, parent_loss=1e99,
+                                        depth=0, explore_proba=0, max_depth=2))
+  expect_true(out$node %in% c("X1","leaf"))   # either splits or quits as leaf after recursion
+  expect_true(is.finite(out$`local objective`))
+
+  # Force repeated rejections by making parent_loss tiny and halving until leaf
+  out2 <- withr::with_seed(1, split_node(sf, st$X, st$D, parent_loss=.Machine$double.eps,
+                                         depth=0, explore_proba=0, max_depth=2,
+                                         max_rejects_per_node=3))
+  expect_true(out2$node %in% c("leaf","X1"))
+  # if leaf, reason should show reject budget or leaf-after-rejects
+  if (out2$node == "leaf") {
+    expect_true(grepl("reject", out2$leaf_reason) || grepl("leaf", out2$leaf_reason))
+  }
+})

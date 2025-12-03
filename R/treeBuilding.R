@@ -300,22 +300,20 @@ reduce_weight <- function(fj, split_feature) {
 #'
 #' @return A \code{numeric(1)} giving the midpoint of the finite values in \code{X}. Returns \code{NA_real_} when \code{X} is empty or has no finite values.
 midpoint <- function(X) {
-  # Input validation
   if (!is.numeric(X)) {
     stop("`X` must be a numeric vector.", call. = FALSE)
   }
-  if (length(X) == 0) {
+  if (length(X) == 0L) {
     warning("Empty vector provided to midpoint(). Returning NA.", call. = FALSE)
     return(NA_real_)
   }
-  # Remove NAs for calculation
-  rng <- range(X, na.rm = TRUE)
-  if (!is.finite(rng[1]) || !is.finite(rng[2])) {
-    # All values are NA or infinite
+  # Work only with finite values to avoid base::range() warnings
+  x <- X[is.finite(X)]
+  if (length(x) == 0L) {
     warning("No finite values in `X`. Returning NA.", call. = FALSE)
     return(NA_real_)
   }
-  return((rng[1] + rng[2]) / 2)
+  (min(x) + max(x)) / 2
 }
 
 #' Fit a shallow decision tree to characterize learned weights \code{w}

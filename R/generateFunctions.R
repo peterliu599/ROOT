@@ -15,28 +15,33 @@
 #' The potential outcome \code{Y1} adds a nonlinear term \code{log(Y0 + 1)} to \code{Y0}.
 gen_XY <- function(n = 1000, seed = NULL) {
   # Input validation
+  if (!is.numeric(n) || length(n) != 1 || n <= 0) {
+    stop("`n` must be a positive numeric value.", call. = FALSE)
+  }
+  if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
+    stop("`seed` must be NULL or a single numeric value.", call. = FALSE)
+  }
   if (!requireNamespace("mlbench", quietly = TRUE)) {
     stop("Package 'mlbench' is required for gen_XY(); please install it or use a custom generator.",
          call. = FALSE)
   }
+
+  # Generate Friedman #1 data
   friedman_data <- if (is.null(seed)) {
     mlbench::mlbench.friedman1(n = n, sd = 1)
   } else {
     withr::with_seed(seed, mlbench::mlbench.friedman1(n = n, sd = 1))
   }
-  X <- friedman_data$x  # matrix of features
-  Y0 <- friedman_data$y  # baseline outcome
-  Y1 <- Y0 + log(Y0 + 1)  # define treatment outcome
 
-  # Convert X to data frame and name the columns X0, X1, ..., X(p-1)
-  X_df <- as.data.frame(X)
-  p <- ncol(X_df)
-  colnames(X_df) <- paste0("X", seq_len(p) - 1)
+  X  <- as.data.frame(friedman_data$x)
+  p  <- ncol(X)
+  colnames(X) <- paste0("X", seq_len(p) - 1)
 
-  # Assemble Y data frame
-  Y_df <- data.frame(Y0 = Y0, Y1 = Y1)
+  Y0 <- as.numeric(friedman_data$y)
+  Y1 <- Y0 + log(Y0 + 1)
+  Y  <- data.frame(Y0 = Y0, Y1 = Y1)
 
-  return(list(X = X_df, Y = Y_df))
+  list(X = X, Y = Y)
 }
 
 #' Generate sample indicator \code{S} drawn from a Bernoulli distribution

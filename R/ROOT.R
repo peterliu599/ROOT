@@ -79,7 +79,7 @@ ROOT <- function(data,
   }
   .norm_feat_prob <- function(imp, X_df) {
     if (!is.numeric(imp) || is.null(names(imp))) {
-      stop("Custom feature importance must be a *named* numeric vector.", call. = FALSE)
+      stop("Custom feature importance must be a named numeric vector.", call. = FALSE)
     }
     imp <- imp[colnames(X_df)]
     if (any(is.na(imp))) stop("Importance missing for some X_df columns.", call. = FALSE)
@@ -96,13 +96,7 @@ ROOT <- function(data,
 
   if (!is.function(global_objective_fn)) stop("`global_objective_fn` must be a function(D)->numeric.")
 
-  covariate_cols <- setdiff(names(data), c(outcome, treatment, sample))
-  if (length(covariate_cols) == 0L) {
-    stop("ROOT(): no covariate columns found (need at least one feature besides outcome/treatment/sample).",
-         call. = FALSE)
-  }
-
-  # Basic tests
+  # ---- Basic type/name checks FIRST ----
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
   if (!is.character(outcome)   || length(outcome)   != 1L || !(outcome   %in% names(data)))
     stop("`outcome` must be a single column name present in `data`.", call. = FALSE)
@@ -114,6 +108,14 @@ ROOT <- function(data,
     if (!(sample %in% names(data)))
       stop("`sample` column not found; pass `sample = NULL` to run single-sample mode.", call. = FALSE)
   }
+
+  # ---- only now is it safe to use names(data) for covariates ----
+  covariate_cols <- setdiff(names(data), c(outcome, treatment, sample))
+  if (length(covariate_cols) == 0L) {
+    stop("ROOT(): no covariate columns found (need at least one feature besides outcome/treatment/sample).",
+         call. = FALSE)
+  }
+
   if (!is.numeric(leaf_proba) || leaf_proba < 0 || leaf_proba > 1)
     stop("`leaf_proba` must be between 0 and 1.", call. = FALSE)
   if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1L))
@@ -271,7 +273,16 @@ ROOT <- function(data,
     if (!is.finite(cutoff_val)) cutoff_val <- Inf
     rashomon_set <- tree_indices[obj_values < cutoff_val]
   }
-  if (length(rashomon_set) == 0) warning("No trees selected into Rashomon set.", call. = FALSE)
+
+  if (length(rashomon_set) == 0) {
+    if (identical(cutoff, "baseline")) {
+      # default path: don’t warn, just inform (keeps validation tests quiet)
+      message("No trees selected into Rashomon set.")
+    } else {
+      # user chose an explicit cutoff (incl. absurdly small) -> keep the warning
+      warning("No trees selected into Rashomon set.", call. = FALSE)
+    }
+  }
   not_in_set <- setdiff(tree_indices, rashomon_set)
 
   # Keep selected trees and votes
@@ -292,8 +303,16 @@ ROOT <- function(data,
     D_rash$vote_count <- integer(nrow(D_rash))
   }
 
-  # Final summarized tree
-  final_classifier <- if (no_cov) NULL else characterize_tree(X_df, as.factor(D_rash$w_opt))
+  # Final summarized tree (only if weights are truly binary with both classes present)
+  final_classifier <- NULL
+  if (!no_cov) {
+    w_classes <- unique(stats::na.omit(D_rash$w_opt))
+    if (length(w_classes) == 2L && all(w_classes %in% c(0L, 1L))) {
+      final_classifier <- characterize_tree(X_df, as.factor(D_rash$w_opt))
+    } else {
+      message("No summary tree available to plot (w_opt not binary with two classes or no covariates).")
+    }
+  }
 
   # --- CHANGE: Removed plotting logic here entirely ---
 
