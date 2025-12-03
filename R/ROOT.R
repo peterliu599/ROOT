@@ -339,7 +339,7 @@ ROOT <- function(data,
       se_w_note <- paste0(
         "Calculation of SE for WTATE uses sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
         "  Here A = { i : w_i = 1 }, n_A = |A|, v_i are unit-level orthogonal scores, and vbar_A is their mean. \n"
-        )
+      )
 
       if (!identical(global_objective_fn, objective_default)) {
         se_w_note <- paste0(

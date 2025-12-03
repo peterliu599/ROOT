@@ -1,3 +1,81 @@
+# Helper to create dummy state for split_node calls
+make_dummy_state <- function(n=20, p=2) {
+  X <- matrix(runif(n*p), ncol=p)
+  colnames(X) <- paste0("X", 1:p)
+  X_df <- as.data.frame(X)
+  X_df$w <- 1
+  rownames(X_df) <- as.character(1:n)
+
+  D <- X_df
+  D$vsq <- rchisq(n, df=1) # random positive values
+
+  split_feats <- c(leaf=0.1, X1=0.45, X2=0.45)
+  list(X=X_df, D=D, sf=split_feats)
+}
+
+test_that("split_node base cases work", {
+  st <- make_dummy_state(n=10)
+  res_depth <- split_node(st$sf, st$X, st$D, parent_loss = Inf, depth = 8, max_depth = 8)
+  expect_equal(res_depth$node, "leaf")
+  expect_equal(res_depth$leaf_reason, "max-depth")
+
+  res_min_n <- split_node(st$sf, st$X[1:4,], st$D, parent_loss = Inf, depth = 0, min_leaf_n = 5)
+  expect_equal(res_min_n$node, "leaf")
+  expect_equal(res_min_n$leaf_reason, "min-leaf")
+
+  sf_leaf <- c(leaf=1, X1=0, X2=0)
+  res_leaf_feat <- split_node(sf_leaf, st$X, st$D, parent_loss = Inf, depth = 0)
+  expect_equal(res_leaf_feat$node, "leaf")
+  expect_equal(res_leaf_feat$leaf_reason, "feature==leaf")
+})
+
+test_that("split_node successfully splits", {
+  st <- make_dummy_state(n=50)
+  res_split <- withr::with_seed(1, {
+    split_node(st$sf, st$X, st$D, parent_loss = 100, depth = 0)
+  })
+  expect_true(res_split$node %in% c("X1", "X2"))
+})
+
+test_that("Helpers: choose_feature, reduce_weight, midpoint", {
+  # choose_feature
+  sf <- c(leaf=0.2, X1=0.8)
+  set.seed(1)
+  chosen <- replicate(100, choose_feature(sf, depth=0))
+  expect_true(mean(chosen == "X1") > 0.7)
+
+  # reduce_weight
+  sf_red <- reduce_weight("X1", sf)
+  expected_val <- (0.8/2) / (0.2 + 0.8/2)
+  expect_equal(sf_red["X1"], expected_val, ignore_attr = TRUE)
+  expect_equal(sum(sf_red), 1)
+
+  # midpoint
+  expect_equal(midpoint(c(1, 3)), 2)
+  suppressWarnings({
+    expect_true(is.na(midpoint(c(NA_real_))))
+  })
+})
+
+test_that("characterize_tree fits an rpart model", {
+  # Use dat_tiny which has 50 rows in the helper
+  X <- dat_tiny[, c("X0", "X1")]
+  n <- nrow(X)
+
+  # Create w with exactly length n, and ensure two classes
+  w <- rep(0, n)
+  w[1:(n/2)] <- 1
+
+  fit <- characterize_tree(X, w, max_depth = 2)
+  expect_s3_class(fit, "rpart")
+
+  # Error: w not binary (all 1s)
+  expect_error(characterize_tree(X, rep(1, n)), "must have exactly two classes")
+
+  # Error: Length mismatch
+  expect_error(characterize_tree(X, rep(1, n - 1)), "Length of `w` must equal")
+})
+
 # Minimal toy data with two numeric features
 toy_X <- data.frame(X1 = c(0, 1, 2, 3, 4, 5),
                     X2 = c(5, 4, 3, 2, 1, 0),
