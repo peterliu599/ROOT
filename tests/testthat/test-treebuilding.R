@@ -500,3 +500,84 @@ test_that("split_node -> empty-child-after-rejects", {
     expect_match(res$leaf_reason, "empty-child")
   }, loss_from_objective = stub_loss_from_objective)
 })
+
+test_that("split_node -> accepts split after rejects and returns local objective", {
+  ## 4-row toy data with deterministic rownames
+  X <- data.frame(
+    a = c(1, 1, 2, 2),
+    b = c(1, 2, 1, 2),
+    row.names = paste0("r", 1:4)
+  )
+
+  ## D must have one row per obs and the same rownames
+  D <- data.frame(
+    vsq = rep(1, nrow(X)),
+    w   = rep(0, nrow(X)),
+    row.names = rownames(X)
+  )
+
+  parent_loss <- 1
+
+  ## Helper to hash an index set into a stable key
+  key_of <- function(idx) paste(sort(idx), collapse = ",")
+
+  ## For feature "b" with midpoint 1.5 we want:
+  ## left  = {r1, r3}  -> small loss
+  ## right = {r2, r4}  -> small loss
+  good_keys <- c(key_of(c("r1", "r3")), key_of(c("r2", "r4")))
+
+  ## Mock: derive a loss function that makes "a" bad and "b" good
+  stub_loss_from_objective <- function(global_objective_fn) {
+    force(global_objective_fn)
+    function(val, indices, D) {
+      if (key_of(indices) %in% good_keys) 0.10 else 10.0
+    }
+  }
+
+  ## Deterministic chooser: first try "a" (rejected), then "b" (accepted)
+  choices <- c("a", "b")
+  choose_seq <- local({
+    i <- 0L
+    function(split_feature, depth) {
+      i <<- i + 1L
+      if (i <= length(choices)) choices[i] else "b"
+    }
+  })
+
+  ## Identity reducer (we just need to enter the reject loop once)
+  reduce_identity <- function(fj, sf) sf
+
+  ## Split feature vector must be named and include "leaf"
+  split_feature <- c(a = 0.6, b = 0.3, leaf = 0.1)
+
+  ## Strictly scoped mocks for ROOT only (no stats::rbinom here)
+  testthat::with_mocked_bindings(
+    loss_from_objective = stub_loss_from_objective,
+    objective_default   = function(D) 0.5,  # guarantee finite final objective
+    .env = asNamespace("ROOT"),
+    {
+      ## Make explore flips impossible; recursion order randomness doesn't affect assertions
+      res <- split_node(
+        split_feature       = split_feature,
+        X                   = X,
+        D                   = D,
+        parent_loss         = parent_loss,
+        depth               = 0L,
+        explore_proba       = 0,                # no explore flips
+        choose_feature_fn   = choose_seq,       # a -> b
+        reduce_weight_fn    = reduce_identity,  # keep weights
+        global_objective_fn = objective_default,
+        max_depth           = 1L,
+        min_leaf_n          = 2L,
+        log_fn              = function(...) {},
+        max_rejects_per_node = 10L
+      )
+
+      ## Assertions (do not depend on random order)
+      expect_identical(res$node, "b")                # accepted after rejects on "a"
+      expect_true(is.finite(res[["local objective"]]))
+      expect_identical(rownames(res$D), rownames(X))
+      expect_true(res$left_tree$node  %in% c("leaf"))
+      expect_true(res$right_tree$node %in% c("leaf"))
+    })
+})
