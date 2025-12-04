@@ -56,9 +56,3 @@ test_that("midpoint, choose_feature, and reduce_weight work", {
   expect_error(choose_feature(unname(sf), 0), "must have names")
   expect_error(reduce_weight("X9", sf), "not found")
 })
-
-
-
-
-
-

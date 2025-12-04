@@ -376,3 +376,127 @@ test_that("characterize_tree fits with two classes and respects max_depth", {
   expect_s3_class(f, "rpart")
   expect_true(f$control$maxdepth == 2)
 })
+
+fake_root_base <- function() {
+  Df <- data.frame(
+    v   = c(1,2,3,4),
+    vsq = c(1,2,3,4),
+    S   = c(1L,1L,0L,0L),
+    lX  = NA_real_,
+    x1  = 0:3
+  )
+  Dr <- list(w_opt = c(1L, 0L, 1L, 0L))
+  structure(list(
+    D_forest = Df,
+    D_rash   = Dr,
+    rashomon_set = integer(),
+    testing_data = Df
+  ), class = "ROOT")
+}
+
+test_that("summary.ROOT prints non-binary SE-omitted note + custom objective caution", {
+  x <- fake_root_base()
+  x$D_rash$w_opt <- c(0.2, 0.8, 0.1, 0.0)  # non-binary path
+  x$global_objective_fn <- function(D) sum(D$vsq)  # not identical(objective_default)
+  out <- capture.output(summary(x))
+  expect_true(any(grepl("SE omitted: non-binary w_opt detected", out, fixed = TRUE)))
+  expect_true(any(grepl("You supplied a custom global_objective_fn; please ensure your variance method", out, fixed = TRUE)))
+})
+
+test_that("print.ROOT prints custom-objective caution (binary w)", {
+  x <- fake_root_base()
+  x$D_rash$w_opt <- c(1L, 1L, 0L, 0L)  # binary path
+  x$global_objective_fn <- function(D) sum(D$vsq)
+  out <- capture.output(print(x))
+  expect_true(any(grepl("Calculation of SE for WTATE uses sqrt", out, fixed = TRUE)))
+  expect_true(any(grepl("You supplied a custom global_objective_fn; please verify this SE matches your", out, fixed = TRUE)))
+})
+
+test_that("print.ROOT prints custom-objective caution (non-binary w)", {
+  x <- fake_root_base()
+  x$D_rash$w_opt <- c(0.3, 0.7, 0.1, 0)  # non-binary path
+  x$global_objective_fn <- function(D) sum(D$vsq)
+  out <- capture.output(print(x))
+  expect_true(any(grepl("SE omitted: non-binary w_opt detected", out, fixed = TRUE)))
+  expect_true(any(grepl("You supplied a custom global_objective_fn; please ensure your variance method", out, fixed = TRUE)))
+})
+
+stub_loss_from_objective <- function(...) {
+  function(val, idx, D) if (length(idx) == 0) 0 else mean(D[idx, "vsq"])
+}
+
+make_XD_onefeat <- function() {
+  X <- data.frame(x1 = c(0,0,1,1,2,2))
+  rownames(X) <- paste0("r", seq_len(nrow(X)))
+  D <- data.frame(w = 0, vsq = seq_len(nrow(X)))
+  rownames(D) <- rownames(X)
+  list(X = X, D = D)
+}
+
+make_XD_twofeat <- function() {
+  X <- data.frame(
+    x1 = c(0,0,1,1,2,2),   # will produce higher loss
+    x2 = c(0,1,0,1,0,1)    # will produce lower loss split
+  )
+  rownames(X) <- paste0("r", seq_len(nrow(X)))
+  D <- data.frame(w = 0, vsq = c(5,5,5,1,1,1))  # arrange so x2 yields smaller weighted loss
+  rownames(D) <- rownames(X)
+  list(X = X, D = D)
+}
+
+test_that("split_node -> forced-leaf-after-rejects", {
+  XD <- make_XD_onefeat()
+  choose_x1 <- function(sf, depth) "x1"
+  force_leaf <- function(fj, sf) c(leaf = 1)  # immediately make leaf certain
+
+  with_mocked_bindings({
+    res <- split_node(c(leaf=0, x1=1), XD$X, XD$D,
+                      parent_loss = -1e6, # force initial REJECT
+                      depth = 0,
+                      choose_feature_fn = choose_x1,
+                      reduce_weight_fn  = force_leaf,
+                      explore_proba = 0)
+    expect_identical(res$node, "leaf")
+    expect_match(res$leaf_reason, "forced-leaf-after-rejects")
+  }, loss_from_objective = stub_loss_from_objective)
+})
+
+test_that("split_node -> feature==leaf-after-rejects", {
+  XD <- make_XD_onefeat()
+  choose_x1_then_leaf <- local({
+    called <- FALSE
+    function(sf, depth) {
+      if (!called) { called <<- TRUE; "x1" } else { "leaf" }
+    }
+  })
+  id_reduce <- function(fj, sf) sf
+
+  with_mocked_bindings({
+    res <- split_node(c(leaf=0.1, x1=0.9), XD$X, XD$D,
+                      parent_loss = -1e6,
+                      depth = 0,
+                      choose_feature_fn = choose_x1_then_leaf,
+                      reduce_weight_fn  = id_reduce,
+                      explore_proba = 0)
+    expect_identical(res$node, "leaf")
+    expect_match(res$leaf_reason, "feature==leaf-after-rejects")
+  }, loss_from_objective = stub_loss_from_objective)
+})
+
+test_that("split_node -> empty-child-after-rejects", {
+  XD <- make_XD_onefeat()
+  XD$X$x1 <- 5  # constant -> midpoint split makes one child empty
+  choose_x1 <- function(sf, depth) "x1"
+  id_reduce <- function(fj, sf) sf
+
+  with_mocked_bindings({
+    res <- split_node(c(leaf=0, x1=1), XD$X, XD$D,
+                      parent_loss = -1e6,
+                      depth = 0,
+                      choose_feature_fn = choose_x1,
+                      reduce_weight_fn  = id_reduce,
+                      explore_proba = 0)
+    expect_identical(res$node, "leaf")
+    expect_match(res$leaf_reason, "empty-child")
+  }, loss_from_objective = stub_loss_from_objective)
+})

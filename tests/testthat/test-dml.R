@@ -376,3 +376,115 @@ test_that("estimate_dml input guards hit key branches", {
   expect_snapshot_error(estimate_dml(all1, "Y","Tr","S", 2))
 })
 
+test_that("S is coerced to 0/1 across numeric/logical/character/factor encodings (strict, no NA)", {
+  # 12 rows; S alternates "1"/"0" as a factor to hit the to01() branches
+  S_fac <- factor(rep(c("1","0"), 6), levels = c("0","1"))
+  idx_s1 <- which(S_fac == "1")
+  idx_s0 <- which(S_fac == "0")
+
+  Tr <- integer(12)
+  # >>> make Tr vary within S==1 <<<
+  Tr[idx_s1] <- c(0L,1L,0L,1L,0L,1L)
+  Tr[idx_s0] <- c(1L,0L,1L,0L,1L,0L)
+
+  td <- data.frame(
+    Y  = rnorm(12),
+    X1 = rnorm(12),
+    X2 = rnorm(12),
+    S  = S_fac,
+    Tr = Tr
+  )
+
+  expect_no_error(
+    suppressWarnings(ROOT:::train(td, outcome = "Y", treatment = "Tr", sample = "S"))
+  )
+})
+
+test_that("S with a non 0/1 code fails with clear message (allow_na = FALSE)", {
+  td <- data.frame(
+    Y  = rnorm(6),
+    X1 = rnorm(6),
+    X2 = rnorm(6),
+    # Include an invalid S code that cannot map to 0/1
+    S  = c("1","0","maybe","0","1","0"),
+    Tr = c(0,1,0,1,0,1)
+  )
+  # The inner to01() used for S is strict -> error text comes from to01()
+  expect_error(
+    ROOT:::train(td, outcome = "Y", treatment = "Tr", sample = "S"),
+    regexp = "Non 0/1 encodings found and NA not allowed"
+  )
+})
+
+test_that("Tr among S==1: numeric but not in {0,1} triggers the S==1 guard", {
+  # Here we *want* Tr to be numeric already so the code skips to01() for Tr_vec_s1
+  # and hits the explicit check: !all(Tr_vec_s1 %in% c(0L,1L)) -> stop(...)
+  td <- data.frame(
+    Y  = rnorm(8),
+    X1 = rnorm(8),
+    X2 = rnorm(8),
+    S  = c(1L,1L,1L,1L, 0L,0L,0L,0L),
+    # Illegal numeric code (2) inside S==1 rows -> should fail the guard
+    Tr = c(0L, 1L, 2L, 0L,  NA, NA, 0L, 1L)
+  )
+  expect_error(
+    ROOT:::train(td, outcome = "Y", treatment = "Tr", sample = "S"),
+    regexp = "Treatment indicator column must be numeric 0/1 among S==1 observations\\."
+  )
+})
+
+test_that("Tr coercion path: non-numeric Tr is mapped; NA allowed only for S==0", {
+  # This hits the branch where training_data[[treatment]] is not numeric,
+  # so the code coerces the *entire* Tr with allow_na=TRUE, then enforces S==1 has no NA.
+  td <- data.frame(
+    Y  = rnorm(10),
+    X1 = rnorm(10),
+    X2 = rnorm(10),
+    S  = c(1,1,1,1,1, 0,0,0,0,0),
+    # Encodings cover factor/character/yes/no/1/0, and NA exclusively on S==0
+    Tr = c("treated","control","1","0","yes", NA, "no", "0", "1", NA),
+    stringsAsFactors = FALSE
+  )
+  # Should pass: S==1 have valid encodings; NA only appear in S==0
+  expect_no_error(suppressWarnings(ROOT:::train(td, outcome = "Y", treatment = "Tr", sample = "S")))
+})
+
+test_that("NA in Y or Tr among S==1 triggers the intended guards", {
+  # Case 1: NA in Y among S==1 → hits the explicit S==1 NA check
+  td_y_na <- data.frame(
+    Y  = c(NA, rnorm(5)),
+    X1 = rnorm(6),
+    X2 = rnorm(6),
+    S  = c(1,1,1,0,0,0),
+    Tr = c(1,0,1,0,1,0)
+  )
+  expect_error(
+    ROOT:::train(td_y_na, outcome = "Y", treatment = "Tr", sample = "S"),
+    regexp = "contains NA among S==1 rows"
+  )
+
+  # Case 2: NA in Tr among S==1 → hits the stricter 0/1 constraint for Tr|S==1
+  td_tr_na <- data.frame(
+    Y  = rnorm(6),
+    X1 = rnorm(6),
+    X2 = rnorm(6),
+    S  = c(1,1,1,0,0,0),
+    Tr = c(1, NA, 0, 1, 0, 1)  # numeric with NA in the S==1 block
+  )
+  expect_error(
+    ROOT:::train(td_tr_na, outcome = "Y", treatment = "Tr", sample = "S"),
+    regexp = "Treatment indicator column must be numeric 0/1 among S==1 observations\\."
+  )
+})
+
+test_that("Character and factor mappings for Tr (treated/yes/true vs control/no/false) are accepted", {
+  # Exercises map1/map0 branches inside to01()
+  td <- data.frame(
+    Y  = rnorm(8),
+    X1 = rnorm(8),
+    X2 = rnorm(8),
+    S  = c(1,1,1,1, 0,0,0,0),
+    Tr = factor(c("treated","control","TRUE","false", "yes","no","t","c"))
+  )
+  expect_no_error(suppressWarnings(ROOT:::train(td, outcome = "Y", treatment = "Tr", sample = "S")))
+})
