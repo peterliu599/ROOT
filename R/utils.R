@@ -20,16 +20,12 @@
 
 #' Generic objective interface
 #'
-#' Default objective that serves as a proxy for Standard Error in Weighted Transported
-#' Average Treatment Effect and Population Average Treatment Effect.
+#' Default objective that serves as a proxy for standard error in weighted transported
+#' average treatment effect (WTATE) and population average treatment effect (PATE).
 #'
 #' Computes \code{sqrt(sum(vsq_i * w_i)) / (sum(w_i))^2}.
 #' Requires columns \code{vsq} and \code{w} in \code{D}. The goal is to minimize the value.
 #' Supply your own \code{function(D) -> numeric} to use a different objective.
-#'
-#' @section Abbreviations:
-#' ATE means Average Treatment Effect. SE means Standard Error. TATE means Transported ATE.
-#' WTATE means Weighted TATE. WATE means Weighted ATE. PATE means Population ATE.
 #'
 #' @param D A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.
 #'

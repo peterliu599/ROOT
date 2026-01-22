@@ -1,4 +1,4 @@
-#' Simulated Diabetes Dataset for Examples
+#' Simulated diabetes dataset for examples
 #'
 #' A toy dataset for illustrating \code{ROOT} examples and tests.
 #'

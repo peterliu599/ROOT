@@ -3,7 +3,7 @@
 \docType{data}
 \name{diabetes_data}
 \alias{diabetes_data}
-\title{Simulated Diabetes Dataset for Examples}
+\title{Simulated diabetes dataset for examples}
 \format{
 A \code{data.frame} with one row per individual and the columns:
 \describe{

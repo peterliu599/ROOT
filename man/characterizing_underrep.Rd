@@ -29,12 +29,12 @@ mode, also columns \code{Y}, \code{Tr}, and \code{S}.}
 scoring the entire state and minimized by ROOT. If NULL, a default
 variance-based objective is used (see \code{objective_default()}).}
 
-\item{generalizability_path}{\code{logical(1)}. If \code{TRUE}, calls
+\item{generalizability_path}{Logical. If \code{TRUE}, calls
 \code{ROOT()} with \code{generalizability_path = TRUE} and expects columns
 \code{Y}, \code{Tr}, and \code{S} in \code{data}. If \code{FALSE}, calls
 \code{ROOT()} in general optimization mode. Default \code{FALSE}.}
 
-\item{leaf_proba}{numeric(1) tuning parameter that increases the chance
+\item{leaf_proba}{A \code{numeric(1)} tuning parameter that increases the chance
 a node stops splitting by selecting a synthetic \code{"leaf"} feature.
 Internally, the probability of choosing \code{"leaf"} is
 \code{leaf_proba / (1 + leaf_proba)} (assuming the

@@ -35,49 +35,49 @@ and \code{"S"} (sample indicator, 1 = trial, 0 = target). ROOT internally
 constructs transportability scores and, if no custom objective is given,
 uses a default variance-based loss.}
 
-\item{global_objective_fn}{function with signature \verb{function(D) -> numeric}
+\item{global_objective_fn}{A function with signature \verb{function(D) -> numeric}
 scoring the entire state and minimized by ROOT. If NULL, a default
 variance-based objective is used (see \code{objective_default()}).}
 
-\item{generalizability_path}{logical(1). If TRUE, use the built-in transportability
+\item{generalizability_path}{\code{Logical(1)}. If TRUE, use the built-in transportability
 objective based on (Y, Tr, S). If FALSE, treat \code{data} as arbitrary and rely
 on \code{global_objective_fn}. Default FALSE.}
 
-\item{leaf_proba}{numeric(1) tuning parameter that increases the chance
+\item{leaf_proba}{A numeric tuning parameter that increases the chance
 a node stops splitting by selecting a synthetic \code{"leaf"} feature.
 Internally, the probability of choosing \code{"leaf"} is
 \code{leaf_proba / (1 + leaf_proba)} (assuming the
 covariate probabilities sum to 1). Default \code{0.25}.}
 
-\item{seed}{optional numeric(1) seed for reproducibility.}
+\item{seed}{An optional numeric seed for reproducibility.}
 
-\item{num_trees}{integer(1) number of trees to grow. Default 10.}
+\item{num_trees}{An integer number of trees to grow. Default 10.}
 
-\item{vote_threshold}{numeric(1) in (0.5, 1] giving the majority vote
+\item{vote_threshold}{A numeric in (0.5, 1] giving the majority vote
 threshold for final \code{w = 1}. Default 2/3.}
 
-\item{explore_proba}{numeric(1) giving the exploration probability at leaves.
+\item{explore_proba}{A numeric giving the exploration probability at leaves.
 Default 0.05.}
 
-\item{feature_est}{either a character(1) in c("Ridge", "GBM") or a
+\item{feature_est}{Either a character(1) in c("Ridge", "GBM") or a
 function(X, y, ...) returning a named nonnegative numeric vector of
 importances with names matching columns of X. Used only to bias which
 covariates are chosen for splitting. If it fails, ROOT falls back to
 uniform feature sampling with a warning.}
 
-\item{feature_est_args}{list of additional arguments passed to a user
+\item{feature_est_args}{A list of additional arguments passed to a user
 supplied \code{feature_est} function.}
 
-\item{top_k_trees}{logical(1). If TRUE, select top \code{k} trees by objective;
+\item{top_k_trees}{\code{Logical(1)}. If TRUE, select top \code{k} trees by objective;
 otherwise use \code{cutoff}. Default FALSE.}
 
-\item{k}{integer(1) giving the number of top trees when
+\item{k}{An integer giving the number of top trees when
 \code{top_k_trees = TRUE}. Default 10.}
 
-\item{cutoff}{numeric(1) or \code{"baseline"}. Used as the Rashomon cutoff when
+\item{cutoff}{A numeric or \code{"baseline"}. Used as the Rashomon cutoff when
 \code{top_k_trees = FALSE}. \code{"baseline"} uses the objective at w = 1 (all weights equal to 1).}
 
-\item{verbose}{logical(1). If TRUE, prints unweighted and (when available)
+\item{verbose}{\code{Logical(1)}. If TRUE, prints unweighted and (when available)
 weighted estimates and their standard errors in generalizability_path mode.}
 }
 \value{
