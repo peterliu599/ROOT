@@ -55,6 +55,7 @@ summary.characterizing_underrep <- function(object, ...) {
   invisible(object)
 }
 
+
 #' Plot Under represented Population Characterization
 #'
 #' Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
@@ -64,19 +65,26 @@ summary.characterizing_underrep <- function(object, ...) {
 #'
 #' @param x A \code{characterizing_underrep} S3 object with \code{x$root$f} present as an
 #'   \code{rpart} object for the summary or characterization tree.
+#' @param main Character string for the plot title. Default is
+#'   \code{"Underrepresented Population Characterization"}.
+#' @param cex.main Numeric scaling factor for the title text size. Default is \code{1.2}.
 #' @param ... Additional arguments passed to \code{rpart.plot::prp()}.
 #'
 #' @return \code{NULL}. The plot is drawn to the active graphics device.
 #'
 #' @importFrom rpart.plot prp
-#' @importFrom graphics par legend
+#' @importFrom graphics par legend title
 #' @examples
 #' \dontrun{
-#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE, seed = 123)
 #' plot(char.output)
+#' plot(char.output, main = "My Custom Title", cex.main = 1.5)
 #' }
 #' @export
-plot.characterizing_underrep <- function(x, ...) {
+plot.characterizing_underrep <- function(x,
+                                         main = "Underrepresented Population Characterization",
+                                         cex.main = 1.2,
+                                         ...) {
   # --- 1. Safety Checks ---
   if (is.null(x$root$f)) {
     message("No summary tree available to plot (possibly no covariates or tree failed to grow).")
@@ -136,14 +144,15 @@ plot.characterizing_underrep <- function(x, ...) {
     out
   }
 
-  # --- 6. Plot arguments ---
+  # --- 6. Plot arguments (bigger defaults) ---
   args <- list(...)
   if (is.null(args$type))          args$type <- 2
   if (is.null(args$extra))         args$extra <- 0
   if (is.null(args$under))         args$under <- TRUE
-  if (is.null(args$tweak))         args$tweak <- 1.1
+  if (is.null(args$tweak))         args$tweak <- 1.3
   if (is.null(args$fallen.leaves)) args$fallen.leaves <- TRUE
   if (is.null(args$shadow.col))    args$shadow.col <- "gray"
+  if (!"main" %in% names(args))    args$main <- "Final Characterized Tree from Rashomon Set with Weight Labels"
 
   args$x             <- f
   args$box.col       <- box_col
@@ -152,8 +161,14 @@ plot.characterizing_underrep <- function(x, ...) {
 
   do.call(rpart.plot::prp, args)
 
-  # --- 7. Legend text depends on generalization_path / generalization ---
-  is_gen <- isTRUE(x$root$generalization) ||
+  # --- 7. Add title ---
+  if (!is.null(main) && nzchar(main)) {
+    suppressWarnings(graphics::title(main = main, cex.main = cex.main))
+  }
+
+  # --- 8. Legend text depends on generalization_path / generalization ---
+  is_gen <- isTRUE(x$root$generalization_path) ||
+    isTRUE(x$root$generalization) ||
     (!is.null(x$generalization_path) && isTRUE(x$generalization_path))
 
   legend_labels <- if (is_gen) {
@@ -164,15 +179,16 @@ plot.characterizing_underrep <- function(x, ...) {
       "w(x) = 0")
   }
 
-  op <- graphics::par(xpd = NA); on.exit(graphics::par(op), add = TRUE)
-  graphics::legend(
+  op <- suppressWarnings(graphics::par(xpd = NA))
+  on.exit(suppressWarnings(graphics::par(op)), add = TRUE)
+  suppressWarnings(graphics::legend(
     "topleft",
     legend = legend_labels,
     fill   = c(col_keep, col_drop),
     border = NA,
     bty    = "n",
-    cex    = 0.9
-  )
+    cex    = 1.0
+  ))
 
   invisible(NULL)
 }

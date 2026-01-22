@@ -48,7 +48,7 @@
 #' @param k integer(1) giving the number of top trees when
 #'   `top_k_trees = TRUE`. Default 10.
 #' @param cutoff numeric(1) or `"baseline"`. Used as the Rashomon cutoff when
-#'   `top_k_trees = FALSE`. `"baseline"` uses the objective at w ≡ 1.
+#'   `top_k_trees = FALSE`. `"baseline"` uses the objective at w = 1 (all weights equal to 1).
 #' @param verbose logical(1). If TRUE, prints unweighted and (when available)
 #'   weighted estimates and their standard errors in generalizability_path mode.
 #'

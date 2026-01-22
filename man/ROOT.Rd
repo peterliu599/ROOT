@@ -75,7 +75,7 @@ otherwise use \code{cutoff}. Default FALSE.}
 \code{top_k_trees = TRUE}. Default 10.}
 
 \item{cutoff}{numeric(1) or \code{"baseline"}. Used as the Rashomon cutoff when
-\code{top_k_trees = FALSE}. \code{"baseline"} uses the objective at w ≡ 1.}
+\code{top_k_trees = FALSE}. \code{"baseline"} uses the objective at w = 1 (all weights equal to 1).}
 
 \item{verbose}{logical(1). If TRUE, prints unweighted and (when available)
 weighted estimates and their standard errors in generalizability_path mode.}

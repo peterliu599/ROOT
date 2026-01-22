@@ -69,7 +69,7 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
   # density ratio r(X) = P(S=0|X) / P(S=1|X)
   r_x <- (1 - pi_s) / pi_s
 
-  # Horvitz–Thompson-style transported score
+  # Horvitz-Thompson-style transported score
   v   <- r_x * ((T_ind * Y / e_x) - ((1 - T_ind) * Y / (1 - e_x)))
   vsq <- v^2
 

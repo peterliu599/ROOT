@@ -4,11 +4,21 @@
 \alias{plot.characterizing_underrep}
 \title{Plot Under represented Population Characterization}
 \usage{
-\method{plot}{characterizing_underrep}(x, ...)
+\method{plot}{characterizing_underrep}(
+  x,
+  main = "Underrepresented Population Characterization",
+  cex.main = 1.2,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{characterizing_underrep} S3 object with \code{x$root$f} present as an
 \code{rpart} object for the summary or characterization tree.}
+
+\item{main}{Character string for the plot title. Default is
+\code{"Underrepresented Population Characterization"}.}
+
+\item{cex.main}{Numeric scaling factor for the title text size. Default is \code{1.2}.}
 
 \item{...}{Additional arguments passed to \code{rpart.plot::prp()}.}
 }
@@ -23,7 +33,8 @@ in general optimization mode.
 }
 \examples{
 \dontrun{
-char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE, seed = 123)
 plot(char.output)
+plot(char.output, main = "My Custom Title", cex.main = 1.5)
 }
 }

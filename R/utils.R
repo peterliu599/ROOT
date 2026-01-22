@@ -50,7 +50,7 @@ objective_default <- function(D) {
     vsq <- (v - mu)^2
   } else {
     # Fallback when no variance proxy is available:
-    # SE of mean of a Bernoulli with p ≈ mean(w>0) and n = #kept.
+    # SE of mean of a Bernoulli with p approx mean(w>0) and n = #kept.
     n_keep <- sum(w > 0, na.rm = TRUE)
     if (n_keep <= 1) return(Inf)
     p <- mean(w > 0, na.rm = TRUE)
