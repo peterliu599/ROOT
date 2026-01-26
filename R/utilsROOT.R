@@ -5,14 +5,14 @@
 #'   \item the summary characterization tree \code{f},
 #'   \item the first few rows of \code{testing_data},
 #'   \item the \code{global_objective_fn} used during optimization, and
-#'   \item in generalization mode (\code{generalization = TRUE}), the
+#'   \item in generalizability mode (\code{generalizability_path = TRUE}), the
 #'         unweighted and weighted estimands with their standard errors
 #'         and an explanatory note for the weighted SE.
 #' }
 #'
-#' When \code{generalization = TRUE}, the unweighted estimand corresponds
+#' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
 #' to a SATE-type quantity and the weighted estimand to a WTATE-type
-#' quantity for the transported target population. When \code{generalization = FALSE},
+#' quantity for the transported target population. When \code{generalizability_path = FALSE},
 #' ROOT is used for general functional optimization and no causal labels
 #' are imposed; the summary focuses on the tree and diagnostics.
 #'
@@ -40,7 +40,7 @@ summary.ROOT <- function(object, ...) {
   x <- object
 
   cat("ROOT object\n")
-  cat("  Generalization mode:", isTRUE(x$generalization), "\n\n")
+  cat("  Generalizability mode:", isTRUE(x$generalizability_path), "\n\n")
 
   ## Summary tree
   cat("Summary classifier (f):\n")
@@ -69,8 +69,8 @@ summary.ROOT <- function(object, ...) {
   }
   cat("\n")
 
-  ## Estimands (only in generalization mode)
-  if (isTRUE(x$generalization_path) && !is.null(x$estimate)) {
+  ## Estimands (only in generalizability mode)
+  if (isTRUE(x$generalizability_path) && !is.null(x$estimate)) {
     est <- x$estimate
     cat("Estimand summary (generalization mode):\n")
     cat("  Unweighted ", est$estimand_unweighted,
@@ -109,6 +109,7 @@ summary.ROOT <- function(object, ...) {
 
   invisible(x)
 }
+
 
 
 #' Plot the ROOT summary tree

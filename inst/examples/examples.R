@@ -56,3 +56,12 @@ root.result <- ROOT(
 )
 summary(root.result)
 plot(root.result)
+
+underrep.result <- characterizing_underrep(
+  data = data,
+  global_objective_fn = variance_objective,
+  generalizability_path = FALSE
+)
+
+summary(underrep.result)
+plot(underrep.result)

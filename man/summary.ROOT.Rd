@@ -20,15 +20,15 @@ Provides a human-readable summary of a \code{ROOT} object, including:
 \item the summary characterization tree \code{f},
 \item the first few rows of \code{testing_data},
 \item the \code{global_objective_fn} used during optimization, and
-\item in generalization mode (\code{generalization = TRUE}), the
+\item in generalizability mode (\code{generalizability_path = TRUE}), the
 unweighted and weighted estimands with their standard errors
 and an explanatory note for the weighted SE.
 }
 }
 \details{
-When \code{generalization = TRUE}, the unweighted estimand corresponds
+When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
 to a SATE-type quantity and the weighted estimand to a WTATE-type
-quantity for the transported target population. When \code{generalization = FALSE},
+quantity for the transported target population. When \code{generalizability_path = FALSE},
 ROOT is used for general functional optimization and no causal labels
 are imposed; the summary focuses on the tree and diagnostics.
 }

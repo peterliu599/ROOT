@@ -55,7 +55,6 @@ summary.characterizing_underrep <- function(object, ...) {
   invisible(object)
 }
 
-
 #' Plot Under represented Population Characterization
 #'
 #' Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
@@ -146,13 +145,15 @@ plot.characterizing_underrep <- function(x,
 
   # --- 6. Plot arguments (bigger defaults) ---
   args <- list(...)
+  # Remove main from args if present - we handle title separately
+  args$main <- NULL
+
   if (is.null(args$type))          args$type <- 2
   if (is.null(args$extra))         args$extra <- 0
   if (is.null(args$under))         args$under <- TRUE
   if (is.null(args$tweak))         args$tweak <- 1.3
   if (is.null(args$fallen.leaves)) args$fallen.leaves <- TRUE
   if (is.null(args$shadow.col))    args$shadow.col <- "gray"
-  if (!"main" %in% names(args))    args$main <- "Final Characterized Tree from Rashomon Set with Weight Labels"
 
   args$x             <- f
   args$box.col       <- box_col
@@ -166,10 +167,8 @@ plot.characterizing_underrep <- function(x,
     suppressWarnings(graphics::title(main = main, cex.main = cex.main))
   }
 
-  # --- 8. Legend text depends on generalization_path / generalization ---
-  is_gen <- isTRUE(x$root$generalization_path) ||
-    isTRUE(x$root$generalization) ||
-    (!is.null(x$generalization_path) && isTRUE(x$generalization_path))
+  # --- 8. Legend text depends on generalizability_path ---
+  is_gen <- isTRUE(x$root$generalizability_path)
 
   legend_labels <- if (is_gen) {
     c("w(x) = 1 Sufficiently represented",

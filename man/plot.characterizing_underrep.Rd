@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{characterizing_underrep}(
   x,
-  main = "Underrepresented Population Characterization",
+  main = "Subgroup Characterization from Final Characterized Tree from Rashomon Set",
   cex.main = 1.2,
   ...
 )
