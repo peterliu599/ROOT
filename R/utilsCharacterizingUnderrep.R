@@ -81,7 +81,7 @@ summary.characterizing_underrep <- function(object, ...) {
 #' }
 #' @export
 plot.characterizing_underrep <- function(x,
-                                         main = "Underrepresented Population Characterization",
+                                         main = "Subgroup Characterization from Final Characterized Tree from Rashomon Set",
                                          cex.main = 1.2,
                                          ...) {
   # --- 1. Safety Checks ---
@@ -186,7 +186,8 @@ plot.characterizing_underrep <- function(x,
     fill   = c(col_keep, col_drop),
     border = NA,
     bty    = "n",
-    cex    = 1.0
+    cex    = 1.0,
+    inset  = c(0, 0.08)
   ))
 
   invisible(NULL)
