@@ -61,7 +61,7 @@
 #'   - f: summary classifier (e.g., rpart tree) or NULL.
 #'   - testing_data: data frame aligned to rows used to compute scores.
 #'   - estimate: (only if generalizability_path = TRUE) list with unweighted and
-#'       weighted estimands, SEs, and a note about the SE.
+#'       weighted estimands, standard errors (SEs), and a note about the SE.
 #'   - generalizability_path: logical flag.
 #'
 #' @examples

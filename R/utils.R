@@ -7,6 +7,7 @@
 #'
 #' @return Invisibly returns \code{TRUE} if no \code{NA} is found. Otherwise an error is thrown.
 #' @keywords internal
+#' @noRd
 .check_no_na <- function(data, cols) {
   data_name <- deparse(substitute(data))
   for (col in cols) {
@@ -30,6 +31,8 @@
 #' @param D A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.
 #'
 #' @return A \code{numeric(1)} objective value. Returns \code{Inf} when undefined.
+#' @keywords internal
+#' @noRd
 objective_default <- function(D) {
   if (!("w" %in% names(D))) {
     stop("objective_default() expects a column `w` in D.", call. = FALSE)
@@ -45,7 +48,7 @@ objective_default <- function(D) {
     vsq <- (v - mu)^2
   } else {
     # Fallback when no variance proxy is available:
-    # SE of mean of a Bernoulli with p approx mean(w>0) and n = #kept.
+    # Standard error (SE) of mean of a Bernoulli with p approx mean(w>0) and n = #kept.
     n_keep <- sum(w > 0, na.rm = TRUE)
     if (n_keep <= 1) return(Inf)
     p <- mean(w > 0, na.rm = TRUE)
@@ -69,7 +72,8 @@ objective_default <- function(D) {
 #' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric}.
 #'
 #' @return A \code{numeric(1)} objective value after the hypothetical change.
-#' @export
+#' @keywords internal
+#' @noRd
 objective_if <- function(val, indices, D, global_objective_fn) {
   stopifnot(is.function(global_objective_fn), length(val) == 1, val %in% c(0,1))
   rows <- integer(0)
@@ -94,7 +98,8 @@ objective_if <- function(val, indices, D, global_objective_fn) {
 #' @return A \code{function} \code{loss_fn(val, indices, D)} suitable for use in
 #'   \code{\link{ROOT}} and \code{\link{split_node}}. It sets \code{w = val} on \code{indices}
 #'   without mutation of the original \code{D} and then returns \code{global_objective_fn(D)}.
-#' @export
+#' @keywords internal
+#' @noRd
 loss_from_objective <- function(global_objective_fn) {
   force(global_objective_fn)
   function(val, indices, D) objective_if(val, indices, D, global_objective_fn)
