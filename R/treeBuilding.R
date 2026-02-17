@@ -36,7 +36,6 @@
 #' @param sample A length-1 character string giving the name of the sample
 #'   indicator column in \code{data}, with 1 for trial rows and 0 for target
 #'   rows.
-#'
 #' @return A list with two numeric vectors of length \code{nrow(data)}:
 #' \describe{
 #'   \item{\code{v}}{The transported influence-style score.}
@@ -67,7 +66,34 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
   Y     <- data[[outcome]]
   T_ind <- data[[treatment]]
 
-  # density ratio r(X) = P(S=0|X) / P(S=1|X)
+  # The influence score v uses 1/l(X) = P(S=0|X) / P(S=1|X) directly, where
+  # l(X) = P(S=1|X) / P(S=0|X) is the selection ratio defined in Parikh et al.
+  # (2025). 1/l(X) is unbounded when pi_s -> 0, i.e. when some observations are
+  # almost never selected into the trial, producing numerically extreme or
+  # infinite influence scores v. We therefore floor pi_s at 0.01 before dividing.
+  .floor <- 0.01
+  n_floored <- sum(pi_s < .floor, na.rm = TRUE)
+  if (n_floored > 0L) {
+    warning(
+      sprintf(
+        paste0(
+          "%d observation(s) had an estimated trial-inclusion probability ",
+          "P(S=1|X) below the numerical floor of 0.01. ",
+          "P(S=1|X) has been floored at 0.01 for those observations to prevent ",
+          "1/l(X) = P(S=0|X)/P(S=1|X) from becoming unbounded ",
+          "(values below 0.01 would produce 1/l(X) > 99), where l(X) = P(S=1|X)/P(S=0|X) ",
+          "is the selection ratio defined in Parikh et al. (2025). ",
+          "This typically indicates near-perfect separation in the sampling model ",
+          "(i.e. certain covariate regions are almost entirely absent from the trial). ",
+          "Consider checking the overlap between your trial and target populations."
+        ),
+        n_floored
+      ),
+      call. = FALSE
+    )
+    pi_s <- pmax(pi_s, .floor)
+  }
+
   r_x <- (1 - pi_s) / pi_s
 
   # Horvitz-Thompson-style transported score
