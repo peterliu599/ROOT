@@ -179,21 +179,29 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
     return(make_leaf(X, D, depth, reason = "empty-child", fj = fj, cj = cj))
   }
 
-  # Evaluate best decision on children leaves
-  loss_left  <- c(loss_fn(0, rownames(X_left),  D), loss_fn(1, rownames(X_left),  D))
-  loss_right <- c(loss_fn(0, rownames(X_right), D), loss_fn(1, rownames(X_right), D))
-  min_left   <- min(loss_left)
-  min_right  <- min(loss_right)
-  new_loss   <- (nrow(X_left) * min_left + nrow(X_right) * min_right) / nrow(X)
+  # Evaluate the global objective for all four joint (c_left, c_right) combinations,
+  # per Algorithm 1 of Parikh et al. (2025): new_loss <- min_{(c_left,c_right)} loss(w', Dn).
+  # The global objective is non-additive across the partition, so each combination
+  # must be evaluated jointly rather than independently per child.
+  combos       <- list(c(0L, 0L), c(0L, 1L), c(1L, 0L), c(1L, 1L))
+  joint_losses <- vapply(combos, function(co) {
+    D_tmp <- D
+    D_tmp[rownames(X_left),  "w"] <- co[1]
+    D_tmp[rownames(X_right), "w"] <- co[2]
+    global_objective_fn(D_tmp)
+  }, numeric(1))
+  best_idx <- which.min(joint_losses)
+  new_loss <- joint_losses[best_idx]
+  w_left   <- combos[[best_idx]][1]
+  w_right  <- combos[[best_idx]][2]
 
   if (nearly_leq(new_loss, parent_loss)) {
     .log("[depth=%d] SPLIT: feature=%s, cut=%.4f | n_left=%d, n_right=%d | new_loss=%.6f, parent_loss=%.6f",
          depth, fj, cj, nrow(X_left), nrow(X_right), new_loss, parent_loss)
-    .log("    left losses={%.6f, %.6f}, right losses={%.6f, %.6f}",
-         loss_left[1], loss_left[2], loss_right[1], loss_right[2])
+    .log("    joint losses={(0,0)=%.6f, (0,1)=%.6f, (1,0)=%.6f, (1,1)=%.6f}, best=(%d,%d)",
+         joint_losses[1], joint_losses[2], joint_losses[3], joint_losses[4],
+         w_left, w_right)
 
-    w_left  <- which.min(loss_left)  - 1
-    w_right <- which.min(loss_right) - 1
     D[rownames(X_left),  "w"] <- w_left;  X_left$w  <- w_left
     D[rownames(X_right), "w"] <- w_right; X_right$w <- w_right
 
@@ -253,17 +261,25 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
       return(make_leaf(X, D, depth, reason = "empty-child-after-rejects", fj = fj, cj = cj))
     }
 
-    loss_left  <- c(loss_fn(0, rownames(X_left),  D), loss_fn(1, rownames(X_left),  D))
-    loss_right <- c(loss_fn(0, rownames(X_right), D), loss_fn(1, rownames(X_right), D))
-    min_left   <- min(loss_left); min_right <- min(loss_right)
-    new_loss   <- (nrow(X_left) * min_left + nrow(X_right) * min_right) / nrow(X)
+    combos       <- list(c(0L, 0L), c(0L, 1L), c(1L, 0L), c(1L, 1L))
+    joint_losses <- vapply(combos, function(co) {
+      D_tmp <- D
+      D_tmp[rownames(X_left),  "w"] <- co[1]
+      D_tmp[rownames(X_right), "w"] <- co[2]
+      global_objective_fn(D_tmp)
+    }, numeric(1))
+    best_idx <- which.min(joint_losses)
+    new_loss <- joint_losses[best_idx]
+    w_left   <- combos[[best_idx]][1]
+    w_right  <- combos[[best_idx]][2]
 
     if (nearly_leq(new_loss, parent_loss)) {
       .log("[depth=%d] SPLIT(after %d rejects): feature=%s, cut=%.4f | n_left=%d, n_right=%d | new_loss=%.6f, parent_loss=%.6f",
            depth, attempt, fj, cj, nrow(X_left), nrow(X_right), new_loss, parent_loss)
+      .log("    joint losses={(0,0)=%.6f, (0,1)=%.6f, (1,0)=%.6f, (1,1)=%.6f}, best=(%d,%d)",
+           joint_losses[1], joint_losses[2], joint_losses[3], joint_losses[4],
+           w_left, w_right)
 
-      w_left  <- which.min(loss_left)  - 1
-      w_right <- which.min(loss_right) - 1
       D[rownames(X_left),  "w"] <- w_left;  X_left$w  <- w_left
       D[rownames(X_right), "w"] <- w_right; X_right$w <- w_right
 
