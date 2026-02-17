@@ -7,11 +7,13 @@
 midpoint(X)
 }
 \arguments{
-\item{X}{A \code{numeric} vector.}
+\item{X}{A numeric vector.}
 }
 \value{
-A \code{numeric(1)} giving the midpoint of the finite values in \code{X}. Returns \code{NA_real_} when \code{X} is empty or has no finite values.
+Numeric scalar midpoint, or NA_real_ if no finite values.
 }
 \description{
-Calculates the midpoint defined as \eqn{(\max(X) + \min(X)) / 2} while ignoring any \code{NA} values in \code{X}.
+Calculates midpoint = (min + max)/2 using finite values only.
+If there are no finite values, returns NA with a single warning.
 }
+\keyword{internal}

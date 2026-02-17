@@ -121,8 +121,8 @@ test_that("loss_from_objective composes correctly with a custom objective", {
   expect_equal(L_subset, expected, tolerance = 1e-12)
 })
 
-test_that(".check_no_na detects NAs and returns invisibly TRUE otherwise", {
-  check_fn <- getFromNamespace(".check_no_na", "ROOT")
+test_that("check_no_na detects NAs and returns invisibly TRUE otherwise", {
+  check_fn <- getFromNamespace("check_no_na", "ROOT")
 
   df <- data.frame(a = 1:3, b = c(1, NA, 3))
   expect_error(check_fn(df, c("a", "b")), "contains missing values")

@@ -2,21 +2,22 @@
 % Please edit documentation in R/treeBuilding.R
 \name{reduce_weight}
 \alias{reduce_weight}
-\title{Reduce a feature selection weight by one half and renormalize}
+\title{Reduce a feature's selection weight by half and renormalize}
 \usage{
 reduce_weight(fj, split_feature)
 }
 \arguments{
-\item{fj}{A \code{character(1)} feature name that must be present in \code{names(split_feature)}.}
+\item{fj}{A feature name (character string) present in the names of \code{split_feature}.}
 
-\item{split_feature}{A named \code{numeric} vector of probabilities for features as used in splitting.}
+\item{split_feature}{A named numeric vector of probabilities for features (as used in splitting).}
 }
 \value{
-A \code{numeric} vector of the same length as \code{split_feature} that sums to \code{1}.
+A numeric vector of the same length as \code{split_feature}, giving the updated probabilities that sum to 1.
 }
 \description{
-Lowers the probability weight of a given feature by one half and then renormalizes the full vector to sum to one.
+Lowers the probability weight of a given feature by 50\%, and then re-normalizes the entire probability vector.
 }
 \details{
-This is used when a feature split was rejected. The feature probability is halved to reduce the chance of immediate reselection which encourages exploration of other features. If \code{fj} equals \code{"leaf"} its weight is also halved.
+This is typically used when a particular feature split was rejected; the feature's probability is halved to reduce its chance of being chosen again immediately, encouraging exploration of other features. If \code{fj} is "leaf", its weight is also halved similarly.
 }
+\keyword{internal}

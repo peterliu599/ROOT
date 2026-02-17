@@ -4,12 +4,14 @@ library(tidyverse)
 
 remove.packages("ROOT")
 .rs.restartR()
+
 devtools::document()
 devtools::check()
 res <- devtools::check()
 res$errors
 res$warnings
 res$notes
+
 devtools::install()
 
 library(ROOT)

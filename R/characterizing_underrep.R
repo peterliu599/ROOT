@@ -1,9 +1,11 @@
-#' Characterize under-represented subgroups (wrapper around ROOT)
+#' Characterize subgroups (wrapper around ROOT) via binary weight
 #'
 #' A convenience wrapper around \code{ROOT()} for under-representation analyses.
 #' It takes a single \code{data} set and calls \code{ROOT()} either in
-#' generalizability_path mode (when \code{generalizability_path = TRUE}) or in
-#' general optimization mode (\code{generalizability_path = FALSE}).
+#' generalizability_path mode (when \code{generalizability_path = TRUE}) to identify
+#' insufficiently represented subgroups in trial data in comparison to the population
+#' of interest or in general optimization mode (\code{generalizability_path = FALSE})
+#' to identify the binary weight for each subgroup.
 #'
 #' When \code{generalizability_path = TRUE}, \code{data} must contain
 #' standardized columns:

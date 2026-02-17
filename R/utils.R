@@ -8,7 +8,7 @@
 #' @return Invisibly returns \code{TRUE} if no \code{NA} is found. Otherwise an error is thrown.
 #' @keywords internal
 #' @noRd
-.check_no_na <- function(data, cols) {
+check_no_na <- function(data, cols) {
   data_name <- deparse(substitute(data))
   for (col in cols) {
     if (anyNA(data[[col]])) {

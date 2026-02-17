@@ -119,8 +119,8 @@ test_that("compute_transport_scores requires S==1 rows", {
   )
 })
 
-test_that(".check_no_na properly detects missing values", {
-  check_fn <- getFromNamespace(".check_no_na", "ROOT")
+test_that("check_no_na properly detects missing values", {
+  check_fn <- getFromNamespace("check_no_na", "ROOT")
 
   df_clean <- data.frame(a = 1:5, b = 6:10)
   expect_invisible(check_fn(df_clean, c("a", "b")))

@@ -87,7 +87,7 @@ gen_S <- function(X, seed = NULL) {
       call. = FALSE
     )
   }
-  .check_no_na(X, c("X0", "X1"))
+  check_no_na(X, c("X0", "X1"))
   if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
     stop("`seed` must be NULL or a single numeric value.", call. = FALSE)
   }
@@ -139,8 +139,8 @@ gen_T <- function(X, S, seed = NULL) {
   if (nrow(S) != nrow(X)) {
     stop("`X` and `S` must have the same number of rows.", call. = FALSE)
   }
-  .check_no_na(S, colnames(S))
-  .check_no_na(X, colnames(X))
+  check_no_na(S, colnames(S))
+  check_no_na(X, colnames(X))
   if (!all(S$S %in% c(0, 1))) {
     stop("`S$S` must contain only 0 or 1 values.", call. = FALSE)
   }

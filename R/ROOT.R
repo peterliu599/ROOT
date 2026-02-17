@@ -465,8 +465,25 @@ ROOT <- function(data,
   final_classifier <- NULL
   if (ncol(X_df) > 0L) {
     w_classes <- unique(stats::na.omit(D_rash$w_opt))
+
     if (length(w_classes) == 2L && all(w_classes %in% c(0L, 1L))) {
-      final_classifier <- characterize_tree(X_df, as.factor(D_rash$w_opt))
+      final_classifier <- characterize_tree(X_df, D_rash$w_opt)
+    } else if (length(w_classes) == 1L) {
+
+      # <-- This message is what your test-root.R:312 is expecting
+      message("No summary tree available to plot (single-class w_opt).")
+
+      # Keep your informative diagnostics too
+      if (w_classes == 1L) {
+        message("ROOT: All observations have w_opt = 1 (all kept). No subgroup distinction found.")
+      } else {
+        warning(
+          "ROOT: All observations have w_opt = 0 (all removed). This may indicate extreme ",
+          "underrepresentation or model issues. The weighted estimate will be undefined.",
+          call. = FALSE
+        )
+      }
+
     } else {
       message("No summary tree available to plot (w_opt not binary with two classes or no covariates).")
     }

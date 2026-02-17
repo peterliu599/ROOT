@@ -56,3 +56,4 @@ The resulting score vector \code{v} and its squared version \code{vsq}
 can be used as pseudo-outcomes for tree-based search over transported
 treatment effects.
 }
+\keyword{internal}

@@ -1,3 +1,15 @@
+muffle_root_all_removed <- function(expr) {
+  withCallingHandlers(
+    expr,
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      if (grepl("ROOT: All observations have w_opt = 0", msg, fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+}
+
 test_that("characterizing_underrep integrates ROOT and returns leaf summaries", {
   skip_if_not_installed("rpart")
   skip_if_not_installed("mlbench")
@@ -7,14 +19,16 @@ test_that("characterizing_underrep integrates ROOT and returns leaf summaries", 
   sim  <- get_data(n = 500, seed = 1234)
   full <- sim$data
 
-  out <- characterizing_underrep(
-    data                  = full,
-    generalizability_path = TRUE,
-    seed                  = 99,
-    num_trees             = 5,
-    top_k_trees           = TRUE,
-    k                     = 3,
-    feature_est           = "Ridge"
+  out <- muffle_root_all_removed(
+    characterizing_underrep(
+      data                  = full,
+      generalizability_path = TRUE,
+      seed                  = 99,
+      num_trees             = 5,
+      top_k_trees           = TRUE,
+      k                     = 3,
+      feature_est           = "Ridge"
+    )
   )
 
   expect_s3_class(out, "characterizing_underrep")
@@ -62,11 +76,13 @@ test_that("characterizing_underrep works in general optimization mode", {
   )
   data$vsq <- data$v^2
 
-  out <- characterizing_underrep(
-    data                  = data,
-    generalizability_path = FALSE,
-    seed                  = 42,
-    num_trees             = 3
+  out <- muffle_root_all_removed(
+    characterizing_underrep(
+      data                  = data,
+      generalizability_path = FALSE,
+      seed                  = 42,
+      num_trees             = 3
+    )
   )
 
   expect_s3_class(out, "characterizing_underrep")

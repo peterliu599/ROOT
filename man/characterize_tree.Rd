@@ -7,19 +7,17 @@
 characterize_tree(X, w, max_depth = 3)
 }
 \arguments{
-\item{X}{A \code{data.frame} of covariates.}
+\item{X}{A data frame of covariates (features).}
 
-\item{w}{A \code{vector} of length \code{nrow(X)} that is binary. Accepts \code{0} and \code{1} or a \code{factor} with two levels.}
+\item{w}{A binary vector (0/1, TRUE/FALSE, or factor/character encoding 0/1)
+with exactly two classes present.}
 
-\item{max_depth}{An \code{integer(1)} giving the maximum tree depth. Default is \code{3}.}
+\item{max_depth}{Integer, the maximum tree depth (default 3).}
 }
 \value{
-An \code{rpart} object that represents the fitted classification tree.
+An \code{rpart} object representing the fitted decision tree.
 }
 \description{
-Trains a classification tree on the covariates \code{X} to predict the binary membership \code{w}.
-This provides an interpretable summary of how the weighted subgroup can be distinguished by \code{X}.
+Fit a shallow decision tree to characterize learned weights \code{w}
 }
-\details{
-The tree uses the Gini index for classification and no pruning with complexity parameter \code{cp = 0}. Depth control is through \code{max_depth}. If \code{w} is not a factor it is converted internally. The resulting rules indicate which covariates and splits separate the two classes defined by \code{w}.
-}
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/characterizing_underrep.R
 \name{characterizing_underrep}
 \alias{characterizing_underrep}
-\title{Characterize under-represented subgroups (wrapper around ROOT)}
+\title{Characterize subgroups (wrapper around ROOT) via binary weight}
 \usage{
 characterizing_underrep(
   data,
@@ -73,8 +73,10 @@ A \code{characterizing_underrep} S3 object (a \code{list}) with:
 \description{
 A convenience wrapper around \code{ROOT()} for under-representation analyses.
 It takes a single \code{data} set and calls \code{ROOT()} either in
-generalizability_path mode (when \code{generalizability_path = TRUE}) or in
-general optimization mode (\code{generalizability_path = FALSE}).
+generalizability_path mode (when \code{generalizability_path = TRUE}) to identify
+insufficiently represented subgroups in trial data in comparison to the population
+of interest or in general optimization mode (\code{generalizability_path = FALSE})
+to identify the binary weight for each subgroup.
 }
 \details{
 When \code{generalizability_path = TRUE}, \code{data} must contain

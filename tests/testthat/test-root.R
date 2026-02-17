@@ -1,3 +1,15 @@
+muffle_root_all_removed <- function(expr) {
+  withCallingHandlers(
+    expr,
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      if (grepl("ROOT: All observations have w_opt = 0", msg, fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+}
+
 test_that("ROOT runs in generalizability_path mode and returns structured outputs", {
   skip_if_not_installed("MASS")
   skip_if_not_installed("rpart")
@@ -8,7 +20,7 @@ test_that("ROOT runs in generalizability_path mode and returns structured output
   df  <- sim$data
 
   set.seed(42)
-  out <- ROOT(
+  out <- muffle_root_all_removed(ROOT(
     data                  = df,
     generalizability_path = TRUE,
     seed                  = 99,
@@ -17,7 +29,7 @@ test_that("ROOT runs in generalizability_path mode and returns structured output
     k                     = 3,
     feature_est           = "Ridge",
     verbose               = TRUE
-  )
+  ))
 
   expect_s3_class(out, "ROOT")
   expect_true(all(c("D_rash", "D_forest", "w_forest", "rashomon_set", "f", "testing_data", "estimate") %in% names(out)))
@@ -43,12 +55,12 @@ test_that("ROOT general optimization mode works when generalizability_path=FALSE
   df$v <- rnorm(nrow(df))
   df$vsq <- df$v^2
 
-  out <- ROOT(
+  out <- muffle_root_all_removed(ROOT(
     data                  = df,
     generalizability_path = FALSE,
     num_trees             = 4,
     vote_threshold        = 0.6
-  )
+  ))
   expect_s3_class(out, "ROOT")
   expect_false(out$generalizability_path)
 })
@@ -109,18 +121,18 @@ test_that("ROOT feature_est = Ridge / GBM / custom; bad custom errors", {
   skip_if_not_installed("mlbench")
 
   set.seed(1)
-  rR <- ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = "Ridge")
+  rR <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = "Ridge"))
   expect_s3_class(rR, "ROOT")
 
   set.seed(2)
-  rG <- ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = "GBM")
+  rG <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = "GBM"))
   expect_s3_class(rG, "ROOT")
 
   ok_imp <- function(X, y, ...) {
     setNames(abs(colSums(X^2)) + 1e-6, colnames(X))
   }
   set.seed(3)
-  rC <- ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = ok_imp)
+  rC <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 2, feature_est = ok_imp))
   expect_s3_class(rC, "ROOT")
 
   bad1 <- function(X, y, ...) {
@@ -165,7 +177,7 @@ test_that("Rashomon selection: top-k, baseline cutoff, and empty set warning", {
 
   set.seed(13)
   expect_warning(
-    r_empty <- ROOT(d, generalizability_path = TRUE, num_trees = 3, top_k_trees = FALSE, cutoff = -1e9),
+    r_empty <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 3, top_k_trees = FALSE, cutoff = -1e9)),
     "No trees selected"
   )
   expect_length(r_empty$rashomon_set, 0)
@@ -191,8 +203,8 @@ test_that("ROOT seed yields reproducible w_forest & estimates", {
 
   d <- mk_data_two_sample(n = 200, p = 5)
 
-  r1 <- ROOT(d, generalizability_path = TRUE, num_trees = 3, seed = 123, verbose = FALSE)
-  r2 <- ROOT(d, generalizability_path = TRUE, num_trees = 3, seed = 123, verbose = FALSE)
+  r1 <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 3, seed = 123, verbose = FALSE))
+  r2 <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 3, seed = 123, verbose = FALSE))
 
   expect_equal(
     lapply(r1$w_forest, `[[`, "local objective"),
@@ -261,22 +273,22 @@ test_that("ROOT argument guards", {
     ROOT(df, generalizability_path = TRUE, vote_threshold = 0),
     "`vote_threshold` must be in \\(0, 1\\]"
   )
-  expect_error(
-    ROOT(df, generalizability_path = TRUE, explore_proba = 2),
-    "`explore_proba` must be between 0 and 1"
-  )
-  expect_error(
-    ROOT(df, generalizability_path = TRUE, feature_est = 123),
-    "`feature_est` must be \"Ridge\", \"GBM\", or a function"
-  )
-  expect_error(
-    ROOT(df, generalizability_path = TRUE, k = 0),
-    "`k` must be a positive integer"
-  )
-  expect_error(
-    ROOT(df, generalizability_path = TRUE, cutoff = "not-baseline"),
-    "`cutoff` must be \"baseline\" or numeric"
-  )
+expect_error(
+  ROOT(df, generalizability_path = TRUE, explore_proba = 2),
+  "`explore_proba` must be between 0 and 1"
+)
+expect_error(
+  ROOT(df, generalizability_path = TRUE, feature_est = 123),
+  "`feature_est` must be \"Ridge\", \"GBM\", or a function"
+)
+expect_error(
+  ROOT(df, generalizability_path = TRUE, k = 0),
+  "`k` must be a positive integer"
+)
+expect_error(
+  ROOT(df, generalizability_path = TRUE, cutoff = "not-baseline"),
+  "`cutoff` must be \"baseline\" or numeric"
+)
 })
 
 test_that("Rashomon top-k warning when k > num_trees", {
@@ -310,8 +322,8 @@ test_that("ROOT informs when no summary tree is available (single-class w_opt)",
   dat <- data.frame(Y = Y, Tr = Tr, S = S, X1 = X1, X2 = X2)
 
   expect_message(
-    fit <- ROOT(dat, generalizability_path = TRUE, seed = 99, num_trees = 4,
-                vote_threshold = 1, verbose = FALSE),
+    fit <- muffle_root_all_removed(ROOT(dat, generalizability_path = TRUE, seed = 99, num_trees = 4,
+                                        vote_threshold = 1, verbose = FALSE)),
     "No summary tree available to plot"
   )
   expect_s3_class(fit, "ROOT")

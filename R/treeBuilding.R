@@ -42,6 +42,7 @@
 #'   \item{\code{v}}{The transported influence-style score.}
 #'   \item{\code{vsq}}{The element-wise square of \code{v}, i.e., \code{v^2}.}
 #' }
+#' @keywords internal
 compute_transport_scores <- function(data, outcome, treatment, sample) {
   covars <- setdiff(colnames(data), c(outcome, treatment, sample))
   if (length(covars) == 0L) {
@@ -76,27 +77,28 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
   list(v = v, vsq = vsq)
 }
 
-#' Recursive split builder for weighted tree
+#' Recursive split builder for weighted tree (internal function)
 #'
 #' Recursively builds a weighted decision tree to optimize a global objective,
-#' using an exploration versus exploitation choice at leaves. Internal and used by \code{ROOT()}.
+#' using an exploration/exploitation trade-off. Internal; used by ROOT().
 #'
-#' @param split_feature A named \code{numeric} vector of feature selection probabilities. Must include the name \code{"leaf"}.
-#' @param X A \code{data.frame} of current observations. Includes candidate split feature columns and may include a working copy of weights \code{w}.
-#' @param D A \code{data.frame} representing the global state. Must include columns \code{w} and \code{vsq}. Row names must align to \code{X}.
-#' @param parent_loss A \code{numeric(1)} giving the loss of the parent node. Used to decide if a split improves the objective.
-#' @param depth An \code{integer(1)} giving the current tree depth.
-#' @param explore_proba A \code{numeric(1)} between \code{0} and \code{1} for the probability of flipping the exploit choice at a leaf.
-#' @param choose_feature_fn A \code{function} to choose the next feature. Default is \code{choose_feature}.
-#' @param reduce_weight_fn A \code{function} to penalize the last tried feature on a rejected split. Default is \code{reduce_weight}.
-#' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric} that scores the entire state.
-#' @param max_depth An \code{integer(1)} giving the maximum depth. A node becomes a leaf at this depth.
-#' @param min_leaf_n An \code{integer(1)} giving the minimum number of rows to attempt a split. Otherwise make a leaf.
-#' @param log_fn A \code{function} for logging. Default is a function that performs no operation.
-#' @param max_rejects_per_node An \code{integer(1)} giving the safety budget of rejected splits before forcing a leaf.
+#' @param split_feature Named numeric vector of feature selection probabilities (must include "leaf").
+#' @param X Data frame of current observations (includes candidate split feature columns; may include a working copy of weights `w`).
+#' @param D Data frame representing the global state (must include columns `w` and `vsq`; row names align to observations).
+#' @param parent_loss Numeric, the loss value of the parent node (used to decide if a split improves the objective).
+#' @param depth Integer, current tree depth.
+#' @param explore_proba Numeric, the probability (between 0 and 1) of flipping the exploit choice at a leaf.
+#' @param choose_feature_fn Function to choose next feature (default `choose_feature`).
+#' @param reduce_weight_fn Function to penalize last-tried feature on rejected split (default `reduce_weight`).
+#' @param global_objective_fn Function `function(D) -> numeric` scoring the **entire** state.
+#' @param max_depth Integer max depth (stop and make leaf at this depth).
+#' @param min_leaf_n Integer min rows to attempt a split; else make leaf.
+#' @param log_fn Function for logging; default no-op.
+#' @param max_rejects_per_node Safety budget of rejected splits before forcing a leaf.
 #'
-#' @return A \code{list} representing the subtree. Includes updated \code{D} and a field named \code{"local objective"}.
+#' @return A list representing the (sub)tree; includes updated `D` and `local objective`.
 #' @importFrom stats rbinom
+#' @keywords internal
 split_node <- function(split_feature, X, D, parent_loss, depth,
                        explore_proba = 0.05,
                        choose_feature_fn = choose_feature,   # (renamed arg for clarity)
@@ -277,13 +279,13 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
 
 #' Randomly choose a split feature based on provided probabilities
 #'
-#' Selects one feature name at random according to a probability vector that may include a special \code{"leaf"} entry.
+#' Given a probability distribution over features (and possibly a "leaf" option), selects one feature at random according to those probabilities.
 #'
-#' @param split_feature A named \code{numeric} vector of feature selection probabilities. Names correspond to feature identifiers and may include \code{"leaf"}.
-#' @param depth An \code{integer(1)} giving the current tree depth. Present for parity with the Python version and does not change probabilities here.
-#'
-#' @return A \code{character(1)} which is the chosen feature name or \code{"leaf"}.
-#' @note The factor \eqn{2^{(0 \cdot \mathrm{depth} / 4)}} present in the code equals \code{1} and does not change the first element weight. All probabilities are normalized to sum to \code{1} before sampling.
+#' @param split_feature A named numeric vector of feature selection probabilities. Names should correspond to feature IDs (and may include a special "leaf" entry).
+#' @param depth Current tree depth (an integer, used for parity with Python implementation but not affecting probabilities in this implementation).
+#' @return A single feature name (or "leaf") chosen randomly according to the provided probability weights.
+#' @note The factor \eqn{2^{(0 * depth / 4)}} present in the code is effectively 1 (no effect on the first element's weight) and is included only for parity with an equivalent Python implementation. All probabilities are normalized to sum to 1 before sampling.
+#' @keywords internal
 choose_feature <- function(split_feature, depth) {
   # Input validation
   if (!is.numeric(split_feature) || length(split_feature) == 0) {
@@ -326,15 +328,15 @@ choose_feature <- function(split_feature, depth) {
   return(chosen)
 }
 
-#' Reduce a feature selection weight by one half and renormalize
+#' Reduce a feature's selection weight by half and renormalize
 #'
-#' Lowers the probability weight of a given feature by one half and then renormalizes the full vector to sum to one.
+#' Lowers the probability weight of a given feature by 50%, and then re-normalizes the entire probability vector.
 #'
-#' @param fj A \code{character(1)} feature name that must be present in \code{names(split_feature)}.
-#' @param split_feature A named \code{numeric} vector of probabilities for features as used in splitting.
-#'
-#' @return A \code{numeric} vector of the same length as \code{split_feature} that sums to \code{1}.
-#' @details This is used when a feature split was rejected. The feature probability is halved to reduce the chance of immediate reselection which encourages exploration of other features. If \code{fj} equals \code{"leaf"} its weight is also halved.
+#' @param fj A feature name (character string) present in the names of `split_feature`.
+#' @param split_feature A named numeric vector of probabilities for features (as used in splitting).
+#' @return A numeric vector of the same length as `split_feature`, giving the updated probabilities that sum to 1.
+#' @details This is typically used when a particular feature split was rejected; the feature's probability is halved to reduce its chance of being chosen again immediately, encouraging exploration of other features. If `fj` is "leaf", its weight is also halved similarly.
+#' @keywords internal
 reduce_weight <- function(fj, split_feature) {
   # Input validation
   if (!is.character(fj) || length(fj) != 1) {
@@ -372,11 +374,12 @@ reduce_weight <- function(fj, split_feature) {
 
 #' Compute the midpoint of a numeric vector
 #'
-#' Calculates the midpoint defined as \eqn{(\max(X) + \min(X)) / 2} while ignoring any \code{NA} values in \code{X}.
+#' Calculates midpoint = (min + max)/2 using finite values only.
+#' If there are no finite values, returns NA with a single warning.
 #'
-#' @param X A \code{numeric} vector.
-#'
-#' @return A \code{numeric(1)} giving the midpoint of the finite values in \code{X}. Returns \code{NA_real_} when \code{X} is empty or has no finite values.
+#' @param X A numeric vector.
+#' @return Numeric scalar midpoint, or NA_real_ if no finite values.
+#' @keywords internal
 midpoint <- function(X) {
   if (!is.numeric(X)) {
     stop("`X` must be a numeric vector.", call. = FALSE)
@@ -385,51 +388,88 @@ midpoint <- function(X) {
     warning("Empty vector provided to midpoint(). Returning NA.", call. = FALSE)
     return(NA_real_)
   }
-  # Work only with finite values to avoid base::range() warnings
-  x <- X[is.finite(X)]
-  if (length(x) == 0L) {
+
+  x_fin <- X[is.finite(X)]
+  if (length(x_fin) == 0L) {
     warning("No finite values in `X`. Returning NA.", call. = FALSE)
     return(NA_real_)
   }
-  (min(x) + max(x)) / 2
+
+  rng <- range(x_fin)
+  (rng[1] + rng[2]) / 2
 }
 
-#' Fit a shallow decision tree to characterize learned weights \code{w}
+
+#' Fit a shallow decision tree to characterize learned weights `w`
 #'
-#' Trains a classification tree on the covariates \code{X} to predict the binary membership \code{w}.
-#' This provides an interpretable summary of how the weighted subgroup can be distinguished by \code{X}.
-#'
-#' @param X A \code{data.frame} of covariates.
-#' @param w A \code{vector} of length \code{nrow(X)} that is binary. Accepts \code{0} and \code{1} or a \code{factor} with two levels.
-#' @param max_depth An \code{integer(1)} giving the maximum tree depth. Default is \code{3}.
-#'
-#' @return An \code{rpart} object that represents the fitted classification tree.
-#'
-#' @details The tree uses the Gini index for classification and no pruning with complexity parameter \code{cp = 0}. Depth control is through \code{max_depth}. If \code{w} is not a factor it is converted internally. The resulting rules indicate which covariates and splits separate the two classes defined by \code{w}.
+#' @param X A data frame of covariates (features).
+#' @param w A binary vector (0/1, TRUE/FALSE, or factor/character encoding 0/1)
+#'   with exactly two classes present.
+#' @param max_depth Integer, the maximum tree depth (default 3).
+#' @return An `rpart` object representing the fitted decision tree.
+#' @keywords internal
 characterize_tree <- function(X, w, max_depth = 3) {
-  # Input validation
+
+  # ---- Validate X ----
   if (!is.data.frame(X)) {
     stop("`X` must be a data frame of covariates.", call. = FALSE)
   }
-  .check_no_na(X, colnames(X))
+  check_no_na(X, colnames(X))
+
+  # ---- Validate length(w) ----
   if (length(w) != nrow(X)) {
     stop("Length of `w` must equal the number of rows in `X`.", call. = FALSE)
   }
-  # Coerce w to factor and check it has two levels
-  w_factor <- as.factor(w)
-  if (nlevels(w_factor) != 2) {
-    stop("`w` must have exactly two classes (binary).", call. = FALSE)
+
+  # ---- Coerce w -> integer 0/1 with strict checks ----
+  w0 <- w
+  if (is.logical(w0)) w0 <- as.integer(w0)
+
+  if (is.factor(w0)) w0 <- as.character(w0)
+  if (is.character(w0)) {
+    w_chr <- trimws(w0)
+    ok <- w_chr %in% c("0", "1") | is.na(w_chr)
+    if (!all(ok)) {
+      stop("`w` must be binary with values 0/1 and contain exactly two classes.", call. = FALSE)
+    }
+    w0 <- suppressWarnings(as.integer(w_chr))
   }
 
-  # Prepare data for rpart
+  if (is.numeric(w0)) {
+    bad <- !is.na(w0) & !(w0 %in% c(0, 1))
+    if (any(bad)) {
+      stop("`w` must be binary with values 0/1 and contain exactly two classes.", call. = FALSE)
+    }
+    w0 <- as.integer(w0)
+  }
+
+  if (!is.integer(w0)) {
+    stop("`w` must be binary with values 0/1 and contain exactly two classes.", call. = FALSE)
+  }
+
+  # Do not allow NA in w for tree fitting
+  if (anyNA(w0)) {
+    stop("`w` must be binary with values 0/1 and contain exactly two classes.", call. = FALSE)
+  }
+
+  # ---- Must have exactly two classes present ----
+  u <- sort(unique(w0))
+  if (length(u) != 2L || !all(u %in% c(0L, 1L))) {
+    stop("`w` must be binary with values 0/1 and contain exactly two classes.", call. = FALSE)
+  }
+
+  # ---- Fit rpart classifier ----
+  w_factor <- factor(w0, levels = c(0, 1))
   df <- data.frame(w = w_factor, X)
-  # Fit classification tree
+
   fit <- rpart::rpart(
     w ~ .,
     data = df,
     method = "class",
     parms = list(split = "gini"),
-    control = rpart::rpart.control(maxdepth = max_depth, cp = 0.0, minsplit = 2, minbucket = 1),
+    control = rpart::rpart.control(
+      maxdepth = max_depth, cp = 0.0, minsplit = 2, minbucket = 1
+    ),
     model = TRUE
   )
   return(fit)
