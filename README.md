@@ -77,71 +77,83 @@ devtools::install_github("peterliu599/ROOT-R-Package")
 
 ---
 
-## Example: General optimization — recovering an XOR subgroup
+## Example: Portfolio selection via variance minimization
 
-ROOT can be used for general functional optimization beyond
-generalizability. In this example, the true optimal subgroup has an
-**XOR structure**: units in the top-right quadrant ($X_1 > 0, X_2 > 0$)
-and bottom-left quadrant ($X_1 < 0, X_2 < 0$) have higher signal, while
-the other two quadrants do not. A single axis-aligned split cannot
-capture this pattern — ROOT's tree ensemble is needed to identify it.
+ROOT can be applied to any optimization problem that can be expressed as
+a binary inclusion/exclusion decision. In this example, we use ROOT to
+select a **minimum-variance portfolio** from a universe of 100 simulated
+assets, each characterized by its market beta and annualized volatility.
+ROOT learns an interpretable tree-structured rule describing *which
+assets to include* ($w = 1$) to minimize portfolio return variance.
 
 ``` r
 library(ROOT)
 set.seed(123)
 
-n  <- 200
-X1 <- runif(n, -1, 1)
-X2 <- runif(n, -1, 1)
+n_assets <- 100
 
-# True optimal subgroup has XOR structure:
-# top-right (X1 > 0, X2 > 0) and bottom-left (X1 < 0, X2 < 0)
-true_w <- as.integer((X1 > 0 & X2 > 0) | (X1 < 0 & X2 < 0))
-v      <- rnorm(n, mean = true_w, sd = 2)
+# Asset features
+volatility <- runif(n_assets, 0.05, 0.40)  # annualised volatility
+beta       <- runif(n_assets, 0.5,  1.8)   # market beta
+sector     <- sample(c("Tech", "Finance", "Energy", "Health"),
+                     n_assets, replace = TRUE)
 
-dat_xor <- data.frame(v = v, X1 = X1, X2 = X2)
+# Simulate returns correlated with beta and volatility
+market      <- rnorm(1000, 0.0005, 0.01)
+returns_mat <- sapply(seq_len(n_assets), function(i)
+  beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
+)
+vsq <- apply(returns_mat, 2, var)  # per-asset return variance (objective)
 
-xor_fit <- ROOT(
-  data        = dat_xor,
+dat_portfolio <- data.frame(
+  vsq    = vsq,
+  vol    = volatility,
+  beta   = beta,
+  sector = as.integer(factor(sector))
+)
+
+portfolio_fit <- ROOT(
+  data        = dat_portfolio,
   num_trees   = 20,
   top_k_trees = TRUE,
   k           = 10,
-  seed        = 42
+  seed        = 123
 )
 
-print(xor_fit)
+print(portfolio_fit)
 #> ROOT object
 #>   Generalizability mode: FALSE
 #>
 #> Summary classifier (f):
-#> n= 200
+#> n= 100
 #>
 #> node), split, n, loss, yval, (yprob)
 #>       * denotes terminal node
 #>
-#> 1) root 200 10 1 (0.05000000 0.95000000)
-#>   2) X1>=0.9705979 2  1 0 (0.50000000 0.50000000)
-#>     4) X1< 0.9799107 1  0 0 (1.00000000 0.00000000) *
-#>     5) X1>=0.9799107 1  0 1 (0.00000000 1.00000000) *
-#>   3) X1< 0.9705979 198  9 1 (0.04545455 0.95454545)
-#>     6) X1< -0.632322 29  4 1 (0.13793103 0.86206897)
-#>       12) X1>=-0.6411189 1  0 0 (1.00000000 0.00000000) *
-#>       13) X1< -0.6411189 28  3 1 (0.10714286 0.89285714) *
-#>     7) X1>=-0.632322 169  5 1 (0.02958580 0.97041420) *
+#> 1) root 100 4 1 (0.04000000 0.96000000)
+#>   2) beta>=1.658134 12  4 1 (0.3333333 0.6666667)
+#>     4) vol>=0.3285209 4  0 0 (1.00000000 0.00000000) *
+#>     5) vol< 0.3285209 8  0 1 (0.00000000 1.00000000) *
+#>   3) beta< 1.658134 88  0 1 (0.00000000 1.00000000) *
 #>
 #> Global objective function:
 #>   User-supplied: No (default objective used)
 
-plot(xor_fit)
+plot(portfolio_fit)
 ```
+![Portfolio characterized tree](man/figures/portfolio_tree.png)
 
-![XOR characterized tree](man/figures/xor_tree.png)
+The characterized tree recovers an intuitive and interpretable
+portfolio construction rule. Assets with **beta < 1.7** are included 
+(88% of the universe). Among the remaining high-beta **beta $\geq$ 1.7** assets, 
+those with **volatility $\geq$ 0.33** are excluded ($w = 0$, 4%), while high-beta
+assets with **volatility < 0.33** are retained (8%). Overall, the final majority vote by
+the Rashomon set of 10 near-optimal trees includes 96% of assets in the final and
+screens out only the most risk-concentrated subset.
 
-The characterized tree assigns $w = 1$ to 95% of units, identifying the
-high-signal region primarily through splits on $X_1$. With noise level
-$\text{sd} = 2$, the XOR signal is subtle; ROOT's Rashomon set of 10
-trees aggregates across multiple near-optimal partitions to produce a
-stable characterization of the included subgroup.
+For a detailed worked example of ROOT in optimization mode, see the
+[`optimization_path_example`
+vignette](vignettes/optimization_path_example.Rmd).
 
 ---
 

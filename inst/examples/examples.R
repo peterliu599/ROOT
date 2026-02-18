@@ -73,28 +73,40 @@ plot(underrep.result)
 
 
 ### A simple optimization example with default global objective function
+library(ROOT)
 set.seed(123)
 
-n  <- 200
-X1 <- runif(n, -1, 1)
-X2 <- runif(n, -1, 1)
-# True optimal subgroup has XOR structure:
-# top-right (X1>0, X2>0) and bottom-left (X1<0, X2<0)
-true_w <- as.integer((X1 > 0 & X2 > 0) | (X1 < 0 & X2 < 0))
-v      <- rnorm(n, mean = true_w, sd = 2)
+n_assets <- 100
 
-dat_xor <- data.frame(v = v, X1 = X1, X2 = X2)
+# Asset features
+volatility  <- runif(n_assets, 0.05, 0.40)   # annualised vol
+beta        <- runif(n_assets, 0.5,  1.8)     # market beta
+sector      <- sample(c("Tech", "Finance", "Energy", "Health"), n_assets, replace = TRUE)
 
-xor_fit <- ROOT(
-  data      = dat_xor,
-  num_trees = 20,
-  top_k_trees = TRUE,
-  k         = 10,
-  seed      = 42
+# Simulate returns correlated with beta and volatility
+market      <- rnorm(1000, 0.0005, 0.01)
+returns_mat <- sapply(seq_len(n_assets), function(i)
+  beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
+)
+vsq <- apply(returns_mat, 2, var)   # per-asset return variance
+
+dat_portfolio <- data.frame(
+  vsq      = vsq,
+  vol      = volatility,
+  beta     = beta,
+  sector   = as.integer(factor(sector))   # encode as integer for splitting
 )
 
-print(xor_fit)
-plot(xor_fit)
+portfolio_fit <- ROOT(
+  data        = dat_portfolio,
+  num_trees   = 20,
+  top_k_trees = TRUE,
+  k           = 10,
+  seed        = 123
+)
+
+print(portfolio_fit)
+plot(portfolio_fit)
 
 
 ### Another simple generalizability example
@@ -106,8 +118,8 @@ gen_fit <- characterizing_underrep(
   generalizability_path = TRUE,
   num_trees             = 20,
   top_k_trees           = TRUE,
-  k                     = 10,
-  seed                  = 123
+  k                     = 15,
+  seed                  = 12
 )
 
 print(gen_fit)
