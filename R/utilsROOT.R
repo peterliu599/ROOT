@@ -4,7 +4,7 @@
 #' \enumerate{
 #'   \item the summary characterization tree \code{f},
 #'   \item the first few rows of \code{testing_data},
-#'   \item the \code{global_objective_fn} used during optimization, and
+#'   \item whether the user supplied a custom \code{global_objective_fn} (Yes/No), and
 #'   \item in generalizability mode (\code{generalizability_path = TRUE}), the
 #'         unweighted and weighted estimands with their standard errors
 #'         and an explanatory note for the weighted standard error (SE).
@@ -62,10 +62,10 @@ summary.ROOT <- function(object, ...) {
 
   ## Objective function
   cat("Global objective function:\n")
-  if (!is.null(x$global_objective_fn)) {
-    print(x$global_objective_fn)
+  if (isTRUE(x$user_supplied_objective)) {
+    cat("  User-supplied: Yes\n")
   } else {
-    cat("  <no global_objective_fn stored>\n")
+    cat("  User-supplied: No (default objective used)\n")
   }
   cat("\n")
 

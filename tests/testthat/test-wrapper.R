@@ -416,7 +416,7 @@ test_that("summary.ROOT: prints when global_objective_fn is NULL", {
 
   out <- capture.output(summary(obj))
   expect_true(any(grepl("ROOT object", out)))
-  expect_true(any(grepl("no global_objective_fn stored", out)))
+  expect_true(any(grepl("User-supplied: No", out)))
 })
 
 test_that("summary.ROOT: prints global_objective_fn when present", {

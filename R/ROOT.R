@@ -298,7 +298,8 @@ ROOT <- function(data,
     stop("`cutoff` must be \"baseline\" or numeric.", call. = FALSE)
   if (!is.logical(verbose) || length(verbose) != 1L)
     stop("`verbose` must be TRUE or FALSE.", call. = FALSE)
-  if (is.null(global_objective_fn)) global_objective_fn <- objective_default
+  user_supplied_objective <- !is.null(global_objective_fn)
+  if (!user_supplied_objective) global_objective_fn <- objective_default
   if (!is.function(global_objective_fn))
     stop("`global_objective_fn` must be a function(D) -> numeric.", call. = FALSE)
 
@@ -498,7 +499,7 @@ ROOT <- function(data,
           "vote_threshold() raised an error: ", conditionMessage(e), call. = FALSE
         )
       )
-      # Validate BEFORE coercing: catch non-binary values like 0.5 that
+      # Validate BEFORE coercing: catches non-binary values like 0.5 that
       # would silently become 0L after as.integer(), hiding the error.
       if (length(w_opt_raw) != nrow(votes_mat) ||
           !all(w_opt_raw %in% c(0, 1, 0L, 1L), na.rm = TRUE))
@@ -646,16 +647,17 @@ ROOT <- function(data,
   }
 
   res <- list(
-    D_rash              = D_rash,
-    D_forest            = D_forest,
-    w_forest            = w_forest,
-    rashomon_set        = rashomon_set,
-    global_objective_fn = global_objective_fn,
-    vote_threshold      = vote_threshold,
-    f                   = final_classifier,
-    testing_data        = testing_data,
-    estimate            = est_list,
-    generalizability_path = generalizability_path
+    D_rash                  = D_rash,
+    D_forest                = D_forest,
+    w_forest                = w_forest,
+    rashomon_set            = rashomon_set,
+    global_objective_fn     = global_objective_fn,
+    user_supplied_objective = user_supplied_objective,
+    vote_threshold          = vote_threshold,
+    f                       = final_classifier,
+    testing_data            = testing_data,
+    estimate                = est_list,
+    generalizability_path   = generalizability_path
   )
   class(res) <- c("ROOT", "list")
   res

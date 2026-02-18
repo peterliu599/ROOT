@@ -19,7 +19,7 @@ Provides a human-readable summary of a \code{ROOT} object, including:
 \enumerate{
 \item the summary characterization tree \code{f},
 \item the first few rows of \code{testing_data},
-\item the \code{global_objective_fn} used during optimization, and
+\item whether the user supplied a custom \code{global_objective_fn} (Yes/No), and
 \item in generalizability mode (\code{generalizability_path = TRUE}), the
 unweighted and weighted estimands with their standard errors
 and an explanatory note for the weighted standard error (SE).
