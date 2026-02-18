@@ -6,7 +6,6 @@ remove.packages("ROOT")
 .rs.restartR()
 
 devtools::document()
-devtools::check()
 res <- devtools::check()
 res$errors
 res$warnings
@@ -16,6 +15,7 @@ devtools::install()
 
 library(ROOT)
 devtools::build_manual()
+
 
 ### A simple generalizability example
 ### Using the diabetes_data.rda dataset in the data folder
@@ -70,3 +70,45 @@ underrep.result <- characterizing_underrep(
 
 summary(underrep.result)
 plot(underrep.result)
+
+
+### A simple optimization example with default global objective function
+set.seed(123)
+
+n  <- 200
+X1 <- runif(n, -1, 1)
+X2 <- runif(n, -1, 1)
+# True optimal subgroup has XOR structure:
+# top-right (X1>0, X2>0) and bottom-left (X1<0, X2<0)
+true_w <- as.integer((X1 > 0 & X2 > 0) | (X1 < 0 & X2 < 0))
+v      <- rnorm(n, mean = true_w, sd = 2)
+
+dat_xor <- data.frame(v = v, X1 = X1, X2 = X2)
+
+xor_fit <- ROOT(
+  data      = dat_xor,
+  num_trees = 20,
+  top_k_trees = TRUE,
+  k         = 10,
+  seed      = 42
+)
+
+print(xor_fit)
+plot(xor_fit)
+
+
+### Another simple generalizability example
+### Using the diabetes_data.rda dataset in the data folder
+data(diabetes_data, package = "ROOT")
+
+gen_fit <- characterizing_underrep(
+  data                  = diabetes_data,
+  generalizability_path = TRUE,
+  num_trees             = 20,
+  top_k_trees           = TRUE,
+  k                     = 10,
+  seed                  = 123
+)
+
+print(gen_fit)
+plot(gen_fit)
