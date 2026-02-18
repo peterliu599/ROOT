@@ -123,7 +123,7 @@ summary(portfolio_fit) # for a full summary output
 ```
 
 ```{r}
-# print(portfolio_fit) # for a brief summary print
+print(portfolio_fit) # for a brief summary print
 ```
 
 ```{r}

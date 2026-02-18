@@ -76,7 +76,7 @@ devtools::install_github("peterliu599/ROOT-R-Package")
 
     ## Using GitHub PAT from the git credential store.
 
-    ## Skipping install of 'ROOT' from a github remote, the SHA1 (1056e534) has not changed since last install.
+    ## Skipping install of 'ROOT' from a github remote, the SHA1 (fd03ac4e) has not changed since last install.
     ##   Use `force = TRUE` to force installation
 
 ------------------------------------------------------------------------
@@ -151,8 +151,23 @@ summary(portfolio_fit) # for a full summary output
     ##   % observations with w_opt == 1: 96.0%
 
 ``` r
-# print(portfolio_fit) # for a brief summary print
+print(portfolio_fit) # for a brief summary print
 ```
+
+    ## ROOT object
+    ##   Generalizability mode: FALSE 
+    ## 
+    ## Summary classifier (f):
+    ## n= 100 
+    ## 
+    ## node), split, n, loss, yval, (yprob)
+    ##       * denotes terminal node
+    ## 
+    ## 1) root 100 4 1 (0.0400000 0.9600000)  
+    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
+    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
+    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
+    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
 
 ``` r
 plot(portfolio_fit)

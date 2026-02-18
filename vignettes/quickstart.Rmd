@@ -1,26 +1,74 @@
 ---
-title: "Quick Start Guide to ROOT"
+title: "Quickstart Guide to ROOT"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Quick Start Guide to ROOT}
+  %\VignetteIndexEntry{Quickstart Guide to ROOT}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  echo = TRUE,
-  message = FALSE,
-  warning = FALSE,
-  fig.width = 6,
-  fig.height = 4
+  collapse = TRUE,
+  comment = "#>"
 )
+```
+
+## Installation
+
+```{r install, eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("peterliu599/ROOT-R-Package")
 ```
 
 ## What is ROOT?
 
-**ROOT** (Rashomon Optimized Objective Trees) solves a specific optimization problem:
+ROOT (**Rashomon set of Optimal Trees**) learns interpretable binary weight functions that minimize a user-specified global objective function and are represented as sparse decision trees. Each unit is either included (`w = 1`) or excluded (`w = 0`) based on the covariates.
 
-> **Find an interpretable, tree-based weight function w(x) ∈ {0,1} that minimizes a global objective L(w, D)**
+Rather than returning a single solution, ROOT returns a **Rashomon set** of near-optimal trees and extracts a **characteristic tree** that summarizes the common patterns across them.
 
-In plain terms: ROOT selects a subset of your data (w=1 means "keep", w=0 means "drop") that optimizes some criterion, while ensuring the selection rule is **interpretable** as a simple decision tree.
+## Basic usage
+
+The main function is `ROOT()`. At minimum, you supply a data frame where the **first column is the outcome to minimize**, and the remaining columns are covariates.
+
+```{r basic-example}
+library(ROOT)
+set.seed(123)
+
+# Simulate 80 units with two covariates and a variance-type objective
+n <- 80
+dat <- data.frame(
+  vsq  = c(rnorm(40, mean = 0.01, sd = 0.005),   # low-variance group
+            rnorm(40, mean = 0.08, sd = 0.02)),   # high-variance group
+  x1   = c(runif(40, 0, 1), runif(40, 0, 1)),
+  x2   = c(rep(0, 40), rep(1, 40))               # x2 = 1 flags high-variance units
+)
+
+fit <- ROOT(
+  data        = dat,
+  num_trees   = 20,
+  top_k_trees = TRUE,
+  k           = 10,
+  seed        = 123
+)
+```
+
+## Inspecting results
+
+```{r inspect}
+print(fit)      # brief summary
+```
+
+```{r summary}
+summary(fit)    # full summary including Rashomon set details
+```
+
+```{r plot, fig.width = 6, fig.height = 4}
+plot(fit)       # visualize the characteristic tree
+```
+
+## Next steps
+
+- **General optimization:** See `vignette("optimization_path_example")` for a detailed walkthrough.
+- **Generalizability analysis:** See `vignette("generalizability_path_example")` for applying ROOT to treatment effect transportability.
+- **Help:** `?ROOT` for full argument documentation.
