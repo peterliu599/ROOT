@@ -53,8 +53,25 @@ covariate probabilities sum to 1). Default \code{0.25}.}
 
 \item{num_trees}{An integer number of trees to grow. Default 10.}
 
-\item{vote_threshold}{A numeric in (0.5, 1] giving the majority vote
-threshold for final \code{w = 1}. Default 2/3.}
+\item{vote_threshold}{Controls how per-observation votes from the Rashomon
+set trees are aggregated into the final binary weight \code{w_opt}.
+Accepts one of:
+\itemize{
+\item A \strong{numeric} in \code{(0, 1]}: treated as a majority-vote
+threshold — \code{w_opt = 1} when the fraction of trees voting 1
+exceeds this value. Default \code{2/3}.
+\item \code{"majority"}: equivalent to the default threshold of
+\code{2/3}.
+\item \code{"mean"}: \code{w_opt = 1} when the mean vote exceeds
+\code{0.5}.
+\item \code{"median"}: \code{w_opt = 1} when the median vote exceeds
+\code{0.5}.
+\item A \strong{function} with signature
+\code{function(votes) -> integer vector}, where \code{votes} is a
+numeric matrix with one row per observation and one column per
+Rashomon-set tree (each cell 0 or 1). Must return an integer vector
+of 0s and 1s of length \code{nrow(votes)}.
+}}
 
 \item{explore_proba}{A numeric giving the exploration probability at leaves.
 Default 0.05.}

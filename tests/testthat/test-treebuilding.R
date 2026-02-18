@@ -595,15 +595,19 @@ test_that("split_node -> accepts split after rejects and returns local objective
 
   parent_loss <- 1
 
-  key_of <- function(idx) paste(sort(idx), collapse = ",")
-
-  good_keys <- c(key_of(c("r1", "r3")), key_of(c("r2", "r4")))
-
-  stub_loss_from_objective <- function(global_objective_fn) {
-    force(global_objective_fn)
-    function(val, indices, D) {
-      if (key_of(indices) %in% good_keys) 0.10 else 10.0
-    }
+  # global_objective_fn returns low loss only for the "b" split pattern:
+  # {r1,r3} weighted together (same w) AND {r2,r4} weighted differently.
+  # Specifically, w[r1]==w[r3] != w[r2]==w[r4] (non-trivial b-partition).
+  # For feature "a", left={r1,r2} and right={r3,r4}; combos like (0,0) or (1,1)
+  # give all-same weights (degenerate), while (0,1)/(1,0) give a-pattern, not b.
+  # So all a-combos return loss > parent_loss=1.
+  b_split_objective <- function(D) {
+    w <- D[["w"]]
+    names(w) <- rownames(D)
+    # True b-split: r1&r3 share weight, r2&r4 share weight, and the two groups differ
+    b_pattern <- isTRUE(w["r1"] == w["r3"]) && isTRUE(w["r2"] == w["r4"]) &&
+      isTRUE(w["r1"] != w["r2"])
+    if (b_pattern) 0.5 else 2.0
   }
 
   choices <- c("a", "b")
@@ -619,32 +623,25 @@ test_that("split_node -> accepts split after rejects and returns local objective
 
   split_feature <- c(a = 0.6, b = 0.3, leaf = 0.1)
 
-  testthat::with_mocked_bindings(
-    loss_from_objective = stub_loss_from_objective,
-    objective_default   = function(D) 0.5,
-    .env = asNamespace("ROOT"),
-    {
-      res <- split_node(
-        split_feature        = split_feature,
-        X                    = X,
-        D                    = D,
-        parent_loss          = parent_loss,
-        depth                = 0L,
-        explore_proba        = 0,
-        choose_feature_fn    = choose_seq,
-        reduce_weight_fn     = reduce_identity,
-        global_objective_fn  = objective_default,
-        max_depth            = 1L,
-        min_leaf_n           = 2L,
-        log_fn               = function(...) {},
-        max_rejects_per_node = 10L
-      )
-
-      expect_identical(res$node, "b")
-      expect_true(is.finite(res[["local objective"]]))
-      expect_identical(rownames(res$D), rownames(X))
-      expect_true(res$left_tree$node  %in% c("leaf"))
-      expect_true(res$right_tree$node %in% c("leaf"))
-    }
+  res <- split_node(
+    split_feature        = split_feature,
+    X                    = X,
+    D                    = D,
+    parent_loss          = parent_loss,
+    depth                = 0L,
+    explore_proba        = 0,
+    choose_feature_fn    = choose_seq,
+    reduce_weight_fn     = reduce_identity,
+    global_objective_fn  = b_split_objective,
+    max_depth            = 1L,
+    min_leaf_n           = 2L,
+    log_fn               = function(...) {},
+    max_rejects_per_node = 10L
   )
+
+  expect_identical(res$node, "b")
+  expect_true(is.finite(res[["local objective"]]))
+  expect_identical(rownames(res$D), rownames(X))
+  expect_true(res$left_tree$node  %in% c("leaf"))
+  expect_true(res$right_tree$node %in% c("leaf"))
 })

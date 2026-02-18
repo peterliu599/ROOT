@@ -31,7 +31,11 @@
 #'   covariate probabilities sum to 1). Default \code{0.25}.
 #' @param seed Random seed for reproducibility.
 #' @param num_trees Number of trees to grow.
-#' @param vote_threshold Majority vote threshold used for \code{w_opt}.
+#' @param vote_threshold Controls how Rashomon-set tree votes are aggregated
+#'   into \code{w_opt}. Accepts a numeric threshold in \code{(0, 1]}, one of
+#'   \code{"majority"} / \code{"mean"} / \code{"median"}, or a custom
+#'   \code{function(votes) -> integer vector}. See \code{\link{ROOT}} for
+#'   full details. Default \code{2/3} (majority vote).
 #' @param explore_proba Exploration probability in tree growth.
 #' @param feature_est Either \code{"Ridge"}, \code{"GBM"}, or a custom
 #'   feature importance function.

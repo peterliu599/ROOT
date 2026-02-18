@@ -271,7 +271,7 @@ test_that("ROOT argument guards", {
   )
   expect_error(
     ROOT(df, generalizability_path = TRUE, vote_threshold = 0),
-    "`vote_threshold` must be in \\(0, 1\\]"
+    "`vote_threshold` as a numeric must be a single value in \\(0, 1\\]"
   )
 expect_error(
   ROOT(df, generalizability_path = TRUE, explore_proba = 2),

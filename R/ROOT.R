@@ -32,8 +32,25 @@
 #'   covariate probabilities sum to 1). Default \code{0.25}.
 #' @param seed An optional numeric seed for reproducibility.
 #' @param num_trees An integer number of trees to grow. Default 10.
-#' @param vote_threshold A numeric in (0.5, 1] giving the majority vote
-#'   threshold for final `w = 1`. Default 2/3.
+#' @param vote_threshold Controls how per-observation votes from the Rashomon
+#'   set trees are aggregated into the final binary weight \code{w_opt}.
+#'   Accepts one of:
+#'   \itemize{
+#'     \item A \strong{numeric} in \code{(0, 1]}: treated as a majority-vote
+#'       threshold — \code{w_opt = 1} when the fraction of trees voting 1
+#'       exceeds this value. Default \code{2/3}.
+#'     \item \code{"majority"}: equivalent to the default threshold of
+#'       \code{2/3}.
+#'     \item \code{"mean"}: \code{w_opt = 1} when the mean vote exceeds
+#'       \code{0.5}.
+#'     \item \code{"median"}: \code{w_opt = 1} when the median vote exceeds
+#'       \code{0.5}.
+#'     \item A \strong{function} with signature
+#'       \code{function(votes) -> integer vector}, where \code{votes} is a
+#'       numeric matrix with one row per observation and one column per
+#'       Rashomon-set tree (each cell 0 or 1). Must return an integer vector
+#'       of 0s and 1s of length \code{nrow(votes)}.
+#'   }
 #' @param explore_proba A numeric giving the exploration probability at leaves.
 #'   Default 0.05.
 #' @param feature_est Either a character(1) in c("Ridge", "GBM") or a
@@ -250,8 +267,25 @@ ROOT <- function(data,
   if (!is.numeric(num_trees) || num_trees < 1)
     stop("`num_trees` must be positive.", call. = FALSE)
   num_trees <- as.integer(num_trees)
-  if (!is.numeric(vote_threshold) || vote_threshold <= 0 || vote_threshold > 1)
-    stop("`vote_threshold` must be in (0, 1].", call. = FALSE)
+  # Validate vote_threshold
+  .valid_str <- c("majority", "mean", "median")
+  if (is.numeric(vote_threshold)) {
+    if (length(vote_threshold) != 1L || vote_threshold <= 0 || vote_threshold > 1)
+      stop("`vote_threshold` as a numeric must be a single value in (0, 1].", call. = FALSE)
+  } else if (is.character(vote_threshold)) {
+    if (length(vote_threshold) != 1L || !vote_threshold %in% .valid_str)
+      stop(sprintf(
+        '`vote_threshold` as a string must be one of: %s.',
+        paste(sprintf('"%s"', .valid_str), collapse = ", ")
+      ), call. = FALSE)
+  } else if (!is.function(vote_threshold)) {
+    stop(
+      '`vote_threshold` must be a numeric threshold in (0, 1], ',
+      'one of "majority" / "mean" / "median", ',
+      "or a function(votes) -> integer vector.",
+      call. = FALSE
+    )
+  }
   if (!is.numeric(explore_proba) || explore_proba < 0 || explore_proba > 1)
     stop("`explore_proba` must be between 0 and 1.", call. = FALSE)
   if (!(is.character(feature_est) || is.function(feature_est)))
@@ -453,9 +487,40 @@ ROOT <- function(data,
   weight_cols <- grep("^w_tree_", names(D_rash), value = TRUE)
   D_weights   <- if (length(weight_cols) > 0L) D_rash[, weight_cols, drop = FALSE] else data.frame()
   if (ncol(D_weights) > 0L) {
-    row_means        <- rowMeans(D_weights)
-    D_rash$w_opt     <- as.integer(row_means > vote_threshold)
-    D_rash$vote_count <- rowSums(D_weights)
+    votes_mat         <- as.matrix(D_weights)  # n x |rashomon_set| matrix of 0/1 votes
+    D_rash$vote_count <- rowSums(votes_mat)
+
+    if (is.function(vote_threshold)) {
+      # User-supplied aggregation function
+      w_opt_raw <- tryCatch(
+        vote_threshold(votes_mat),
+        error = function(e) stop(
+          "vote_threshold() raised an error: ", conditionMessage(e), call. = FALSE
+        )
+      )
+      # Validate BEFORE coercing: catch non-binary values like 0.5 that
+      # would silently become 0L after as.integer(), hiding the error.
+      if (length(w_opt_raw) != nrow(votes_mat) ||
+          !all(w_opt_raw %in% c(0, 1, 0L, 1L), na.rm = TRUE))
+        stop(
+          "vote_threshold() must return an integer vector of 0s and 1s ",
+          "with one element per observation.", call. = FALSE
+        )
+      if (!is.integer(w_opt_raw)) w_opt_raw <- as.integer(w_opt_raw)
+      D_rash$w_opt <- w_opt_raw
+    } else if (is.character(vote_threshold)) {
+      row_summary  <- switch(
+        vote_threshold,
+        majority = rowMeans(votes_mat),
+        mean     = rowMeans(votes_mat),
+        median   = apply(votes_mat, 1, stats::median)
+      )
+      threshold    <- if (vote_threshold == "majority") 2 / 3 else 0.5
+      D_rash$w_opt <- as.integer(row_summary > threshold)
+    } else {
+      # Numeric threshold
+      D_rash$w_opt <- as.integer(rowMeans(votes_mat) > vote_threshold)
+    }
   } else {
     D_rash$w_opt      <- integer(nrow(D_rash))
     D_rash$vote_count <- integer(nrow(D_rash))
@@ -581,15 +646,16 @@ ROOT <- function(data,
   }
 
   res <- list(
-    D_rash             = D_rash,
-    D_forest           = D_forest,
-    w_forest           = w_forest,
-    rashomon_set       = rashomon_set,
+    D_rash              = D_rash,
+    D_forest            = D_forest,
+    w_forest            = w_forest,
+    rashomon_set        = rashomon_set,
     global_objective_fn = global_objective_fn,
-    f                  = final_classifier,
-    testing_data       = testing_data,
-    estimate           = est_list,
-    generalizability_path     = generalizability_path
+    vote_threshold      = vote_threshold,
+    f                   = final_classifier,
+    testing_data        = testing_data,
+    estimate            = est_list,
+    generalizability_path = generalizability_path
   )
   class(res) <- c("ROOT", "list")
   res
