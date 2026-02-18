@@ -80,7 +80,6 @@ summary.ROOT <- function(object, ...) {
         " = ", est$value_weighted,
         ", SE = ", est$se_weighted, "\n", sep = "")
     cat("  Note: ", est$se_weighted_note, "\n", sep = "")
-    cat("\n")
   }
 
   ## Core diagnostics
@@ -110,7 +109,65 @@ summary.ROOT <- function(object, ...) {
   invisible(x)
 }
 
+#' Print a ROOT fit
+#'
+#' Provides a human-readable brief summary of a \code{ROOT} object, including:
+#' \enumerate{
+#'   \item the summary characterization tree \code{f},
+#'   \item in generalizability mode (\code{generalizability_path = TRUE}), the
+#'         unweighted and weighted estimands with their standard errors
+#'         and an explanatory note for the weighted standard error (SE).
+#' }
+#'
+#' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
+#' to a SATE-type quantity and the weighted estimand to a WTATE-type
+#' quantity for the transported target population. When \code{generalizability_path = FALSE},
+#' ROOT is used for general functional optimization and no causal labels
+#' are imposed.
+#'
+#'
+#' @param x A \code{"ROOT"} S3 object returned by \code{ROOT()}.
+#' @param ... Currently unused and included for S3 compatibility.
+#'
+#' @return \code{object} returned invisibly. Printed output is for inspection.
+#'
+#' @method print ROOT
+#' @examples
+#' \dontrun{
+#' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' print(ROOT.output)
+#' }
+#' @export
+print.ROOT <- function(x, ...) {
+  x <- object
 
+  cat("ROOT object\n")
+  cat("  Generalizability mode:", isTRUE(x$generalizability_path), "\n\n")
+
+  ## Summary tree
+  cat("Summary classifier (f):\n")
+  if (!is.null(x$f)) {
+    print(x$f)
+  } else {
+    cat("  <no summary tree available>\n")
+  }
+  cat("\n")
+
+  ## Estimands (only in generalizability mode)
+  if (isTRUE(x$generalizability_path) && !is.null(x$estimate)) {
+    est <- x$estimate
+    cat("Estimand summary (generalization mode):\n")
+    cat("  Unweighted ", est$estimand_unweighted,
+        " = ", est$value_unweighted,
+        ", SE = ", est$se_unweighted, "\n", sep = "")
+    cat("  Weighted   ", est$estimand_weighted,
+        " = ", est$value_weighted,
+        ", SE = ", est$se_weighted, "\n", sep = "")
+    cat("  Note: ", est$se_weighted_note, "\n", sep = "")
+  }
+
+  invisible(x)
+}
 
 #' Plot the ROOT summary tree
 #'

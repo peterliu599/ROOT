@@ -2,6 +2,8 @@
 
 S3method(plot,ROOT)
 S3method(plot,characterizing_underrep)
+S3method(print,ROOT)
+S3method(print,characterizing_underrep)
 S3method(summary,ROOT)
 S3method(summary,characterizing_underrep)
 export(ROOT)

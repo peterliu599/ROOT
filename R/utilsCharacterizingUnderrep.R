@@ -55,6 +55,50 @@ summary.characterizing_underrep <- function(object, ...) {
   invisible(object)
 }
 
+
+#' Print a characterizing_underrep fit
+#'
+#' Print the \code{ROOT} summary which includes unweighted and (when in
+#' generalization mode) weighted estimates with standard errors, as reported by
+#' \code{summary.ROOT()}.
+#'
+#' @section Abbreviations:
+#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
+#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
+#' WATE means Weighted ATE. PATE means Population ATE.
+#'
+#' @param x A \code{characterizing_underrep} S3 object. Expected components include
+#'   \code{root} which is a \code{ROOT} object (summarized by \code{print.ROOT()})
+#'   and may contain \code{f} which is an \code{rpart} object for the summary tree,
+#'   and \code{leaf_summary} which is a \code{data.frame} with one row per terminal
+#'   node and may include a \code{rule} column of type \code{character}.
+#' @param ... Currently unused. Included for S3 compatibility.
+#'
+#' @return \code{object} returned invisibly. Printed output is a human readable brief summary.
+#'
+#' @details
+#' Delegates core statistics and estimands to \code{print(object$root)}.
+#'
+#' @method print characterizing_underrep
+#' @examples
+#' \dontrun{
+#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' print(char.output)
+#' }
+#' @export
+print.characterizing_underrep <- function(x, ...) {
+  if (!inherits(object, "characterizing_underrep")) {
+    stop("Not a characterizing_underrep object.")
+  }
+
+  cat("characterizing_underrep object\n")
+  cat("  --- ROOT brief summary ---\n")
+  print(object$root)  # uses print.ROOT()
+
+  invisible(object)
+}
+
+
 #' Plot Under represented Population Characterization
 #'
 #' Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights

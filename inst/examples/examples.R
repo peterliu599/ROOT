@@ -22,10 +22,12 @@ devtools::build_manual()
 
 ROOT.output <- ROOT(diabetes_data, generalizability_path = TRUE, seed=123)
 summary(ROOT.output)
+print(ROOT.output)
 plot(ROOT.output)
 
 char.output <- characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
 summary(char.output)
+print(char.output)
 plot(char.output)
 
 ### A simple optimization example
@@ -57,6 +59,7 @@ root.result <- ROOT(
   generalizability_path = FALSE
 )
 summary(root.result)
+print(root.result)
 plot(root.result)
 
 underrep.result <- characterizing_underrep(
