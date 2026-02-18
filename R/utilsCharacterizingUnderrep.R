@@ -77,7 +77,7 @@ summary.characterizing_underrep <- function(object, ...) {
 #' @return \code{object} returned invisibly. Printed output is a human readable brief summary.
 #'
 #' @details
-#' Delegates core statistics and estimands to \code{print(object$root)}.
+#' Delegates core statistics and estimands to \code{print(x$root)}.
 #'
 #' @method print characterizing_underrep
 #' @examples
@@ -87,15 +87,15 @@ summary.characterizing_underrep <- function(object, ...) {
 #' }
 #' @export
 print.characterizing_underrep <- function(x, ...) {
-  if (!inherits(object, "characterizing_underrep")) {
+  if (!inherits(x, "characterizing_underrep")) {
     stop("Not a characterizing_underrep object.")
   }
 
   cat("characterizing_underrep object\n")
   cat("  --- ROOT brief summary ---\n")
-  print(object$root)  # uses print.ROOT()
+  print(x$root)  # uses print.ROOT()
 
-  invisible(object)
+  invisible(x)
 }
 
 

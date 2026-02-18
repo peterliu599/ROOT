@@ -24,7 +24,7 @@ generalization mode) weighted estimates with standard errors, as reported by
 \code{summary.ROOT()}.
 }
 \details{
-Delegates core statistics and estimands to \code{print(object$root)}.
+Delegates core statistics and estimands to \code{print(x$root)}.
 }
 \section{Abbreviations}{
 

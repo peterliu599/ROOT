@@ -1,18 +1,228 @@
 ---
-title: "Generalizing Trial Results to a Target Population"
+title: "Generalizability Path Example: Characterizing Underrepresented Populations"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Generalizing Trial Results to a Target Population}
+  %\VignetteIndexEntry{Generalizability Path Example: Characterizing Underrepresented Populations}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  echo = TRUE,
-  message = FALSE,
-  warning = FALSE,
-  fig.width = 7,
-  fig.height = 5
+  collapse = TRUE,
+  comment  = "#>"
 )
 ```
+
+## Overview
+
+A common challenge in translating evidence from randomized controlled trials
+(RCTs) to real-world practice is that trial participants may not reflect the
+broader target population. If certain subgroups are systematically
+underrepresented in the trial, estimates of the **Target Average Treatment
+Effect (TATE)** can be imprecise or misleading when transported to that
+population.
+
+**ROOT** addresses this by learning an interpretable binary weight function
+$w(X) \in \{0, 1\}$ that identifies the *well-represented* subpopulation —
+the subset of the target population for which the trial provides reliable
+evidence. Units are included ($w = 1$) or excluded ($w = 0$) according to
+tree-structured rules that minimize the variance of the transported treatment
+effect estimator.
+
+The resulting estimand is the **Weighted Target Average Treatment Effect
+(WTATE)**: the average treatment effect restricted to the represented
+subpopulation, estimated with lower variance than the unweighted SATE.
+
+This vignette walks through a complete generalizability analysis using the
+built-in `diabetes_data` dataset.
+
+---
+
+## The `diabetes_data` Dataset
+
+`diabetes_data` is a simulated dataset that mimics a diabetes intervention
+study. It contains 2,000 individuals split between an RCT sample and a target
+population.
+
+```{r load-data}
+library(ROOT)
+
+data(diabetes_data, package = "ROOT")
+str(diabetes_data)
+```
+
+The key columns are:
+
+| Column       | Description                                      |
+|:-------------|:-------------------------------------------------|
+| `Y`          | Observed outcome (numeric)                       |
+| `Tr`         | Treatment assignment (0 = control, 1 = treated)  |
+| `S`          | Sample indicator (1 = RCT, 0 = target population)|
+| `Age45`      | Age ≥ 45 (binary indicator)                      |
+| `DietYes`    | Currently on a diet programme (binary indicator) |
+| `Race_Black` | Race: Black (binary indicator)                   |
+| `Sex_Male`   | Sex: Male (binary indicator)                     |
+
+```{r explore-data}
+# How many trial vs target population units?
+table(S = diabetes_data$S)
+
+# Treatment breakdown within the trial
+table(Tr = diabetes_data$Tr[diabetes_data$S == 1])
+```
+
+---
+
+## Checking Covariate Overlap
+
+Before running ROOT, it is good practice to check whether trial participants
+differ from the target population on key covariates. Systematic differences
+signal which subgroups may be underrepresented.
+
+```{r overlap}
+# Mean of each covariate by S
+covariate_cols <- c("Age45", "DietYes", "Race_Black", "Sex_Male")
+
+overlap <- sapply(covariate_cols, function(v) {
+  tapply(diabetes_data[[v]], diabetes_data$S, mean, na.rm = TRUE)
+})
+
+knitr::kable(
+  t(overlap),
+  digits  = 3,
+  caption = "Covariate means by sample membership (S = 1: trial, S = 0: target)"
+)
+```
+
+Differences across rows flag potential sources of underrepresentation that
+ROOT will attempt to characterize.
+
+---
+
+## Fitting ROOT in Generalizability Mode
+
+We use `characterizing_underrep()`, which is the high-level wrapper around
+`ROOT()` for generalizability analyses. It expects `data` to contain `Y`,
+`Tr`, and `S`, and internally:
+
+1. Estimates transportability scores using logistic regression models for
+   $P(S = 1 \mid X)$ and $P(\text{Tr} = 1 \mid X, S = 1)$.
+2. Constructs Horvitz–Thompson-style influence scores $v_i$.
+3. Grows a forest of weighted trees that minimize the variance of the
+   weighted estimator $\widehat{\text{WTATE}}$.
+4. Selects a Rashomon set of the top-$k$ trees and aggregates their weight
+   assignments by majority vote.
+5. Fits a single summary tree characterizing the final $w_{\text{opt}}$
+   assignments.
+
+```{r fit, message = FALSE, warning = FALSE}
+gen_fit <- characterizing_underrep(
+  data                  = diabetes_data,
+  generalizability_path = TRUE,
+  num_trees             = 20,
+  top_k_trees           = TRUE,
+  k                     = 10,
+  seed                  = 123
+)
+```
+
+---
+
+## Inspecting the Results
+
+### Print summary
+
+```{r print}
+print(gen_fit)
+```
+
+### Detailed summary
+
+`summary()` additionally reports the Rashomon set size, the percentage of
+observations with $w_{\text{opt}} = 1$, and the unweighted and weighted
+estimands with their standard errors.
+
+```{r summary}
+summary(gen_fit)
+```
+
+The **SATE** (unweighted) is the simple trial average treatment effect
+transported to the full target population. The **WTATE** (weighted) restricts
+this estimate to the well-represented subpopulation, where the trial provides
+more reliable evidence. A smaller SE for the WTATE relative to the SATE
+reflects the variance reduction achieved by this restriction.
+
+### Terminal node rules
+
+The `leaf_summary` component of the returned object gives an explicit
+human-readable rule for each terminal node of the summary tree, along with
+the number and percentage of observations in each leaf and whether they are
+classified as represented ($w = 1$) or underrepresented ($w = 0$).
+
+```{r leaf-summary}
+gen_fit$leaf_summary
+```
+
+---
+
+## Visualizing the Characterization Tree
+
+`plot()` renders the final characterized tree from the Rashomon set. Blue
+leaves ($w = 1$) denote well-represented subgroups; orange leaves ($w = 0$)
+denote underrepresented subgroups. The percentage shown in each leaf is the
+share of trial units falling into that node.
+
+```{r plot, fig.width = 7, fig.height = 5, fig.alt = "Characterized tree for diabetes generalizability analysis"}
+plot(gen_fit)
+```
+
+The tree reads top-down as a decision rule: starting from the root (all trial
+units), the first split separates subgroups that are wholly underrepresented
+from those that may be included. Follow the branches down to each leaf to read
+the complete inclusion/exclusion rule for that subgroup.
+
+---
+
+## Interpreting the Output
+
+From the characterized tree and leaf summary, we can describe the
+underrepresented subgroups in plain language:
+
+- **Black participants** are flagged as underrepresented ($w = 0$) regardless
+  of other characteristics.
+- **Participants aged 45 or older who are not Black** are also underrepresented.
+- **Participants on a diet programme who are neither Black nor aged 45+** are
+  underrepresented.
+- The remaining participants — those who are not Black, under 45, and not on a
+  diet programme — form the **well-represented subpopulation** ($w = 1$) for
+  whom the WTATE is estimated.
+
+The Rashomon set provides multiple near-optimal characterizations of these
+subgroups. The final summary tree aggregates across all trees in the set,
+giving a single interpretable rule that is robust to the specific
+randomness of any individual tree.
+
+---
+
+## Key Parameters
+
+| Parameter        | Role                                                                 | Default        |
+|:-----------------|:---------------------------------------------------------------------|:---------------|
+| `num_trees`      | Number of trees to grow in the forest                                | `10`           |
+| `top_k_trees`    | If `TRUE`, select the top `k` trees by objective value               | `FALSE`        |
+| `k`              | Rashomon set size when `top_k_trees = TRUE`                          | `10`           |
+| `cutoff`         | Rashomon threshold when `top_k_trees = FALSE`; `"baseline"` uses the objective at $w \equiv 1$ | `"baseline"` |
+| `vote_threshold` | Fraction of Rashomon-set trees that must vote $w = 1$ for a unit to be included | `2/3` |
+| `seed`           | Random seed for reproducibility                                      | `NULL`         |
+| `feature_est`    | Feature importance method used to bias split selection (`"Ridge"`, `"GBM"`, or a custom function) | `"Ridge"` |
+| `leaf_proba`     | Controls tree depth by increasing the probability of stopping at a leaf | `0.25`      |
+
+---
+
+## Reference
+
+Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025). Who Are We
+Missing?: A Principled Approach to Characterizing the Underrepresented
+Population. *Journal of the American Statistical Association*, 120(551),
+1414–1423. <https://doi.org/10.1080/01621459.2025.2495319>

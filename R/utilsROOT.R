@@ -139,8 +139,6 @@ summary.ROOT <- function(object, ...) {
 #' }
 #' @export
 print.ROOT <- function(x, ...) {
-  x <- object
-
   cat("ROOT object\n")
   cat("  Generalizability mode:", isTRUE(x$generalizability_path), "\n\n")
 

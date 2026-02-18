@@ -6,13 +6,12 @@ ROOT: Weighted Trees/Forests for ROOT-style Functional Optimization
 [![R-CMD-check](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/peterliu599/ROOT-R-Package/graph/badge.svg)](https://app.codecov.io/gh/peterliu599/ROOT-R-Package)
-
 <!-- badges: end -->
 
 > Rashomon-set Optimal Trees for interpretable functional optimization
 > and treatment effect generalizability
 
----
+------------------------------------------------------------------------
 
 # Overview
 
@@ -35,7 +34,7 @@ reflect different scientific goals.
   multiple plausible explanations. A **characteristic tree** can then be
   extracted to summarize common patterns.
 
----
+------------------------------------------------------------------------
 
 ## ROOT for generalizability
 
@@ -55,7 +54,7 @@ population**.
   - The loss function is designed to minimize the variance of the
     estimator while retaining as much of the target population as
     possible.
-- **Interpretation:** ROOT's decision trees explicitly describe *who is
+- **Interpretation:** ROOT’s decision trees explicitly describe *who is
   underrepresented* and *why they are excluded*. The Rashomon set
   provides multiple, equally valid ways of describing these subgroups.
 
@@ -63,7 +62,7 @@ For a detailed worked example of ROOT in generalizability mode, see the
 [`generalizability_path_example`
 vignette](vignettes/generalizability_path_example.Rmd).
 
----
+------------------------------------------------------------------------
 
 ## Installation
 
@@ -75,7 +74,12 @@ You can install the development version of `ROOT` from
 devtools::install_github("peterliu599/ROOT-R-Package")
 ```
 
----
+    ## Using GitHub PAT from the git credential store.
+
+    ## Skipping install of 'ROOT' from a github remote, the SHA1 (1056e534) has not changed since last install.
+    ##   Use `force = TRUE` to force installation
+
+------------------------------------------------------------------------
 
 ## Example: Portfolio selection via variance minimization
 
@@ -83,8 +87,8 @@ ROOT can be applied to any optimization problem that can be expressed as
 a binary inclusion/exclusion decision. In this example, we use ROOT to
 select a **minimum-variance portfolio** from a universe of 100 simulated
 assets, each characterized by its market beta and annualized volatility.
-ROOT learns an interpretable tree-structured rule describing *which
-assets to include* ($w = 1$) to minimize portfolio return variance.
+ROOT learns an interpretable tree-structured rule describing which
+assets to include ($w = 1$) to minimize portfolio return variance.
 
 ``` r
 library(ROOT)
@@ -120,59 +124,73 @@ portfolio_fit <- ROOT(
   seed        = 123
 )
 
-print(portfolio_fit)
-#> ROOT object
-#>   Generalizability mode: FALSE
-#>
-#> Summary classifier (f):
-#> n= 100
-#>
-#> node), split, n, loss, yval, (yprob)
-#>       * denotes terminal node
-#>
-#> 1) root 100 4 1 (0.04000000 0.96000000)
-#>   2) beta>=1.658134 12  4 1 (0.3333333 0.6666667)
-#>     4) vol>=0.3285209 4  0 0 (1.00000000 0.00000000) *
-#>     5) vol< 0.3285209 8  0 1 (0.00000000 1.00000000) *
-#>   3) beta< 1.658134 88  0 1 (0.00000000 1.00000000) *
-#>
-#> Global objective function:
-#>   User-supplied: No (default objective used)
+summary(portfolio_fit) # for a full summary output
+```
 
+    ## ROOT object
+    ##   Generalizability mode: FALSE 
+    ## 
+    ## Summary classifier (f):
+    ## n= 100 
+    ## 
+    ## node), split, n, loss, yval, (yprob)
+    ##       * denotes terminal node
+    ## 
+    ## 1) root 100 4 1 (0.0400000 0.9600000)  
+    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
+    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
+    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
+    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
+    ## 
+    ## Global objective function:
+    ##   User-supplied: No (default objective used)
+    ## 
+    ## Diagnostics:
+    ##   Number of trees grown: 20
+    ##   Rashomon set size: 10
+    ##   % observations with w_opt == 1: 96.0%
+
+``` r
+# print(portfolio_fit) # for a brief summary print
+```
+
+``` r
 plot(portfolio_fit)
 ```
-![Portfolio characterized tree](man/figures/portfolio_tree.png)
 
-The characterized tree recovers an intuitive and interpretable
-portfolio construction rule. Assets with **beta < 1.7** are included 
-(88% of the universe). Among the remaining high-beta **beta $\geq$ 1.7** assets, 
-those with **volatility $\geq$ 0.33** are excluded ($w = 0$, 4%), while high-beta
-assets with **volatility < 0.33** are retained (8%). Overall, the final majority vote by
-the Rashomon set of 10 near-optimal trees includes 96% of assets in the final and
-screens out only the most risk-concentrated subset.
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+The characterized tree recovers an intuitive and interpretable portfolio
+construction rule. Assets with **beta \< 1.7** are included (88% of the
+universe). Among the remaining high-beta **beta $\geq$ 1.7** assets,
+those with **volatility $\geq$ 0.33** are excluded ($w = 0$, 4%), while
+high-beta assets with **volatility \< 0.33** are retained (8%). Overall,
+the final majority vote by the Rashomon set of 10 near-optimal trees
+includes 96% of assets in the final and screens out only the most
+risk-concentrated subset.
 
 For a detailed worked example of ROOT in optimization mode, see the
 [`optimization_path_example`
 vignette](vignettes/optimization_path_example.Rmd).
 
----
+------------------------------------------------------------------------
 
 ## Issues
 
 If you encounter any bugs or have any specific feature requests, please
 [file an issue](https://github.com/peterliu599/ROOT-R-Package/issues).
 
----
+------------------------------------------------------------------------
 
 ## License
 
 The contents of this repository are distributed under the MIT license.
 
----
+------------------------------------------------------------------------
 
 ## Reference
 
-Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025). Who Are
-We Missing?: A Principled Approach to Characterizing the Underrepresented
+Parikh, H., Ross, R. K., Stuart, E., & Rudolph, K. E. (2025). Who Are We
+Missing?: A Principled Approach to Characterizing the Underrepresented
 Population. *Journal of the American Statistical Association*, 120(551),
 1414–1423. <https://doi.org/10.1080/01621459.2025.2495319>
