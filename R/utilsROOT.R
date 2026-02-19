@@ -87,6 +87,7 @@ summary.ROOT <- function(object, ...) {
     cat("  Weighted   ", est$estimand_weighted,
         " = ", est$value_weighted,
         ", SE = ", est$se_weighted, "\n", sep = "")
+    cat("\n")
     #cat("  Note: ", est$se_weighted_note, "\n", sep = "")
   }
 
@@ -113,6 +114,7 @@ summary.ROOT <- function(object, ...) {
   } else {
     cat("  % observations with w_opt == 1: <not available>\n")
   }
+  cat("\n")
 
   invisible(x)
 }
