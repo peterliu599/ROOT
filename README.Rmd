@@ -69,9 +69,9 @@ vignette](vignettes/generalizability_path_example.Rmd).
 You can install the development version of `ROOT` from
 [GitHub](https://github.com/) with:
 
-```{r}
+```r
 # install.packages("devtools")
-devtools::install_github("peterliu599/ROOT-R-Package")
+devtools::install_github("peterliu599/ROOT")
 ```
 
 ---

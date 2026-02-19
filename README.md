@@ -71,13 +71,8 @@ You can install the development version of `ROOT` from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("peterliu599/ROOT-R-Package")
+devtools::install_github("peterliu599/ROOT")
 ```
-
-    ## Using GitHub PAT from the git credential store.
-
-    ## Skipping install of 'ROOT' from a github remote, the SHA1 (fd03ac4e) has not changed since last install.
-    ##   Use `force = TRUE` to force installation
 
 ------------------------------------------------------------------------
 
@@ -136,11 +131,11 @@ summary(portfolio_fit) # for a full summary output
     ## node), split, n, loss, yval, (yprob)
     ##       * denotes terminal node
     ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000)  
-    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
-    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
-    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
-    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
+    ## 1) root 100 8 1 (0.0800000 0.9200000)  
+    ##   2) vol>=0.3546479 14 6 0 (0.5714286 0.4285714)  
+    ##     4) beta>=1.18087 8 0 0 (1.0000000 0.0000000) *
+    ##     5) beta< 1.18087 6 0 1 (0.0000000 1.0000000) *
+    ##   3) vol< 0.3546479 86 0 1 (0.0000000 1.0000000) *
     ## 
     ## Global objective function:
     ##   User-supplied: No (default objective used)
@@ -148,7 +143,7 @@ summary(portfolio_fit) # for a full summary output
     ## Diagnostics:
     ##   Number of trees grown: 20
     ##   Rashomon set size: 10
-    ##   % observations with w_opt == 1: 96.0%
+    ##   % observations with w_opt == 1: 92.0%
 
 ``` r
 print(portfolio_fit) # for a brief summary print
@@ -163,17 +158,17 @@ print(portfolio_fit) # for a brief summary print
     ## node), split, n, loss, yval, (yprob)
     ##       * denotes terminal node
     ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000)  
-    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
-    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
-    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
-    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
+    ## 1) root 100 8 1 (0.0800000 0.9200000)  
+    ##   2) vol>=0.3546479 14 6 0 (0.5714286 0.4285714)  
+    ##     4) beta>=1.18087 8 0 0 (1.0000000 0.0000000) *
+    ##     5) beta< 1.18087 6 0 1 (0.0000000 1.0000000) *
+    ##   3) vol< 0.3546479 86 0 1 (0.0000000 1.0000000) *
 
 ``` r
 plot(portfolio_fit)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 The characterized tree recovers an intuitive and interpretable portfolio
 construction rule. Assets with **beta \< 1.7** are included (88% of the
