@@ -245,10 +245,8 @@ portfolio_fit_iqr <- ROOT(
   num_trees           = 20,
   top_k_trees         = TRUE,
   k                   = 10,
-  seed                = 112
+  seed                = 163
 )
-
-summary(portfolio_fit_iqr)
 ```
 
 The custom objective illustrates ROOT's flexibility: any scalar-valued
