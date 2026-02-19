@@ -5,10 +5,15 @@
 #' \code{summary.ROOT()}. Provides a brief overview of terminal rules from the
 #' annotated summary tree when available.
 #'
-#' @section Abbreviations.
-#' ATE means average treatment effect. RCT means randomized controlled trial.
-#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
-#' SATE means sample ATE.
+#' @section Abbreviations:
+#' \describe{
+#'   \item{ATE}{Average treatment effect.}
+#'   \item{RCT}{Randomized controlled trial.}
+#'   \item{SE}{Standard error.}
+#'   \item{TATE}{Transported average treatment effect.}
+#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{SATE}{Sample average treatment effect.}
+#' }
 #'
 #' @param object A \code{characterizing_underrep} S3 object. Expected components include
 #'   \code{root} which is a \code{ROOT} object (summarized by \code{summary.ROOT()})
@@ -62,10 +67,15 @@ summary.characterizing_underrep <- function(object, ...) {
 #' generalization mode) weighted estimates with standard errors, as reported by
 #' \code{summary.ROOT()}.
 #'
-#' @section Abbreviations.
-#' ATE means average treatment effect. RCT means randomized controlled trial.
-#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
-#' SATE means sample ATE.
+#' @section Abbreviations:
+#' \describe{
+#'   \item{ATE}{Average treatment effect.}
+#'   \item{RCT}{Randomized controlled trial.}
+#'   \item{SE}{Standard error.}
+#'   \item{TATE}{Transported average treatment effect.}
+#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{SATE}{Sample average treatment effect.}
+#' }
 #'
 #' @param x A \code{characterizing_underrep} S3 object. Expected components include
 #'   \code{root} which is a \code{ROOT} object (summarized by \code{print.ROOT()})

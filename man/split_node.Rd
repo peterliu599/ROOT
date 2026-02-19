@@ -2,7 +2,7 @@
 % Please edit documentation in R/treeBuilding.R
 \name{split_node}
 \alias{split_node}
-\title{Recursive split builder for weighted tree (internal function)}
+\title{Recursive split builder for weighted tree}
 \usage{
 split_node(
   split_feature,
@@ -53,6 +53,6 @@ A list representing the (sub)tree; includes updated \code{D} and \verb{local obj
 }
 \description{
 Recursively builds a weighted decision tree to optimize a global objective,
-using an exploration/exploitation trade-off. Internal; used by ROOT().
+using an exploration/exploitation trade-off.
 }
 \keyword{internal}

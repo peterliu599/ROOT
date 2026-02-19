@@ -6,9 +6,9 @@
 #' randomized controlled trial (RCT) relative to a target population. The
 #' function returns an interpretable decision tree describing which subgroups
 #' should be included (\eqn{w(X) = 1}) or excluded (\eqn{w(X) = 0}) from the
-#' analysis, along with the corresponding target treatment effect estimates.
+#' analysis, along with the corresponding target treatment average effect estimates.
 #'
-#' @section What does "underrepresented" mean?
+#' @section What does "underrepresented" mean?:
 #' In the context of generalizing treatment effects from a trial to a target
 #' population, a subgroup is considered \strong{underrepresented} (or
 #' \emph{insufficiently represented}) when it occupies a region of the
@@ -18,14 +18,14 @@
 #' Formally, the contribution of a unit with covariates \eqn{X = x} to the
 #' variance of the target average treatment effect (TATE) estimator depends on
 #' both the selection ratio \eqn{\ell(x) = P(S=1 \mid X=x) / P(S=0 \mid X=x)}
-#' and the conditional average treatment effect \eqn{\tau_0(x)}. Subgroups
-#' where \eqn{\ell(x)} is small \emph{and} \eqn{\tau_0(x)} deviates from the
-#' overall TATE contribute disproportionately to estimator variance. These are
+#' and the conditional average treatment effect. Subgroups where \eqn{\ell(x)}
+#' is small, and conditional average treatment effect deviates from the
+#' overall TATE, contribute disproportionately to estimator variance. These are
 #' the subgroups that \code{characterizing_underrep()} identifies and
-#' characterizes. The sample average treatment Effect (SATE) is a
+#' characterizes. The sample average treatment effect (SATE) is a
 #' finite sample equivalent version of the TATE.
 #'
-#' @section The generalizability workflow.
+#' @section The generalizability workflow:
 #' When \code{generalizability_path = TRUE}, this function implements the
 #' two-stage approach of Parikh et al. (2025):
 #'
@@ -44,14 +44,15 @@
 #' The key estimands are:
 #' \itemize{
 #'   \item \strong{SATE} (Sample Average Treatment Effect): the treatment
-#'     effect for the full target population, which may be imprecise if
-#'     certain subgroups are underrepresented.
+#'     effect for the full target population based on the trial sample, which
+#'     may be imprecise if certain subgroups are underrepresented. It is a
+#'     finite sample equivalent version of the TATE.
 #'   \item \strong{WTATE} (Weighted Target Average Treatment Effect): the
 #'     treatment effect restricted to the sufficiently represented
 #'     subpopulation, estimated with lower variance.
 #' }
 #'
-#' @section General optimization mode.
+#' @section General optimization mode:
 #' When \code{generalizability_path = FALSE}, this function behaves as a
 #' convenience wrapper around \code{\link{ROOT}()} for arbitrary binary weight
 #' optimization. The user can supply a custom objective function via

@@ -22,9 +22,4 @@ data(diabetes_data)
 \description{
 A toy dataset for illustrating \code{ROOT} examples and tests.
 }
-\section{Abbreviations}{
-
-RCT means randomized clinical trial. ATE means Average Treatment Effect.
-}
-
 \keyword{datasets}

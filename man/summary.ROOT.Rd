@@ -15,23 +15,32 @@
 \code{object} returned invisibly. Printed output is for inspection.
 }
 \description{
-Provides a human-readable summary of a \code{ROOT} object, including:
+Provides a readable summary of a \code{ROOT} object, including:
 \enumerate{
 \item the summary characterization tree \code{f},
-\item the first few rows of \code{testing_data},
 \item whether the user supplied a custom \code{global_objective_fn} (Yes/No), and
 \item in generalizability mode (\code{generalizability_path = TRUE}), the
-unweighted and weighted estimands with their standard errors
-and an explanatory note for the weighted standard error (SE).
+unweighted and weighted estimands with their standard errors.
 }
 }
-\details{
+\section{Abbreviations}{
+
+\describe{
+\item{ATE}{Average treatment effect.}
+\item{RCT}{Randomized controlled trial.}
+\item{SE}{Standard error.}
+\item{TATE}{Transported average treatment effect.}
+\item{WTATE}{Weighted transported average treatment effect.}
+\item{SATE}{Sample average treatment effect.}
+}
+
 When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
 to a SATE-type quantity and the weighted estimand to a WTATE-type
 quantity for the transported target population. When \code{generalizability_path = FALSE},
 ROOT is used for general functional optimization and no causal labels
 are imposed; the summary focuses on the tree and diagnostics.
 }
+
 \section{Diagnostics}{
 
 The summary also reports:

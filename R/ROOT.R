@@ -7,7 +7,7 @@
 #' global objective function \eqn{L(w, D_n)}, ROOT searches over the space of
 #' decision trees to find weight assignments that minimize the objective function.
 #'
-#' @section The optimization problem.
+#' @section The optimization problem:
 #' ROOT solves the functional optimization problem:
 #'
 #' \deqn{w^* \in \arg\min_w L(D_n, w)}
@@ -15,13 +15,13 @@
 #' where \eqn{w: \mathbb{R}^p \to \{0, 1\}} maps a \eqn{p}-dimensional
 #' covariate vector to a binary include/exclude decision. The key challenge is
 #' that, unlike standard tree algorithms, the global loss
-#' \eqn{L(D_n, w)} is \emph{not} decomposable as a sum of losses over
+#' \eqn{L(D_n, w)} is not decomposable as a sum of losses over
 #' independent subsets of the data. This means conventional greedy,
 #' divide-and-conquer tree-building strategies do not apply. ROOT addresses
 #' this through a randomization-based tree construction with an
 #' explore-exploit strategy.
 #'
-#' @section How ROOT works.
+#' @section How ROOT works:
 #' The algorithm proceeds in several stages:
 #'
 #' \enumerate{
@@ -39,7 +39,7 @@
 #'     objective) is used.
 #'   \item \strong{Rashomon set selection:} Trees are ranked by their global
 #'     objective values. The top-\code{k} trees (or all trees below a cutoff)
-#'     form the \emph{Rashomon set}: a collection of near-optimal but
+#'     form the Rashomon set: a collection of near-optimal but
 #'     potentially different models, each providing a characterization
 #'     of the optimal weight function.
 #'   \item \strong{Aggregation:} Per-observation votes from the Rashomon set
@@ -50,7 +50,7 @@
 #'     interpretable description of the weight function.
 #' }
 #'
-#' @section Generalizability mode.
+#' @section Generalizability mode:
 #' When \code{generalizability_path = TRUE}, ROOT implements the methodology
 #' of Parikh et al. (2025) for characterizing underrepresented subgroups in
 #' trial-to-target generalizability analyses. In this mode:
@@ -68,7 +68,7 @@
 #'     accounts for both the selection odds (trial participation
 #'     probability) and treatment effect heterogeneity, so that subgroups
 #'     are flagged as underrepresented only when they both lack trial
-#'     representation \emph{and} exhibit effect modification.
+#'     representation and exhibit effect modification.
 #'   \item The output includes the unweighted sample average treatment
 #'     effect (SATE) and the WTATE with standard errors.
 #' }
@@ -77,7 +77,7 @@
 #' additionally produces a leaf-level summary table, and
 #' \code{vignette("generalizability_path_example")} for a worked example.
 #'
-#' @section General optimization mode.
+#' @section General optimization mode:
 #' When \code{generalizability_path = FALSE}, ROOT operates as a general
 #' functional optimizer. The user supplies any \code{data.frame} and
 #' (optionally) a custom \code{global_objective_fn}. If no objective is

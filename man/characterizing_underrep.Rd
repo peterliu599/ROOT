@@ -2,7 +2,7 @@
 % Please edit documentation in R/characterizing_underrep.R
 \name{characterizing_underrep}
 \alias{characterizing_underrep}
-\title{Characterize Underrepresented Subgroups in Trial-to-Target Generalizability}
+\title{Characterize Underrepresented Subgroups}
 \usage{
 characterizing_underrep(
   data,
@@ -89,7 +89,7 @@ effect estimates (\code{root$estimate}).}
 \item{combined}{The input \code{data}.}
 \item{leaf_summary}{A \code{data.frame} with one row per terminal node of
 the summary (characteristic) tree, giving the decision rule, predicted
-weight, sample size, and a human-readable label indicating whether the
+weight, sample size, and a label indicating whether the
 subgroup is "Represented (keep, w = 1)" or "Under-represented
 (drop, w = 0)". \code{NULL} if no summary tree was produced.}
 }
@@ -99,7 +99,7 @@ characterizing subgroups that are \emph{insufficiently represented} in a
 randomized controlled trial (RCT) relative to a target population. The
 function returns an interpretable decision tree describing which subgroups
 should be included (\eqn{w(X) = 1}) or excluded (\eqn{w(X) = 0}) from the
-analysis, along with the corresponding treatment effect estimates.
+analysis, along with the corresponding target treatment average effect estimates.
 }
 \section{What does "underrepresented" mean?}{
 
@@ -107,21 +107,17 @@ In the context of generalizing treatment effects from a trial to a target
 population, a subgroup is considered \strong{underrepresented} (or
 \emph{insufficiently represented}) when it occupies a region of the
 covariate space that both (a) has limited overlap between the trial and the
-target population (i.e., practical violations of positivity), and (b)
-exhibits heterogeneous treatment effects. This definition is more nuanced
-than simply flagging subgroups with low trial participation rates: a
-subgroup that is rare in the trial but for whom treatment effects are
-homogeneous does not necessarily undermine the precision of the generalized
-estimate.
+target population, and (b) exhibits heterogeneous treatment effects.
 
 Formally, the contribution of a unit with covariates \eqn{X = x} to the
 variance of the target average treatment effect (TATE) estimator depends on
-both the selection odds \eqn{\ell(x) = P(S=1 \mid X=x) / P(S=0 \mid X=x)}
-and the conditional average treatment effect \eqn{\tau_0(x)}. Subgroups
-where \eqn{\ell(x)} is small \emph{and} \eqn{\tau_0(x)} deviates from the
-overall TATE contribute disproportionately to estimator variance. These are
+both the selection ratio \eqn{\ell(x) = P(S=1 \mid X=x) / P(S=0 \mid X=x)}
+and the conditional average treatment effect. Subgroups where \eqn{\ell(x)}
+is small, and conditional average treatment effect deviates from the
+overall TATE, contribute disproportionately to estimator variance. These are
 the subgroups that \code{characterizing_underrep()} identifies and
-characterizes.
+characterizes. The sample average treatment effect (SATE) is a
+finite sample equivalent version of the TATE.
 }
 
 \section{The generalizability workflow}{
@@ -143,9 +139,10 @@ estimand trades some generality for greater precision and credibility.
 
 The key estimands are:
 \itemize{
-\item \strong{TATE} (Target Average Treatment Effect): the treatment
-effect for the full target population, which may be imprecise if
-certain subgroups are underrepresented.
+\item \strong{SATE} (Sample Average Treatment Effect): the treatment
+effect for the full target population based on the trial sample, which
+may be imprecise if certain subgroups are underrepresented. It is a
+finite sample equivalent version of the TATE.
 \item \strong{WTATE} (Weighted Target Average Treatment Effect): the
 treatment effect restricted to the sufficiently represented
 subpopulation, estimated with lower variance.

@@ -16,7 +16,7 @@ node and may include a \code{rule} column of type \code{character}.}
 \item{...}{Currently unused. Included for S3 compatibility.}
 }
 \value{
-\code{object} returned invisibly. Printed output is a human readable brief summary.
+\code{object} returned invisibly. Printed output is a readable brief summary.
 }
 \description{
 Print the \code{ROOT} summary which includes unweighted and (when in
@@ -28,9 +28,14 @@ Delegates core statistics and estimands to \code{print(x$root)}.
 }
 \section{Abbreviations}{
 
-ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
-SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
-WATE means Weighted ATE. PATE means Population ATE.
+\describe{
+\item{ATE}{Average treatment effect.}
+\item{RCT}{Randomized controlled trial.}
+\item{SE}{Standard error.}
+\item{TATE}{Transported average treatment effect.}
+\item{WTATE}{Weighted transported average treatment effect.}
+\item{SATE}{Sample average treatment effect.}
+}
 }
 
 \examples{

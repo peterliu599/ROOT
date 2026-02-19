@@ -33,8 +33,8 @@ A list with two numeric vectors of length \code{nrow(data)}:
 }
 \description{
 Internal helper used in the \code{generalization} path to construct
-glm-based, IPW-style scores for transporting trial effects to a target
-population without double machine learning.
+generalized linear model (glm)-based, inverse probability weighting
+(IPW)-style scores for transporting trial effects to a target population.
 }
 \details{
 The function treats \code{data} as a stacked dataset with a sample
