@@ -195,7 +195,8 @@ test_that("ROOT estimate fields populated in generalizability_path mode", {
   d <- mk_data_two_sample(n = 280, p = 6)
 
   set.seed(21)
-  r <- ROOT(d, generalizability_path = TRUE, num_trees = 4)
+  r <- ROOT(d, generalizability_path = TRUE, num_trees = 4,
+            vote_threshold = "majority")
   e <- r$estimate
   expect_true(all(c("estimand_unweighted", "value_unweighted", "se_unweighted",
                     "estimand_weighted", "value_weighted", "se_weighted",

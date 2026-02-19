@@ -153,6 +153,17 @@
 #' @param cutoff A numeric or \code{"baseline"}. Used as the Rashomon cutoff
 #'   when \code{top_k_trees = FALSE}. \code{"baseline"} uses the objective at
 #'   \eqn{w \equiv 1} (all weights equal to 1, i.e., no exclusions).
+#' @param max_depth Maximum depth of each tree grown during the forest
+#'   construction stage. A node at \code{depth == max_depth} is forced to be a
+#'   leaf. Shallower trees are more interpretable but less flexible. Default
+#'   \code{8}.
+#' @param min_leaf_n Minimum number of observations required in a node for
+#'   splitting to be attempted. If a node contains fewer than
+#'   \code{min_leaf_n} observations it becomes a leaf. Default \code{2}.
+#' @param max_rejects_per_node Maximum number of consecutive rejected splits
+#'   (splits that do not improve the objective) allowed at a single node
+#'   before the node is forced to become a leaf. This prevents infinite
+#'   recursion in pathological cases. Default \code{10}.
 #' @param verbose \code{Logical(1)}. If \code{TRUE}, prints the unweighted and
 #'   (when available) weighted treatment effect estimates and standard errors
 #'   in generalizability mode)
@@ -229,6 +240,9 @@ ROOT <- function(data,
                  top_k_trees           = FALSE,
                  k                     = 10,
                  cutoff                = "baseline",
+                 max_depth             = 8L,
+                 min_leaf_n            = 2L,
+                 max_rejects_per_node  = 10L,
                  verbose               = FALSE) {
 
   # ---- Small helpers ------------------------------------------------------
@@ -422,6 +436,16 @@ ROOT <- function(data,
     stop("`cutoff` must be \"baseline\" or numeric.", call. = FALSE)
   if (!is.logical(verbose) || length(verbose) != 1L)
     stop("`verbose` must be TRUE or FALSE.", call. = FALSE)
+  if (!is.numeric(max_depth) || length(max_depth) != 1L || max_depth < 0)
+    stop("`max_depth` must be a non-negative integer.", call. = FALSE)
+  max_depth <- as.integer(max_depth)
+  if (!is.numeric(min_leaf_n) || length(min_leaf_n) != 1L || min_leaf_n < 1)
+    stop("`min_leaf_n` must be a positive integer.", call. = FALSE)
+  min_leaf_n <- as.integer(min_leaf_n)
+  if (!is.numeric(max_rejects_per_node) || length(max_rejects_per_node) != 1L ||
+      max_rejects_per_node < 1)
+    stop("`max_rejects_per_node` must be a positive integer.", call. = FALSE)
+  max_rejects_per_node <- as.integer(max_rejects_per_node)
   user_supplied_objective <- !is.null(global_objective_fn)
   if (!user_supplied_objective) global_objective_fn <- objective_default
   if (!is.function(global_objective_fn))
@@ -554,15 +578,18 @@ ROOT <- function(data,
 
     grow_one <- function() {
       split_node(
-        split_feature       = split_feature,
-        X                   = D_tree,
-        D                   = D_tree,
-        parent_loss         = Inf,
-        depth               = 0L,
-        explore_proba       = explore_proba,
-        choose_feature_fn   = choose_feature,
-        reduce_weight_fn    = reduce_weight,
-        global_objective_fn = global_objective_fn
+        split_feature        = split_feature,
+        X                    = D_tree,
+        D                    = D_tree,
+        parent_loss          = Inf,
+        depth                = 0L,
+        explore_proba        = explore_proba,
+        choose_feature_fn    = choose_feature,
+        reduce_weight_fn     = reduce_weight,
+        global_objective_fn  = global_objective_fn,
+        max_depth            = max_depth,
+        min_leaf_n           = min_leaf_n,
+        max_rejects_per_node = max_rejects_per_node
       )
     }
 

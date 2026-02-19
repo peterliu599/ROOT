@@ -18,6 +18,9 @@ characterizing_underrep(
   top_k_trees = FALSE,
   k = 10,
   cutoff = "baseline",
+  max_depth = 8L,
+  min_leaf_n = 2L,
+  max_rejects_per_node = 10L,
   verbose = FALSE
 )
 }
@@ -76,6 +79,20 @@ by objective value for the Rashomon set. If \code{FALSE}, uses
 trees with objective values below this cutoff are included in the
 Rashomon set. \code{"baseline"} uses the objective value at
 \eqn{w \equiv 1} (no subgroups excluded). Default \code{"baseline"}.}
+
+\item{max_depth}{Maximum depth of each tree grown during the forest
+construction stage. A node at \code{depth == max_depth} is forced to be a
+leaf. Shallower trees are more interpretable but less flexible. Default
+\code{8}.}
+
+\item{min_leaf_n}{Minimum number of observations required in a node for
+splitting to be attempted. If a node contains fewer than
+\code{min_leaf_n} observations it becomes a leaf. Default \code{2}.}
+
+\item{max_rejects_per_node}{Maximum number of consecutive rejected splits
+(splits that do not improve the objective) allowed at a single node
+before the node is forced to become a leaf. This prevents infinite
+recursion in pathological cases. Default \code{10}.}
 
 \item{verbose}{Logical; if \code{TRUE}, prints the unweighted and weighted
 estimands with standard errors. Default \code{FALSE}.}
