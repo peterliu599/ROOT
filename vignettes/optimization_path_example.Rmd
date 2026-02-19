@@ -19,14 +19,16 @@ knitr::opts_chunk$set(
 ROOT is a **general functional optimization framework**: by supplying a custom
 objective function, it can be applied to any problem where the goal is to learn
 an interpretable binary weight function $w(X) \in \{0, 1\}$ over a set of
-units.
+groups by covariates of interest.
 
 In general optimization mode (`generalizability_path = FALSE`), the user
 provides a `data.frame` with an optional column `vsq` (a per-unit variance
-proxy) and any covariates to split on. ROOT searches over tree-structured
-weight functions to minimize the supplied objective, then returns a Rashomon
-set of near-optimal trees and a single summary tree characterizing the final
-weight assignments.
+proxy, or the outcome to minimize) and any covariates to split on. ROOT 
+searches over tree-structured weight functions to minimize the supplied 
+objective, then returns a Rashomon set of near-optimal trees and a single 
+summary tree characterizing the final weight assignments. The decision to vote
+on a single summary tree can be by default majority vote, or the user can 
+specify their own voting functions.
 
 This vignette demonstrates ROOT in general optimization mode using a
 **portfolio selection** problem: given a universe of 100 simulated assets
@@ -40,25 +42,22 @@ minimize portfolio return variance.
 
 ### Why portfolio selection?
 
-Constructing a minimum-variance portfolio is a classic optimization problem.
-The standard approach (Markowitz mean-variance optimization) produces weights
-that are continuous and can be hard to interpret or communicate. ROOT offers a
-complementary perspective: it returns a **binary inclusion rule** — a sparse
-decision tree that describes, in plain language, which types of assets belong
-in the low-variance portfolio.
+Constructing a minimum-variance portfolio could be framed as an optimization problem.
+The standard approach could produces weights that are continuous and can be hard 
+to interpret or communicate. ROOT offers a complementary perspective: it returns a 
+**binary inclusion rule** - a sparse decision tree that describes, in plain language, 
+which types of assets belong in the low-variance portfolio.
 
 ### Mapping to ROOT's framework
 
-ROOT minimizes the objective:
+The default global objective function ROOT minimizes is as follows:$L(w, D) = \sqrt{\frac{\sum_i w_i \cdot v_i^2}{\left(\sum_i w_i\right)^2}}$
 
-$$
-L(w, D) = \sqrt{\frac{\sum_i w_i \cdot v_i^2}{\left(\sum_i w_i\right)^2}}
-$$
-
-where $v_i^2$ (`vsq`) is a per-unit variance proxy. In the portfolio context
-we set `vsq` to the historical return variance of each asset. ROOT then finds
-the binary weight $w(X) \in \{0, 1\}$ — described as a decision tree over
-asset features such as beta and volatility — that minimizes this quantity.
+where $v_i^2$ (`vsq`) is a pseudo outcome value, known as the per-unit variance 
+proxy in the optimization example. In the portfolio context, we set `vsq` to the 
+historical return variance of each asset. ROOT then finds the binary weight 
+$w(X) \in \{0, 1\}$, described as a decision tree over asset features such as beta 
+and volatility that minimizes this quantity. User can also supply the global 
+objective function they wish to minimize as well.
 
 ---
 
@@ -70,7 +69,7 @@ variance is computed from 1,000 simulated return observations.
 
 ```{r simulate}
 library(ROOT)
-set.seed(42)
+set.seed(123)
 
 n_assets <- 100
 
@@ -110,7 +109,7 @@ plot(
   dat_portfolio$beta, dat_portfolio$vol,
   xlab = "Market beta", ylab = "Annualised volatility",
   pch  = 16, col = "#4E79A7AA",
-  main = "Asset universe: beta vs volatility"
+  main = "Asset universe: volatility vs beta"
 )
 ```
 
@@ -168,9 +167,9 @@ The tree encodes a simple, actionable rule:
 
 - **`beta < 1.7`**: include the asset unconditionally (88 assets).
 - **`beta >= 1.7` and `vol < 0.33`**: include the asset despite high market
-  sensitivity, because idiosyncratic risk is controlled (8 assets).
+  sensitivity, because some risk may be controlled (8 assets).
 - **`beta >= 1.7` and `vol >= 0.33`**: exclude the asset — high market
-  sensitivity combined with high idiosyncratic volatility drives up portfolio
+  sensitivity combined with high volatility drives up portfolio
   variance (4 assets, $w = 0$).
 
 ---
@@ -208,7 +207,7 @@ plot(
   xlab = "Market beta", ylab = "Annualised volatility",
   pch  = ifelse(dat_portfolio$w_opt == 1, 16, 4),
   col  = ifelse(dat_portfolio$w_opt == 1, "#4E79A7", "#E15759"),
-  main = "Portfolio inclusion decisions (● included, ✕ excluded)"
+  main = "Portfolio inclusion decisions"
 )
 legend(
   "topleft",
@@ -246,7 +245,7 @@ portfolio_fit_iqr <- ROOT(
   num_trees           = 20,
   top_k_trees         = TRUE,
   k                   = 10,
-  seed                = 42
+  seed                = 123
 )
 
 summary(portfolio_fit_iqr)
@@ -254,7 +253,7 @@ summary(portfolio_fit_iqr)
 
 The custom objective illustrates ROOT's flexibility: any scalar-valued
 function of the weighted dataset can be used as the optimization target,
-and the resulting characterized tree remains fully interpretable.
+and the resulting characterized tree would still be interpretable.
 
 ---
 

@@ -117,15 +117,9 @@ print.characterizing_underrep <- function(x, ...) {
 #'
 #' @importFrom rpart.plot prp
 #' @importFrom graphics par legend title
-#' @examples
-#' \dontrun{
-#' char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE, seed = 123)
-#' plot(char.output)
-#' plot(char.output, main = "My Custom Title", cex.main = 1.5)
-#' }
 #' @export
 plot.characterizing_underrep <- function(x,
-                                         main = "Subgroup Characterization from Final Characterized Tree from Rashomon Set",
+                                         main = "Final Characterized Tree from Rashomon Set",
                                          cex.main = 1.2,
                                          ...) {
   # --- 1. Safety Checks ---
@@ -204,16 +198,21 @@ plot.characterizing_underrep <- function(x,
   args$node.fun      <- node_fun
   args$split.box.col <- NA
 
+  # --- 7. Draw plot, title, legend (legend at bottom) ---
+  op_par <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(op_par), add = TRUE)
+
+  # Add room for a bottom legend (tune 2.5 up/down if needed)
+  graphics::par(mar = op_par$mar + c(2.5, 0, 0, 0))
+
   do.call(rpart.plot::prp, args)
 
-  # --- 7. Add title ---
   if (!is.null(main) && nzchar(main)) {
     suppressWarnings(graphics::title(main = main, cex.main = cex.main))
   }
 
-  # --- 8. Legend text depends on generalizability_path ---
+  # Legend text depends on generalizability_path
   is_gen <- isTRUE(x$root$generalizability_path)
-
   legend_labels <- if (is_gen) {
     c("w(x) = 1 Sufficiently represented",
       "w(x) = 0 Underrepresented")
@@ -222,16 +221,17 @@ plot.characterizing_underrep <- function(x,
       "w(x) = 0")
   }
 
-  op <- suppressWarnings(graphics::par(xpd = NA))
-  on.exit(suppressWarnings(graphics::par(op)), add = TRUE)
+  # Put legend below plot
+  graphics::par(xpd = NA)
   suppressWarnings(graphics::legend(
-    "topleft",
+    x      = "bottom",
     legend = legend_labels,
     fill   = c(col_keep, col_drop),
     border = NA,
     bty    = "n",
+    horiz  = TRUE,
     cex    = 1.0,
-    inset  = c(0, 0.08)
+    inset  = c(0, -0.04)  # move legend downward; adjust if needed
   ))
 
   invisible(NULL)

@@ -70,6 +70,7 @@ test_that("ROOT + Characterization run end-to-end on Box DGP (100-D)", {
     top_k_trees           = TRUE,
     k                     = 3,
     feature_est           = "Ridge",
+    vote_threshold        = "majority",
     verbose               = FALSE
   )
 
@@ -102,6 +103,7 @@ test_that("ROOT + Characterization run end-to-end on Box DGP (100-D)", {
     top_k_trees           = TRUE,
     k                     = 3,
     feature_est           = "Ridge",
+    vote_threshold        = "majority",
     verbose               = FALSE
   )
 

@@ -27,7 +27,8 @@ test_that("characterizing_underrep integrates ROOT and returns leaf summaries", 
       num_trees             = 5,
       top_k_trees           = TRUE,
       k                     = 3,
-      feature_est           = "Ridge"
+      feature_est           = "Ridge",
+      vote_threshold        = "majority"
     )
   )
 

@@ -57,15 +57,20 @@ covariate probabilities sum to 1). Default \code{0.25}.}
 set trees are aggregated into the final binary weight \code{w_opt}.
 Accepts one of:
 \itemize{
-\item A \strong{numeric} in \code{(0, 1]}: treated as a majority-vote
-threshold — \code{w_opt = 1} when the fraction of trees voting 1
-exceeds this value. Default \code{2/3}.
-\item \code{"majority"}: equivalent to the default threshold of
-\code{2/3}.
-\item \code{"mean"}: \code{w_opt = 1} when the mean vote exceeds
-\code{0.5}.
-\item \code{"median"}: \code{w_opt = 1} when the median vote exceeds
-\code{0.5}.
+\item A \strong{numeric} in \code{(0, 1)}: \code{w_opt = 1} when the
+mean fraction of Rashomon-set trees voting 1 strictly exceeds this
+value. An error is raised if any observation's mean vote equals the
+threshold exactly (tie is undefined). Default \code{2/3}.
+\item \code{"majority"}: equivalent to the numeric threshold \code{2/3}.
+\item \code{"mean"}: \code{w_opt = 1} when the mean vote (fraction of
+Rashomon-set trees assigning weight 1) strictly exceeds \code{0.5}.
+An error is raised if any observation has a mean vote of exactly
+\code{0.5} (perfectly tied); use an odd number of trees or a custom
+function to resolve ties.
+\item \code{"median"}: \code{w_opt = 1} when the per-row median vote
+strictly exceeds \code{0.5}. An error is raised on exact \code{0.5}
+ties (which occur when the Rashomon set has an even number of trees
+with equal 0/1 counts for an observation).
 \item A \strong{function} with signature
 \code{function(votes) -> integer vector}, where \code{votes} is a
 numeric matrix with one row per observation and one column per

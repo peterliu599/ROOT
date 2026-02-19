@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{characterizing_underrep}(
   x,
-  main = "Subgroup Characterization from Final Characterized Tree from Rashomon Set",
+  main = "Final Characterized Tree from Rashomon Set",
   cex.main = 1.2,
   ...
 )
@@ -30,11 +30,4 @@ Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
 which subgroups are represented where \code{w = 1} versus underrepresented
 where \code{w = 0} in generalization mode, or simply \code{w(x)} in \code{\{0,1\}}
 in general optimization mode.
-}
-\examples{
-\dontrun{
-char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE, seed = 123)
-plot(char.output)
-plot(char.output, main = "My Custom Title", cex.main = 1.5)
-}
 }

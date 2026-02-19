@@ -36,15 +36,20 @@
 #'   set trees are aggregated into the final binary weight \code{w_opt}.
 #'   Accepts one of:
 #'   \itemize{
-#'     \item A \strong{numeric} in \code{(0, 1]}: treated as a majority-vote
-#'       threshold — \code{w_opt = 1} when the fraction of trees voting 1
-#'       exceeds this value. Default \code{2/3}.
-#'     \item \code{"majority"}: equivalent to the default threshold of
-#'       \code{2/3}.
-#'     \item \code{"mean"}: \code{w_opt = 1} when the mean vote exceeds
-#'       \code{0.5}.
-#'     \item \code{"median"}: \code{w_opt = 1} when the median vote exceeds
-#'       \code{0.5}.
+#'     \item A \strong{numeric} in \code{(0, 1)}: \code{w_opt = 1} when the
+#'       mean fraction of Rashomon-set trees voting 1 strictly exceeds this
+#'       value. An error is raised if any observation's mean vote equals the
+#'       threshold exactly (tie is undefined). Default \code{2/3}.
+#'     \item \code{"majority"}: equivalent to the numeric threshold \code{2/3}.
+#'     \item \code{"mean"}: \code{w_opt = 1} when the mean vote (fraction of
+#'       Rashomon-set trees assigning weight 1) strictly exceeds \code{0.5}.
+#'       An error is raised if any observation has a mean vote of exactly
+#'       \code{0.5} (perfectly tied); use an odd number of trees or a custom
+#'       function to resolve ties.
+#'     \item \code{"median"}: \code{w_opt = 1} when the per-row median vote
+#'       strictly exceeds \code{0.5}. An error is raised on exact \code{0.5}
+#'       ties (which occur when the Rashomon set has an even number of trees
+#'       with equal 0/1 counts for an observation).
 #'     \item A \strong{function} with signature
 #'       \code{function(votes) -> integer vector}, where \code{votes} is a
 #'       numeric matrix with one row per observation and one column per
@@ -510,17 +515,54 @@ ROOT <- function(data,
       if (!is.integer(w_opt_raw)) w_opt_raw <- as.integer(w_opt_raw)
       D_rash$w_opt <- w_opt_raw
     } else if (is.character(vote_threshold)) {
-      row_summary  <- switch(
-        vote_threshold,
-        majority = rowMeans(votes_mat),
-        mean     = rowMeans(votes_mat),
-        median   = apply(votes_mat, 1, stats::median)
-      )
-      threshold    <- if (vote_threshold == "majority") 2 / 3 else 0.5
-      D_rash$w_opt <- as.integer(row_summary > threshold)
+      if (vote_threshold == "majority") {
+        D_rash$w_opt <- as.integer(rowMeans(votes_mat) > 2 / 3)
+
+      } else if (vote_threshold == "mean") {
+        row_means <- rowMeans(votes_mat)
+        tied      <- row_means == 0.5
+        if (any(tied)) {
+          stop(
+            sum(tied), " observation(s) have an exact mean vote of 0.5 across the ",
+            "Rashomon set — the binary weight is undefined. ",
+            "Consider using an odd number of trees, a different vote_threshold, ",
+            "or a custom aggregation function.",
+            call. = FALSE
+          )
+        }
+        D_rash$w_opt <- as.integer(row_means > 0.5)
+
+      } else if (vote_threshold == "median") {
+        row_medians <- apply(votes_mat, 1, stats::median)
+        tied        <- row_medians == 0.5
+        if (any(tied)) {
+          stop(
+            sum(tied), " observation(s) have an exact median vote of 0.5 across the ",
+            "Rashomon set — the binary weight is undefined. ",
+            "Consider using an odd number of trees, a different vote_threshold, ",
+            "or a custom aggregation function.",
+            call. = FALSE
+          )
+        }
+        D_rash$w_opt <- as.integer(row_medians > 0.5)
+
+      } else {
+        stop("Unrecognised vote_threshold string: '", vote_threshold,
+             "'. Must be one of \"majority\", \"mean\", or \"median\".", call. = FALSE)
+      }
     } else {
-      # Numeric threshold
-      D_rash$w_opt <- as.integer(rowMeans(votes_mat) > vote_threshold)
+      # Numeric threshold: use rowMeans (fraction of trees voting 1)
+      row_means <- rowMeans(votes_mat)
+      tied      <- row_means == vote_threshold
+      if (any(tied)) {
+        stop(
+          sum(tied), " observation(s) have a mean vote exactly equal to the numeric ",
+          "threshold (", vote_threshold, ") — the binary weight is undefined. ",
+          "Adjust the threshold or the number of trees.",
+          call. = FALSE
+        )
+      }
+      D_rash$w_opt <- as.integer(row_means > vote_threshold)
     }
   } else {
     D_rash$w_opt      <- integer(nrow(D_rash))

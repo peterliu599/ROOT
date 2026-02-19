@@ -18,21 +18,17 @@ knitr::opts_chunk$set(
 
 A common challenge in translating evidence from randomized controlled trials
 (RCTs) to real-world practice is that trial participants may not reflect the
-broader target population. If certain subgroups are systematically
-underrepresented in the trial, estimates of the **Target Average Treatment
-Effect (TATE)** can be imprecise or misleading when transported to that
-population.
+broader target population. By definition in Parikh et al. 2025, subgroups that
+are "underrepresented" or "insufficiently represented" often occupy regions of the 
+covariate space with heterogeneous treatment effects and insufficient representation
+in the trial data. If certain subgroups are underrepresented in the trial, estimates
+of the **Target Average Treatment Effect (TATE)** can be imprecise or misleading when 
+transported to that population. The **Sample Average Treatment Effect (SATE)** is a
+finite sample equivalent version of the TATE.
 
-**ROOT** addresses this by learning an interpretable binary weight function
-$w(X) \in \{0, 1\}$ that identifies the *well-represented* subpopulation —
-the subset of the target population for which the trial provides reliable
-evidence. Units are included ($w = 1$) or excluded ($w = 0$) according to
-tree-structured rules that minimize the variance of the transported treatment
-effect estimator.
-
-The resulting estimand is the **Weighted Target Average Treatment Effect
-(WTATE)**: the average treatment effect restricted to the represented
-subpopulation, estimated with lower variance than the unweighted SATE.
+The resulting estimand from ROOT is the **Weighted Target Average Treatment Effect
+(WTATE)**: the average treatment effect restricted to the sufficiently represented
+subpopulation, estimated with lower variance than the unweighted TATE.
 
 This vignette walks through a complete generalizability analysis using the
 built-in `diabetes_data` dataset.
@@ -42,8 +38,9 @@ built-in `diabetes_data` dataset.
 ## The `diabetes_data` Dataset
 
 `diabetes_data` is a simulated dataset that mimics a diabetes intervention
-study. It contains 2,000 individuals split between an RCT sample and a target
-population.
+study. There are 2,000 individuals in an randomized control trial (RCT) sample,
+and there are 8,000 individuals in this simulated population we are making inferences
+to.
 
 ```{r load-data}
 library(ROOT)
@@ -106,13 +103,13 @@ We use `characterizing_underrep()`, which is the high-level wrapper around
 `ROOT()` for generalizability analyses. It expects `data` to contain `Y`,
 `Tr`, and `S`, and internally:
 
-1. Estimates transportability scores using logistic regression models for
+1. Estimates transportability scores using logistic regression models (default) for
    $P(S = 1 \mid X)$ and $P(\text{Tr} = 1 \mid X, S = 1)$.
 2. Constructs Horvitz–Thompson-style influence scores $v_i$.
 3. Grows a forest of weighted trees that minimize the variance of the
    weighted estimator $\widehat{\text{WTATE}}$.
 4. Selects a Rashomon set of the top-$k$ trees and aggregates their weight
-   assignments by majority vote.
+   assignments by majority vote (default).
 5. Fits a single summary tree characterizing the final $w_{\text{opt}}$
    assignments.
 
@@ -150,7 +147,7 @@ summary(gen_fit)
 The **SATE** (unweighted) is the simple trial average treatment effect
 transported to the full target population. The **WTATE** (weighted) restricts
 this estimate to the well-represented subpopulation, where the trial provides
-more reliable evidence. A smaller SE for the WTATE relative to the SATE
+more reliable evidence. A smaller standard error (SE) for the WTATE relative to the SATE
 reflects the variance reduction achieved by this restriction.
 
 ### Terminal node rules
@@ -194,14 +191,13 @@ underrepresented subgroups in plain language:
 - **Participants aged 45 or older who are not Black** are also underrepresented.
 - **Participants on a diet programme who are neither Black nor aged 45+** are
   underrepresented.
-- The remaining participants — those who are not Black, under 45, and not on a
-  diet programme — form the **well-represented subpopulation** ($w = 1$) for
+- The remaining participants, those who are not Black, under 45, and not on a
+  diet programme, form the **well-represented subpopulation** ($w = 1$) for
   whom the WTATE is estimated.
 
 The Rashomon set provides multiple near-optimal characterizations of these
 subgroups. The final summary tree aggregates across all trees in the set,
-giving a single interpretable rule that is robust to the specific
-randomness of any individual tree.
+giving a single interpretable rule.
 
 ---
 

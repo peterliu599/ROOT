@@ -79,7 +79,7 @@ summary.ROOT <- function(object, ...) {
     cat("  Weighted   ", est$estimand_weighted,
         " = ", est$value_weighted,
         ", SE = ", est$se_weighted, "\n", sep = "")
-    cat("  Note: ", est$se_weighted_note, "\n", sep = "")
+    #cat("  Note: ", est$se_weighted_note, "\n", sep = "")
   }
 
   ## Core diagnostics
@@ -161,7 +161,7 @@ print.ROOT <- function(x, ...) {
     cat("  Weighted   ", est$estimand_weighted,
         " = ", est$value_weighted,
         ", SE = ", est$se_weighted, "\n", sep = "")
-    cat("  Note: ", est$se_weighted_note, "\n", sep = "")
+    #cat("  Note: ", est$se_weighted_note, "\n", sep = "")
   }
 
   invisible(x)

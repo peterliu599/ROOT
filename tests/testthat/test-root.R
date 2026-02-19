@@ -28,6 +28,7 @@ test_that("ROOT runs in generalizability_path mode and returns structured output
     top_k_trees           = TRUE,
     k                     = 3,
     feature_est           = "Ridge",
+    vote_threshold        = "majority",
     verbose               = TRUE
   ))
 
@@ -168,16 +169,20 @@ test_that("Rashomon selection: top-k, baseline cutoff, and empty set warning", {
   d <- mk_data_two_sample(n = 260, p = 6)
 
   set.seed(11)
-  r_topk <- ROOT(d, generalizability_path = TRUE, num_trees = 5, top_k_trees = TRUE, k = 3)
+  r_topk <- ROOT(d, generalizability_path = TRUE, num_trees = 5, top_k_trees = TRUE, k = 3,
+                 vote_threshold = "majority")
   expect_length(r_topk$rashomon_set, 3)
 
   set.seed(12)
-  r_base <- ROOT(d, generalizability_path = TRUE, num_trees = 5, top_k_trees = FALSE, cutoff = "baseline")
+  r_base <- ROOT(d, generalizability_path = TRUE, num_trees = 5, top_k_trees = FALSE,
+                 cutoff = "baseline", vote_threshold = "majority")
   expect_true(length(r_base$rashomon_set) >= 0)
 
   set.seed(13)
   expect_warning(
-    r_empty <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 3, top_k_trees = FALSE, cutoff = -1e9)),
+    r_empty <- muffle_root_all_removed(ROOT(d, generalizability_path = TRUE, num_trees = 3,
+                                            top_k_trees = FALSE, cutoff = -1e9,
+                                            vote_threshold = "majority")),
     "No trees selected"
   )
   expect_length(r_empty$rashomon_set, 0)
@@ -273,22 +278,22 @@ test_that("ROOT argument guards", {
     ROOT(df, generalizability_path = TRUE, vote_threshold = 0),
     "`vote_threshold` as a numeric must be a single value in \\(0, 1\\]"
   )
-expect_error(
-  ROOT(df, generalizability_path = TRUE, explore_proba = 2),
-  "`explore_proba` must be between 0 and 1"
-)
-expect_error(
-  ROOT(df, generalizability_path = TRUE, feature_est = 123),
-  "`feature_est` must be \"Ridge\", \"GBM\", or a function"
-)
-expect_error(
-  ROOT(df, generalizability_path = TRUE, k = 0),
-  "`k` must be a positive integer"
-)
-expect_error(
-  ROOT(df, generalizability_path = TRUE, cutoff = "not-baseline"),
-  "`cutoff` must be \"baseline\" or numeric"
-)
+  expect_error(
+    ROOT(df, generalizability_path = TRUE, explore_proba = 2),
+    "`explore_proba` must be between 0 and 1"
+  )
+  expect_error(
+    ROOT(df, generalizability_path = TRUE, feature_est = 123),
+    "`feature_est` must be \"Ridge\", \"GBM\", or a function"
+  )
+  expect_error(
+    ROOT(df, generalizability_path = TRUE, k = 0),
+    "`k` must be a positive integer"
+  )
+  expect_error(
+    ROOT(df, generalizability_path = TRUE, cutoff = "not-baseline"),
+    "`cutoff` must be \"baseline\" or numeric"
+  )
 })
 
 test_that("Rashomon top-k warning when k > num_trees", {
@@ -304,29 +309,11 @@ test_that("Rashomon top-k warning when k > num_trees", {
 
   expect_warning(
     fit1 <- ROOT(dat, generalizability_path = TRUE, seed = 321, num_trees = 3,
-                 feature_est = "Ridge", top_k_trees = TRUE, k = 999),
+                 feature_est = "Ridge", top_k_trees = TRUE, k = 999,
+                 vote_threshold = "majority"),
     "k > num_trees; using k = num_trees"
   )
   expect_s3_class(fit1, "ROOT")
-})
-
-test_that("ROOT informs when no summary tree is available (single-class w_opt)", {
-  set.seed(13)
-  n  <- 70
-  X1 <- rnorm(n)
-  X2 <- rnorm(n)
-  S  <- rbinom(n, 1, 0.5)
-  Tr <- rbinom(n, 1, plogis(X1 - 0.2 * X2))
-  Y  <- 0.2 + Tr + X1 + rnorm(n)
-
-  dat <- data.frame(Y = Y, Tr = Tr, S = S, X1 = X1, X2 = X2)
-
-  expect_message(
-    fit <- muffle_root_all_removed(ROOT(dat, generalizability_path = TRUE, seed = 99, num_trees = 4,
-                                        vote_threshold = 1, verbose = FALSE)),
-    "No summary tree available to plot"
-  )
-  expect_s3_class(fit, "ROOT")
 })
 
 test_that("ROOT coerce01 handles bad sample values", {
