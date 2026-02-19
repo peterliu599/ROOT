@@ -3,9 +3,9 @@ ROOT: Weighted Trees/Forests for ROOT-style Functional Optimization
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/peterliu599/ROOT-R-Package/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/peterliu599/ROOT/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/peterliu599/ROOT/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/peterliu599/ROOT-R-Package/graph/badge.svg)](https://app.codecov.io/gh/peterliu599/ROOT-R-Package)
+coverage](https://codecov.io/gh/peterliu599/ROOT/graph/badge.svg)](https://app.codecov.io/gh/peterliu599/ROOT)
 <!-- badges: end -->
 
 > Rashomon-set Optimal Trees for interpretable functional optimization
