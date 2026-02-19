@@ -1,37 +1,136 @@
-#' Ensemble of weighted trees for general optimization and Rashomon selection
+#' Rashomon Set of Optimal Trees (ROOT) for Functional Optimization
 #'
-#' Builds multiple weighted trees, then identifies a "Rashomon set" of
-#' top-performing trees and aggregates their weight assignments by majority vote.
+#' @description
+#' ROOT (Rashomon Set of Optimal Trees) is a general-purpose functional
+#' optimization algorithm that learns interpretable, tree-structured binary
+#' weight functions \eqn{w(X) \in \{0, 1\}}. Given a dataset \eqn{D_n} and a
+#' loss function \eqn{L(w, D_n)}, ROOT searches over the space of decision
+#' trees to find weight assignments that minimize the loss while remaining
+#' human-interpretable.
 #'
-#' The function is framed as a general functional optimization routine:
-#' given data \eqn{D_n} and a loss \eqn{L(w, D_n)}, ROOT searches over
-#' interpretable tree-based weight functions \eqn{w(d)} in \code{\{0,1\}}.
+#' @section The optimization problem:
+#' ROOT solves the functional optimization problem:
+#'
+#' \deqn{w^* \in \arg\min_w L(D_n, w)}
+#'
+#' where \eqn{w: \mathbb{R}^p \to \{0, 1\}} maps a \eqn{p}-dimensional
+#' covariate vector to a binary include/exclude decision. The key challenge is
+#' that, unlike standard tree algorithms (e.g., CART), the global loss
+#' \eqn{L(D_n, w)} is \emph{not} decomposable as a sum of losses over
+#' independent subsets of the data. This means conventional greedy,
+#' divide-and-conquer tree-building strategies do not apply. ROOT addresses
+#' this through a randomization-based tree construction with an
+#' explore-exploit strategy.
+#'
+#' @section How ROOT works:
+#' The algorithm proceeds in several stages:
+#'
+#' \enumerate{
+#'   \item \strong{Feature importance estimation:} Split probabilities are
+#'     estimated using Ridge regression, GBM, or a user-supplied function,
+#'     biasing the search toward covariates likely to be informative.
+#'   \item \strong{Stochastic tree construction:} \code{num_trees} trees are
+#'     grown. At each internal node, a feature is drawn according to the
+#'     estimated split probabilities (or a "leaf" token is drawn, terminating
+#'     the branch). Splits are made at the midpoint of the selected feature's
+#'     empirical distribution. An explore-exploit strategy assigns leaf
+#'     weights: with probability \code{explore_proba} a random weight is
+#'     chosen; otherwise the greedy optimal weight (reducing the global
+#'     objective) is used.
+#'   \item \strong{Rashomon set selection:} Trees are ranked by their global
+#'     objective values. The top-\code{k} trees (or all trees below a cutoff)
+#'     form the \emph{Rashomon set}: a collection of near-optimal but
+#'     potentially different models, each providing a valid characterization
+#'     of the optimal weight function. The name refers to the classic Kurosawa
+#'     film in which multiple characters give competing but plausible
+#'     interpretations of the same event.
+#'   \item \strong{Aggregation:} Per-observation votes from the Rashomon set
+#'     are combined (by default, majority vote) to produce the final weight
+#'     vector \code{w_opt}.
+#'   \item \strong{Characteristic tree:} A single summary decision tree is
+#'     fitted to the aggregated \code{w_opt} assignments, providing a concise,
+#'     interpretable description of the weight function.
+#' }
+#'
+#' @section Generalizability mode:
+#' When \code{generalizability_path = TRUE}, ROOT implements the methodology
+#' of Parikh et al. (2025) for characterizing underrepresented subgroups in
+#' trial-to-target generalizability analyses. In this mode:
+#'
+#' \itemize{
+#'   \item \code{data} must contain columns \code{Y} (outcome), \code{Tr}
+#'     (treatment, 0/1), and \code{S} (sample indicator, 1 = trial, 0 =
+#'     target).
+#'   \item ROOT internally computes transportability scores based on
+#'     inverse-probability weighting (IPW), estimates the selection model
+#'     \eqn{P(S = 1 \mid X)}, and constructs Horvitz-Thompson-style
+#'     influence scores.
+#'   \item The default objective minimizes the variance of the weighted
+#'     target average treatment effect (WTATE) estimator. This objective
+#'     accounts for both the selection odds (trial participation
+#'     probability) and treatment effect heterogeneity, so that subgroups
+#'     are flagged as underrepresented only when they both lack trial
+#'     representation \emph{and} exhibit effect modification.
+#'   \item The output includes the unweighted sample average treatment
+#'     effect (SATE) and the WTATE with standard errors.
+#' }
+#'
+#' See \code{\link{characterizing_underrep}} for a higher-level wrapper that
+#' additionally produces a leaf-level summary table, and
+#' \code{vignette("generalizability_path_example")} for a worked example.
+#'
+#' @section General optimization mode:
+#' When \code{generalizability_path = FALSE}, ROOT operates as a general
+#' functional optimizer. The user supplies any \code{data.frame} and
+#' (optionally) a custom \code{global_objective_fn}. If no objective is
+#' supplied, ROOT uses a default variance-based loss operating on the
+#' \code{vsq} column (per-unit variance proxy). This mode is suitable for any
+#' problem expressible as learning an interpretable binary inclusion rule. See
+#' \code{vignette("optimization_path_example")} for an example.
+#'
+#' @section Relationship to CART and other tree methods:
+#' ROOT differs from standard tree algorithms in two important ways.
+#' First, ROOT optimizes a \emph{global} objective rather than local
+#' node-purity measures (e.g., Gini impurity or information gain). The
+#' objective function is evaluated over the entire dataset at every candidate
+#' split, not just the observations in the current node. Second, ROOT does
+#' not have outcome labels to predict; instead, it learns weights that
+#' minimize an externally defined loss. These properties make ROOT better
+#' suited to problems where the goal is to optimize a complex, non-additive
+#' criterion subject to interpretability constraints.
 #'
 #' @param data A data.frame containing the dataset.
 #'
-#'   In *general optimization* mode (`generalizability_path = FALSE`), `data` can be
-#'   any set of covariates and auxiliary columns. The user supplies a
-#'   `global_objective_fn` that takes a data frame with a column `w`
-#'   and returns a scalar loss.
+#'   In \strong{general optimization mode} (\code{generalizability_path =
+#'   FALSE}), \code{data} can contain any covariates and auxiliary columns.
+#'   The user supplies a \code{global_objective_fn} that takes a data frame
+#'   with a column \code{w} and returns a scalar loss.
 #'
-#'   In *generalizability_path* mode (`generalizability_path = TRUE`), `data` must contain
-#'   columns `"Y"` (outcome), `"Tr"` (treatment indicator, 0/1),
-#'   and `"S"` (sample indicator, 1 = trial, 0 = target). ROOT internally
-#'   constructs transportability scores and, if no custom objective is given,
-#'   uses a default variance-based loss.
-#' @param global_objective_fn A function with signature `function(D) -> numeric`
-#'   scoring the entire state and minimized by ROOT. If NULL, a default
-#'   variance-based objective is used (see `objective_default()`).
-#' @param generalizability_path \code{Logical(1)}. If TRUE, use the built-in transportability
-#'   objective based on (Y, Tr, S). If FALSE, treat `data` as arbitrary and rely
-#'   on `global_objective_fn`. Default FALSE.
+#'   In \strong{generalizability mode} (\code{generalizability_path = TRUE}),
+#'   \code{data} must contain columns \code{"Y"} (outcome), \code{"Tr"}
+#'   (treatment indicator, 0/1), and \code{"S"} (sample indicator, 1 = trial,
+#'   0 = target). ROOT internally constructs transportability scores and, if
+#'   no custom objective is given, uses a default variance-based loss.
+#' @param global_objective_fn A function with signature
+#'   \code{function(D) -> numeric} scoring the entire state and minimized by
+#'   ROOT. \code{D} is the working data frame containing at least a column
+#'   \code{w} with the current weight assignments. If \code{NULL} (default), a
+#'   variance-based objective is used. See
+#'   \code{vignette("optimization_path_example")} for custom objective
+#'   examples.
+#' @param generalizability_path \code{Logical(1)}. If \code{TRUE}, use the
+#'   built-in transportability objective for trial-to-target generalizability.
+#'   If \code{FALSE}, treat \code{data} as arbitrary and rely on
+#'   \code{global_objective_fn}. Default \code{FALSE}.
 #' @param leaf_proba A numeric tuning parameter that increases the chance
 #'   a node stops splitting by selecting a synthetic \code{"leaf"} feature.
 #'   Internally, the probability of choosing \code{"leaf"} is
 #'   \code{leaf_proba / (1 + leaf_proba)} (assuming the
-#'   covariate probabilities sum to 1). Default \code{0.25}.
+#'   covariate probabilities sum to 1). Higher values produce shallower,
+#'   sparser trees. Default \code{0.25}.
 #' @param seed An optional numeric seed for reproducibility.
-#' @param num_trees An integer number of trees to grow. Default 10.
+#' @param num_trees An integer number of trees to grow. More trees explore the
+#'   solution space more thoroughly. Default 10.
 #' @param vote_threshold Controls how per-observation votes from the Rashomon
 #'   set trees are aggregated into the final binary weight \code{w_opt}.
 #'   Accepts one of:
@@ -41,60 +140,96 @@
 #'       value. An error is raised if any observation's mean vote equals the
 #'       threshold exactly (tie is undefined). Default \code{2/3}.
 #'     \item \code{"majority"}: equivalent to the numeric threshold \code{2/3}.
-#'     \item \code{"mean"}: \code{w_opt = 1} when the mean vote (fraction of
-#'       Rashomon-set trees assigning weight 1) strictly exceeds \code{0.5}.
-#'       An error is raised if any observation has a mean vote of exactly
-#'       \code{0.5} (perfectly tied); use an odd number of trees or a custom
-#'       function to resolve ties.
+#'     \item \code{"mean"}: \code{w_opt = 1} when the mean vote strictly
+#'       exceeds \code{0.5}. Errors on exact \code{0.5} ties.
 #'     \item \code{"median"}: \code{w_opt = 1} when the per-row median vote
-#'       strictly exceeds \code{0.5}. An error is raised on exact \code{0.5}
-#'       ties (which occur when the Rashomon set has an even number of trees
-#'       with equal 0/1 counts for an observation).
+#'       strictly exceeds \code{0.5}. Errors on exact \code{0.5} ties.
 #'     \item A \strong{function} with signature
 #'       \code{function(votes) -> integer vector}, where \code{votes} is a
 #'       numeric matrix with one row per observation and one column per
 #'       Rashomon-set tree (each cell 0 or 1). Must return an integer vector
 #'       of 0s and 1s of length \code{nrow(votes)}.
 #'   }
-#' @param explore_proba A numeric giving the exploration probability at leaves.
-#'   Default 0.05.
-#' @param feature_est Either a character(1) in c("Ridge", "GBM") or a
-#'   function(X, y, ...) returning a named nonnegative numeric vector of
-#'   importances with names matching columns of X. Used only to bias which
-#'   covariates are chosen for splitting. If it fails, ROOT falls back to
-#'   uniform feature sampling with a warning.
-#' @param feature_est_args A list of additional arguments passed to a user
-#'   supplied `feature_est` function.
-#' @param top_k_trees \code{Logical(1)}. If TRUE, select top `k` trees by objective;
-#'   otherwise use `cutoff`. Default FALSE.
+#' @param explore_proba A numeric giving the exploration probability at
+#'   leaves. With probability \code{explore_proba}, a leaf receives a random
+#'   weight; otherwise the greedy-optimal weight is used. Default \code{0.05}.
+#' @param feature_est Either \code{"Ridge"}, \code{"GBM"}, or a custom
+#'   \code{function(X, y, ...) -> named numeric vector} returning nonnegative
+#'   importance values with names matching columns of \code{X}. Used to bias
+#'   which covariates are chosen for splitting. If the method fails, ROOT
+#'   falls back to uniform feature sampling with a warning.
+#' @param feature_est_args A list of additional arguments passed to a
+#'   user-supplied \code{feature_est} function.
+#' @param top_k_trees \code{Logical(1)}. If \code{TRUE}, select the top
+#'   \code{k} trees by objective value for the Rashomon set. If \code{FALSE},
+#'   use the \code{cutoff} threshold. Default \code{FALSE}.
 #' @param k An integer giving the number of top trees when
-#'   `top_k_trees = TRUE`. Default 10.
-#' @param cutoff A numeric or `"baseline"`. Used as the Rashomon cutoff when
-#'   `top_k_trees = FALSE`. `"baseline"` uses the objective at w = 1 (all weights equal to 1).
-#' @param verbose \code{Logical(1)}. If TRUE, prints unweighted and (when available)
-#'   weighted estimates and their standard errors in generalizability_path mode.
+#'   \code{top_k_trees = TRUE}. Default 10.
+#' @param cutoff A numeric or \code{"baseline"}. Used as the Rashomon cutoff
+#'   when \code{top_k_trees = FALSE}. \code{"baseline"} uses the objective at
+#'   \eqn{w \equiv 1} (all weights equal to 1, i.e., no exclusions).
+#' @param verbose \code{Logical(1)}. If \code{TRUE}, prints the unweighted and
+#'   (when available) weighted treatment effect estimates and standard errors
+#'   in generalizability mode)
+#'
+#' @return An object of class \code{"ROOT"} (a list) with elements:
+#'   \item{D_rash}{Data frame containing the Rashomon-set tree votes and the
+#'     final aggregated weight \code{w_opt} for each observation.}
+#'   \item{D_forest}{Data frame with all forest-level working columns.}
+#'   \item{w_forest}{List of per-tree results from the tree-building routine.}
+#'   \item{rashomon_set}{Integer vector of indices identifying which trees
+#'     were selected into the Rashomon set.}
+#'   \item{global_objective_fn}{The objective function used.}
+#'   \item{f}{The characteristic (summary) tree fitted to \code{w_opt}, as an
+#'     \code{rpart} object. \code{NULL} if all observations received the same
+#'     weight or no covariates were available.}
+#'   \item{testing_data}{Data frame of observations used for optimization
+#'     (trial units when \code{generalizability_path = TRUE}).}
+#'   \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
+#'     with the unweighted (SATE) and weighted (WTATE) point estimates,
+#'     standard errors, and a note about the SE calculation.}
+#'   \item{generalizability_path}{Logical flag echoing the input.}
 #'
 #' @references
 #' Parikh H, Ross RK, Stuart E, Rudolph KE (2025).
-#' "Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population."
-#' *Journal of the American Statistical Association*.
-#' doi:10.1080/01621459.2025.2495319
+#' "Who Are We Missing?: A Principled Approach to Characterizing the
+#' Underrepresented Population."
+#' \emph{Journal of the American Statistical Association}.
+#' \doi{10.1080/01621459.2025.2495319}
 #'
-#' @return An object of class "ROOT" (a list) with elements:
-#'   - D_rash: data frame with Rashomon-set votes and w_opt.
-#'   - D_forest: data frame with forest-level working columns.
-#'   - w_forest: list of per-tree results from split_node().
-#'   - rashomon_set: indices of selected trees.
-#'   - global_objective_fn: the objective function used.
-#'   - f: summary classifier (e.g., rpart tree) or NULL.
-#'   - testing_data: data frame aligned to rows used to compute scores.
-#'   - estimate: (only if generalizability_path = TRUE) list with unweighted and
-#'       weighted estimands, standard errors (SEs), and a note about the SE.
-#'   - generalizability_path: logical flag.
+#' @seealso
+#' \code{\link{characterizing_underrep}} for a higher-level wrapper with
+#' leaf-summary output; \code{vignette("generalizability_path_example")} for
+#' the generalizability workflow;
+#' \code{vignette("optimization_path_example")} for general optimization.
 #'
 #' @examples
 #' \dontrun{
-#' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' # --- Generalizability mode ---
+#' data(diabetes_data, package = "ROOT")
+#' root_fit <- ROOT(
+#'   data                  = diabetes_data,
+#'   generalizability_path = TRUE,
+#'   num_trees             = 20,
+#'   top_k_trees           = TRUE,
+#'   k                     = 10,
+#'   seed                  = 123
+#' )
+#' summary(root_fit)
+#' plot(root_fit)
+#'
+#' # --- General optimization mode (custom objective) ---
+#' my_objective <- function(D) {
+#'   w <- D$w
+#'   if (sum(w) == 0) return(Inf)
+#'   sqrt(sum(w * D$vsq) / sum(w)^2)
+#' }
+#' opt_fit <- ROOT(
+#'   data                = my_data,
+#'   global_objective_fn = my_objective,
+#'   num_trees           = 20,
+#'   seed                = 42
+#' )
 #' }
 #' @export
 ROOT <- function(data,
@@ -524,7 +659,7 @@ ROOT <- function(data,
         if (any(tied)) {
           stop(
             sum(tied), " observation(s) have an exact mean vote of 0.5 across the ",
-            "Rashomon set — the binary weight is undefined. ",
+            "Rashomon set -- the binary weight is undefined. ",
             "Consider using an odd number of trees, a different vote_threshold, ",
             "or a custom aggregation function.",
             call. = FALSE
@@ -538,7 +673,7 @@ ROOT <- function(data,
         if (any(tied)) {
           stop(
             sum(tied), " observation(s) have an exact median vote of 0.5 across the ",
-            "Rashomon set — the binary weight is undefined. ",
+            "Rashomon set -- the binary weight is undefined. ",
             "Consider using an odd number of trees, a different vote_threshold, ",
             "or a custom aggregation function.",
             call. = FALSE
@@ -557,7 +692,7 @@ ROOT <- function(data,
       if (any(tied)) {
         stop(
           sum(tied), " observation(s) have a mean vote exactly equal to the numeric ",
-          "threshold (", vote_threshold, ") — the binary weight is undefined. ",
+          "threshold (", vote_threshold, ") -- the binary weight is undefined. ",
           "Adjust the threshold or the number of trees.",
           call. = FALSE
         )

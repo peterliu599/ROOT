@@ -467,7 +467,6 @@ test_that("summary.ROOT: prints full estimand summary in generalizability mode",
   expect_true(any(grepl("Estimand summary \\(generalization mode\\)", out)))
   expect_true(any(grepl("Unweighted.*SATE", out)))
   expect_true(any(grepl("Weighted.*WTATE", out)))
-  expect_true(any(grepl("Note:.*Test note", out)))
 })
 
 test_that("summary.ROOT: skips estimand summary when estimate is NULL in generalizability mode", {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/characterizing_underrep.R
 \name{characterizing_underrep}
 \alias{characterizing_underrep}
-\title{Characterize subgroups (wrapper around ROOT) via binary weight}
+\title{Characterize Underrepresented Subgroups in Trial-to-Target Generalizability}
 \usage{
 characterizing_underrep(
   data,
@@ -22,27 +22,30 @@ characterizing_underrep(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame} containing covariates and, in generalizability_path
-mode, also columns \code{Y}, \code{Tr}, and \code{S}.}
+\item{data}{A \code{data.frame} containing covariates and, in
+generalizability mode, also columns \code{Y}, \code{Tr}, and \code{S}.}
 
-\item{global_objective_fn}{function with signature \verb{function(D) -> numeric}
-scoring the entire state and minimized by ROOT. If NULL, a default
-variance-based objective is used (see \code{objective_default()}).}
+\item{global_objective_fn}{A function with signature
+\code{function(D) -> numeric} scoring the entire state and minimized by
+ROOT. If \code{NULL} (the default), a variance-based objective is used
+that targets the precision of the WTATE estimator.}
 
-\item{generalizability_path}{Logical. If \code{TRUE}, calls
-\code{ROOT()} with \code{generalizability_path = TRUE} and expects columns
-\code{Y}, \code{Tr}, and \code{S} in \code{data}. If \code{FALSE}, calls
-\code{ROOT()} in general optimization mode. Default \code{FALSE}.}
+\item{generalizability_path}{Logical. If \code{TRUE}, runs the full
+generalizability analysis (design + analysis stages) and expects columns
+\code{Y}, \code{Tr}, and \code{S} in \code{data}. If \code{FALSE}, runs
+ROOT in general optimization mode. Default \code{FALSE}.}
 
-\item{leaf_proba}{A \code{numeric(1)} tuning parameter that increases the chance
-a node stops splitting by selecting a synthetic \code{"leaf"} feature.
-Internally, the probability of choosing \code{"leaf"} is
-\code{leaf_proba / (1 + leaf_proba)} (assuming the
-covariate probabilities sum to 1). Default \code{0.25}.}
+\item{leaf_proba}{A \code{numeric(1)} tuning parameter that increases the
+chance a node stops splitting by selecting a synthetic \code{"leaf"}
+feature. Internally, the probability of choosing \code{"leaf"} is
+\code{leaf_proba / (1 + leaf_proba)} (assuming the covariate
+probabilities sum to 1). Higher values produce shallower, more
+interpretable trees. Default \code{0.25}.}
 
 \item{seed}{Random seed for reproducibility.}
 
-\item{num_trees}{Number of trees to grow.}
+\item{num_trees}{Number of trees to grow in the ROOT forest. More trees
+explore the tree space more thoroughly but increase computation time.}
 
 \item{vote_threshold}{Controls how Rashomon-set tree votes are aggregated
 into \code{w_opt}. Accepts a numeric threshold in \code{(0, 1]}, one of
@@ -50,55 +53,164 @@ into \code{w_opt}. Accepts a numeric threshold in \code{(0, 1]}, one of
 \code{function(votes) -> integer vector}. See \code{\link{ROOT}} for
 full details. Default \code{2/3} (majority vote).}
 
-\item{explore_proba}{Exploration probability in tree growth.}
+\item{explore_proba}{Exploration probability in tree growth. Controls the
+explore-exploit trade-off: with probability \code{explore_proba}, a leaf
+is assigned a random weight; otherwise, it receives the greedy optimal
+weight. Default \code{0.05}.}
 
 \item{feature_est}{Either \code{"Ridge"}, \code{"GBM"}, or a custom
-feature importance function.}
+feature importance function. Used to bias which covariates are selected
+for splitting. Default \code{"Ridge"}.}
 
-\item{feature_est_args}{List of extra arguments passed to \code{feature_est}
-when it is a function.}
+\item{feature_est_args}{List of extra arguments passed to
+\code{feature_est} when it is a function.}
 
-\item{top_k_trees}{Logical; if \code{TRUE}, uses top \code{k} trees by
-objective, otherwise a cutoff rule.}
+\item{top_k_trees}{Logical; if \code{TRUE}, selects the top \code{k} trees
+by objective value for the Rashomon set. If \code{FALSE}, uses
+\code{cutoff} instead. Default \code{FALSE}.}
 
-\item{k}{Number of trees when \code{top_k_trees = TRUE}.}
+\item{k}{Number of trees to retain when \code{top_k_trees = TRUE}. Default
+\code{10}.}
 
-\item{cutoff}{Numeric or \code{"baseline"} Rashomon cutoff.}
+\item{cutoff}{Numeric or \code{"baseline"}. When \code{top_k_trees = FALSE},
+trees with objective values below this cutoff are included in the
+Rashomon set. \code{"baseline"} uses the objective value at
+\eqn{w \equiv 1} (no subgroups excluded). Default \code{"baseline"}.}
 
-\item{verbose}{Logical; if \code{TRUE}, prints progress/estimands from
-\code{ROOT()}.}
+\item{verbose}{Logical; if \code{TRUE}, prints the unweighted and weighted
+estimands with standard errors. Default \code{FALSE}.}
 }
 \value{
 A \code{characterizing_underrep} S3 object (a \code{list}) with:
-\item{root}{The \code{ROOT} object returned by \code{ROOT()}.}
-\item{combined}{The input \code{data} (for continuity with prior API).}
-\item{leaf_summary}{Data frame of terminal node rules and labels, or \code{NULL}.}
+\item{root}{The \code{\link{ROOT}} object returned by \code{ROOT()}.
+Contains the Rashomon set, weight assignments (\code{root$D_rash$w_opt}),
+summary tree (\code{root$f}), and (in generalizability mode) treatment
+effect estimates (\code{root$estimate}).}
+\item{combined}{The input \code{data}.}
+\item{leaf_summary}{A \code{data.frame} with one row per terminal node of
+the summary (characteristic) tree, giving the decision rule, predicted
+weight, sample size, and a human-readable label indicating whether the
+subgroup is "Represented (keep, w = 1)" or "Under-represented
+(drop, w = 0)". \code{NULL} if no summary tree was produced.}
 }
 \description{
-A convenience wrapper around \code{ROOT()} for under-representation analyses.
-It takes a single \code{data} set and calls \code{ROOT()} either in
-generalizability_path mode (when \code{generalizability_path = TRUE}) to identify
-insufficiently represented subgroups in trial data in comparison to the population
-of interest or in general optimization mode (\code{generalizability_path = FALSE})
-to identify the binary weight for each subgroup.
+A high-level wrapper around \code{\link{ROOT}()} for identifying and
+characterizing subgroups that are \emph{insufficiently represented} in a
+randomized controlled trial (RCT) relative to a target population. The
+function returns an interpretable decision tree describing which subgroups
+should be included (\eqn{w(X) = 1}) or excluded (\eqn{w(X) = 0}) from the
+analysis, along with the corresponding treatment effect estimates.
 }
-\details{
-When \code{generalizability_path = TRUE}, \code{data} must contain
-standardized columns:
+\section{What does "underrepresented" mean?}{
+
+In the context of generalizing treatment effects from a trial to a target
+population, a subgroup is considered \strong{underrepresented} (or
+\emph{insufficiently represented}) when it occupies a region of the
+covariate space that both (a) has limited overlap between the trial and the
+target population (i.e., practical violations of positivity), and (b)
+exhibits heterogeneous treatment effects. This definition is more nuanced
+than simply flagging subgroups with low trial participation rates: a
+subgroup that is rare in the trial but for whom treatment effects are
+homogeneous does not necessarily undermine the precision of the generalized
+estimate.
+
+Formally, the contribution of a unit with covariates \eqn{X = x} to the
+variance of the target average treatment effect (TATE) estimator depends on
+both the selection odds \eqn{\ell(x) = P(S=1 \mid X=x) / P(S=0 \mid X=x)}
+and the conditional average treatment effect \eqn{\tau_0(x)}. Subgroups
+where \eqn{\ell(x)} is small \emph{and} \eqn{\tau_0(x)} deviates from the
+overall TATE contribute disproportionately to estimator variance. These are
+the subgroups that \code{characterizing_underrep()} identifies and
+characterizes.
+}
+
+\section{The generalizability workflow}{
+
+When \code{generalizability_path = TRUE}, this function implements the
+two-stage approach of Parikh et al. (2025):
+
+\enumerate{
+\item \strong{Design stage:} ROOT learns binary weights \eqn{w(X)} that
+minimize the variance of the weighted target average treatment effect
+(WTATE) estimator, subject to interpretability constraints (tree
+structure). The resulting decision tree characterizes which subgroups
+are well-represented (\eqn{w = 1}) and which are underrepresented
+(\eqn{w = 0}).
+\item \strong{Analysis stage:} The WTATE is estimated on the refined
+target population that excludes the underrepresented subgroups. This
+estimand trades some generality for greater precision and credibility.
+}
+
+The key estimands are:
 \itemize{
-\item \code{Y}: outcome,
-\item \code{Tr}: treatment indicator (0/1),
-\item \code{S}: sample indicator (1 = trial, 0 = target).
+\item \strong{TATE} (Target Average Treatment Effect): the treatment
+effect for the full target population, which may be imprecise if
+certain subgroups are underrepresented.
+\item \strong{WTATE} (Weighted Target Average Treatment Effect): the
+treatment effect restricted to the sufficiently represented
+subpopulation, estimated with lower variance.
 }
 }
+
+\section{General optimization mode}{
+
+When \code{generalizability_path = FALSE}, this function behaves as a
+convenience wrapper around \code{\link{ROOT}()} for arbitrary binary weight
+optimization. The user can supply a custom objective function via
+\code{global_objective_fn}; ROOT will learn an interpretable tree-based
+weight function minimizing that objective. See
+\code{vignette("optimization_path_example")} for an example.
+}
+
+\section{Data requirements}{
+
+When \code{generalizability_path = TRUE}, \code{data} must contain the
+following standardized columns:
+\itemize{
+\item \code{Y}: numeric outcome variable.
+\item \code{Tr}: binary treatment indicator (0 = control, 1 = treated).
+\item \code{S}: binary sample indicator (1 = trial/RCT, 0 = target
+population).
+}
+All remaining columns are treated as pretreatment covariates \eqn{X}
+available for splitting.
+}
+
 \examples{
 \dontrun{
-char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+# --- Generalizability analysis ---
+# diabetes_data has columns Y, Tr, S, and covariates
+data(diabetes_data, package = "ROOT")
+
+char_fit <- characterizing_underrep(
+  data                  = diabetes_data,
+  generalizability_path = TRUE,
+  num_trees             = 20,
+  top_k_trees           = TRUE,
+  k                     = 10,
+  seed                  = 123
+)
+
+# View the characterization tree
+plot(char_fit)
+
+# Inspect which subgroups are underrepresented
+char_fit$leaf_summary
+
+# Treatment effect estimates (SATE and WTATE)
+char_fit$root$estimate
 }
 }
 \references{
 Parikh H, Ross RK, Stuart E, Rudolph KE (2025).
-"Who Are We Missing?: A Principled Approach to Characterizing the Underrepresented Population."
+"Who Are We Missing?: A Principled Approach to Characterizing the
+Underrepresented Population."
 \emph{Journal of the American Statistical Association}.
-doi:10.1080/01621459.2025.2495319
+\doi{10.1080/01621459.2025.2495319}
+}
+\seealso{
+\code{\link{ROOT}} for the underlying optimization engine;
+\code{vignette("generalizability_path_example")} for a detailed worked
+example of the generalizability workflow;
+\code{vignette("optimization_path_example")} for general optimization mode.
 }
