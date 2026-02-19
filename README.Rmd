@@ -147,7 +147,7 @@ vignette](vignettes/optimization_path_example.Rmd).
 ## Issues
 
 If you encounter any bugs or have any specific feature requests, please
-[file an issue](https://github.com/peterliu599/ROOT-R-Package/issues).
+[file an issue](https://github.com/peterliu599/ROOT/issues).
 
 ---
 

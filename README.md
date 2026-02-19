@@ -176,8 +176,8 @@ universe). Among the remaining high-beta **beta $\geq$ 1.7** assets,
 those with **volatility $\geq$ 0.33** are excluded ($w = 0$, 4%), while
 high-beta assets with **volatility \< 0.33** are retained (8%). Overall,
 the final majority vote by the Rashomon set of 10 near-optimal trees
-includes 96% of assets in the final portfolio and screens out only the most
-risk-concentrated subset.
+includes 96% of assets in the final portfolio and screens out only the
+most risk-concentrated subset.
 
 For a detailed worked example of ROOT in optimization mode, see the
 [`optimization_path_example`
@@ -188,7 +188,7 @@ vignette](vignettes/optimization_path_example.Rmd).
 ## Issues
 
 If you encounter any bugs or have any specific feature requests, please
-[file an issue](https://github.com/peterliu599/ROOT-R-Package/issues).
+[file an issue](https://github.com/peterliu599/ROOT/issues).
 
 ------------------------------------------------------------------------
 
