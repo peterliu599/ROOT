@@ -26,8 +26,8 @@
 #'
 #' \enumerate{
 #'   \item \strong{Feature importance estimation:} Split probabilities are
-#'     estimated using Ridge regression, Gradiant Boosting Machine (GBM),
-#'     or a user-supplied function,biasing the search toward covariates likely
+#'     estimated using Ridge regression, Gradient Boosting Machine (GBM),
+#'     or a user-supplied function, biasing the search toward covariates likely
 #'     to be informative.
 #'   \item \strong{Stochastic tree construction:} \code{num_trees} trees are
 #'     grown. At each internal node, a feature is drawn according to the
@@ -166,7 +166,7 @@
 #'   recursion in pathological cases. Default \code{10}.
 #' @param verbose \code{Logical(1)}. If \code{TRUE}, prints the unweighted and
 #'   (when available) weighted treatment effect estimates and standard errors
-#'   in generalizability mode)
+#'   in generalizability mode.
 #'
 #' @return An object of class \code{"ROOT"} (a list) with elements:
 #'   \item{D_rash}{Data frame containing the Rashomon-set tree votes and the

@@ -43,20 +43,20 @@ minimize portfolio return variance.
 ### Why portfolio selection?
 
 Constructing a minimum-variance portfolio could be framed as an optimization problem.
-The standard approach could produces weights that are continuous and can be hard 
+The standard approach could produce weights that are continuous and can be hard 
 to interpret or communicate. ROOT offers a complementary perspective: it returns a 
 **binary inclusion rule** - a sparse decision tree that describes, in plain language, 
 which types of assets belong in the low-variance portfolio.
 
 ### Mapping to ROOT's framework
 
-The default global objective function ROOT minimizes is as follows:$L(w, D) = \sqrt{\frac{\sum_i w_i \cdot v_i^2}{\left(\sum_i w_i\right)^2}}$
+The default global objective function ROOT minimizes is as follows: $L(w, D) = \sqrt{\frac{\sum_i w_i \cdot v_i^2}{\left(\sum_i w_i\right)^2}}$
 
 where $v_i^2$ (`vsq`) is a pseudo outcome value, known as the per-unit variance 
 proxy in the optimization example. In the portfolio context, we set `vsq` to the 
 historical return variance of each asset. ROOT then finds the binary weight 
 $w(X) \in \{0, 1\}$, described as a decision tree over asset features such as beta 
-and volatility that minimizes this quantity. User can also supply the global 
+and volatility that minimizes this quantity. Users can also supply the global 
 objective function they wish to minimize as well.
 
 ---

@@ -116,7 +116,7 @@ characterizing subgroups that are \emph{insufficiently represented} in a
 randomized controlled trial (RCT) relative to a target population. The
 function returns an interpretable decision tree describing which subgroups
 should be included (\eqn{w(X) = 1}) or excluded (\eqn{w(X) = 0}) from the
-analysis, along with the corresponding target treatment average effect estimates.
+analysis, along with the corresponding target average treatment effect estimates.
 }
 \section{What does "underrepresented" mean?}{
 

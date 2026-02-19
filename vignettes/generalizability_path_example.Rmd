@@ -38,7 +38,7 @@ built-in `diabetes_data` dataset.
 ## The `diabetes_data` Dataset
 
 `diabetes_data` is a simulated dataset that mimics a diabetes intervention
-study. There are 2,000 individuals in an randomized control trial (RCT) sample,
+study. There are 2,000 individuals in a randomized controlled trial (RCT) sample,
 and there are 8,000 individuals in this simulated population we are making inferences
 to.
 

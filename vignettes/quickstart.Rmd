@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 ## Installation
 
-```{r install, eval = FALSE}
+``` r
 # install.packages("devtools")
 devtools::install_github("peterliu599/ROOT-R-Package")
 ```

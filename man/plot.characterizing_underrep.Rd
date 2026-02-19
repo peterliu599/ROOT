@@ -2,7 +2,7 @@
 % Please edit documentation in R/utilsCharacterizingUnderrep.R
 \name{plot.characterizing_underrep}
 \alias{plot.characterizing_underrep}
-\title{Plot Under represented Population Characterization}
+\title{Plot Underrepresented Population Characterization}
 \usage{
 \method{plot}{characterizing_underrep}(
   x,
@@ -16,7 +16,7 @@
 \code{rpart} object for the summary or characterization tree.}
 
 \item{main}{Character string for the plot title. Default is
-\code{"Underrepresented Population Characterization"}.}
+\code{"Final Characterized Tree from Rashomon Set"}.}
 
 \item{cex.main}{Numeric scaling factor for the title text size. Default is \code{1.2}.}
 
@@ -28,6 +28,6 @@
 \description{
 Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
 which subgroups are represented where \code{w = 1} versus underrepresented
-where \code{w = 0} in generalization mode, or simply \code{w(x)} in \code{\{0,1\}}
+where \code{w = 0} in generalizability mode, or simply \code{w(x)} in \code{\{0,1\}}
 in general optimization mode.
 }

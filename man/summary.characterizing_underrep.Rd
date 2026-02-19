@@ -20,7 +20,7 @@ node and may include a \code{rule} column of type \code{character}.}
 }
 \description{
 Summarizes the \code{ROOT} summary which includes unweighted and (when in
-generalization mode) weighted estimates with standard errors, as reported by
+generalizability mode) weighted estimates with standard errors, as reported by
 \code{summary.ROOT()}. Provides a brief overview of terminal rules from the
 annotated summary tree when available.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/treeBuilding.R
 \name{compute_transport_scores}
 \alias{compute_transport_scores}
-\title{Compute transport influence scores for generalization mode}
+\title{Compute transport influence scores for generalizability mode}
 \usage{
 compute_transport_scores(data, outcome, treatment, sample)
 }
@@ -32,7 +32,7 @@ A list with two numeric vectors of length \code{nrow(data)}:
 }
 }
 \description{
-Internal helper used in the \code{generalization} path to construct
+Internal helper used in the \code{generalizability} path to construct
 generalized linear model (glm)-based, inverse probability weighting
 (IPW)-style scores for transporting trial effects to a target population.
 }

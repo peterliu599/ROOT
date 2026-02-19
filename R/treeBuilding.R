@@ -1,6 +1,6 @@
-#' Compute transport influence scores for generalization mode
+#' Compute transport influence scores for generalizability mode
 #'
-#' Internal helper used in the \code{generalization} path to construct
+#' Internal helper used in the \code{generalizability} path to construct
 #' generalized linear model (glm)-based, inverse probability weighting
 #' (IPW)-style scores for transporting trial effects to a target population.
 #'

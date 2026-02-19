@@ -1,7 +1,7 @@
 #' Summarize a characterizing_underrep fit
 #'
 #' Summarizes the \code{ROOT} summary which includes unweighted and (when in
-#' generalization mode) weighted estimates with standard errors, as reported by
+#' generalizability mode) weighted estimates with standard errors, as reported by
 #' \code{summary.ROOT()}. Provides a brief overview of terminal rules from the
 #' annotated summary tree when available.
 #'
@@ -64,7 +64,7 @@ summary.characterizing_underrep <- function(object, ...) {
 #' Print a characterizing_underrep fit
 #'
 #' Print the \code{ROOT} summary which includes unweighted and (when in
-#' generalization mode) weighted estimates with standard errors, as reported by
+#' generalizability mode) weighted estimates with standard errors, as reported by
 #' \code{summary.ROOT()}.
 #'
 #' @section Abbreviations:
@@ -109,17 +109,17 @@ print.characterizing_underrep <- function(x, ...) {
 }
 
 
-#' Plot Under represented Population Characterization
+#' Plot Underrepresented Population Characterization
 #'
 #' Visualizes the decision tree derived from the \code{ROOT} analysis. Highlights
 #' which subgroups are represented where \code{w = 1} versus underrepresented
-#' where \code{w = 0} in generalization mode, or simply \code{w(x)} in \code{\{0,1\}}
+#' where \code{w = 0} in generalizability mode, or simply \code{w(x)} in \code{\{0,1\}}
 #' in general optimization mode.
 #'
 #' @param x A \code{characterizing_underrep} S3 object with \code{x$root$f} present as an
 #'   \code{rpart} object for the summary or characterization tree.
 #' @param main Character string for the plot title. Default is
-#'   \code{"Underrepresented Population Characterization"}.
+#'   \code{"Final Characterized Tree from Rashomon Set"}.
 #' @param cex.main Numeric scaling factor for the title text size. Default is \code{1.2}.
 #' @param ... Additional arguments passed to \code{rpart.plot::prp()}.
 #'

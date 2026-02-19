@@ -15,7 +15,7 @@ Authors@R: c(
   person(given = "Harsh", family = "Parikh", 
         email = "harsh.parikh@yale.edu", 
         role = "aut")
-	)
+ )
 Description: Implements a general framework for globally optimizing 
   user-specified objective functionals over interpretable binary weight functions 
   represented as sparse decision trees, called ROOT (Rashomon Set of Optimal Trees). 
@@ -42,6 +42,8 @@ Imports:
     stats,
     withr,
     rpart.plot
+URL: https://github.com/peterliu599/ROOT
+BugReports: https://github.com/peterliu599/ROOT/issues
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)
