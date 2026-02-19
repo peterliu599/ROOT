@@ -121,8 +121,7 @@ weight or no covariates were available.}
 \item{testing_data}{Data frame of observations used for optimization
 (trial units when \code{generalizability_path = TRUE}).}
 \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
-with the unweighted (SATE) and weighted (WTATE) point estimates,
-standard errors, and a note about the SE calculation.}
+with the unweighted (SATE) and weighted (WTATE) point estimates, and standard errors}
 \item{generalizability_path}{Logical flag echoing the input.}
 }
 \description{
