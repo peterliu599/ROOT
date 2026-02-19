@@ -5,10 +5,10 @@
 #' \code{summary.ROOT()}. Provides a brief overview of terminal rules from the
 #' annotated summary tree when available.
 #'
-#' @section Abbreviations:
-#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
-#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
-#' WATE means Weighted ATE. PATE means Population ATE.
+#' @section Abbreviations.
+#' ATE means average treatment effect. RCT means randomized controlled trial.
+#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
+#' SATE means sample ATE.
 #'
 #' @param object A \code{characterizing_underrep} S3 object. Expected components include
 #'   \code{root} which is a \code{ROOT} object (summarized by \code{summary.ROOT()})
@@ -17,7 +17,7 @@
 #'   node and may include a \code{rule} column of type \code{character}.
 #' @param ... Currently unused. Included for S3 compatibility.
 #'
-#' @return \code{object} returned invisibly. Printed output is a human readable summary.
+#' @return \code{object} returned invisibly. Printed output is a readable summary.
 #'
 #' @details
 #' Delegates core statistics and estimands to \code{summary(object$root)}.
@@ -62,10 +62,10 @@ summary.characterizing_underrep <- function(object, ...) {
 #' generalization mode) weighted estimates with standard errors, as reported by
 #' \code{summary.ROOT()}.
 #'
-#' @section Abbreviations:
-#' ATE means Average Treatment Effect. RCT means Randomized Controlled Trial.
-#' SE means Standard Error. TATE means Transported ATE. WTATE means Weighted TATE.
-#' WATE means Weighted ATE. PATE means Population ATE.
+#' @section Abbreviations.
+#' ATE means average treatment effect. RCT means randomized controlled trial.
+#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
+#' SATE means sample ATE.
 #'
 #' @param x A \code{characterizing_underrep} S3 object. Expected components include
 #'   \code{root} which is a \code{ROOT} object (summarized by \code{print.ROOT()})
@@ -74,7 +74,7 @@ summary.characterizing_underrep <- function(object, ...) {
 #'   node and may include a \code{rule} column of type \code{character}.
 #' @param ... Currently unused. Included for S3 compatibility.
 #'
-#' @return \code{object} returned invisibly. Printed output is a human readable brief summary.
+#' @return \code{object} returned invisibly. Printed output is a readable brief summary.
 #'
 #' @details
 #' Delegates core statistics and estimands to \code{print(x$root)}.

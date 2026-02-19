@@ -1,14 +1,17 @@
 #' Summarize a ROOT fit
 #'
-#' Provides a human-readable summary of a \code{ROOT} object, including:
+#' Provides a readable summary of a \code{ROOT} object, including:
 #' \enumerate{
 #'   \item the summary characterization tree \code{f},
-#'   \item the first few rows of \code{testing_data},
 #'   \item whether the user supplied a custom \code{global_objective_fn} (Yes/No), and
 #'   \item in generalizability mode (\code{generalizability_path = TRUE}), the
-#'         unweighted and weighted estimands with their standard errors
-#'         and an explanatory note for the weighted standard error (SE).
+#'         unweighted and weighted estimands with their standard errors.
 #' }
+#'
+#' @section Abbreviations.
+#' ATE means average treatment effect. RCT means randomized controlled trial.
+#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
+#' SATE means sample ATE.
 #'
 #' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
 #' to a SATE-type quantity and the weighted estimand to a WTATE-type
@@ -119,12 +122,16 @@ summary.ROOT <- function(object, ...) {
 #'         and an explanatory note for the weighted standard error (SE).
 #' }
 #'
+#' @section Abbreviations.
+#' ATE means average treatment effect. RCT means randomized controlled trial.
+#' SE means standard error. TATE means transported ATE. WTATE means weighted TATE.
+#' SATE means sample ATE.
+#'
 #' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
 #' to a SATE-type quantity and the weighted estimand to a WTATE-type
 #' quantity for the transported target population. When \code{generalizability_path = FALSE},
 #' ROOT is used for general functional optimization and no causal labels
 #' are imposed.
-#'
 #'
 #' @param x A \code{"ROOT"} S3 object returned by \code{ROOT()}.
 #' @param ... Currently unused and included for S3 compatibility.

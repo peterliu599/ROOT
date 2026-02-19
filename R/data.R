@@ -2,8 +2,6 @@
 #'
 #' A toy dataset for illustrating \code{ROOT} examples and tests.
 #'
-#' @section Abbreviations:
-#' RCT means randomized clinical trial. ATE means Average Treatment Effect.
 #'
 #' @format A \code{data.frame} with one row per individual and the columns:
 #' \describe{

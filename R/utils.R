@@ -22,7 +22,7 @@ check_no_na <- function(data, cols) {
 #' Generic objective interface
 #'
 #' Default objective that serves as a proxy for standard error in weighted transported
-#' average treatment effect (WTATE) and population average treatment effect (PATE).
+#' average treatment effect (WTATE) and sample average treatment effect (SATE).
 #'
 #' Computes \code{sqrt(sum(vsq_i * w_i)) / (sum(w_i))^2}.
 #' Requires columns \code{vsq} and \code{w} in \code{D}. The goal is to minimize the value.

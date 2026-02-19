@@ -1,8 +1,8 @@
 #' Compute transport influence scores for generalization mode
 #'
 #' Internal helper used in the \code{generalization} path to construct
-#' glm-based, IPW-style scores for transporting trial effects to a target
-#' population without double machine learning.
+#' generalized linear model (glm)-based, inverse probability weighting
+#' (IPW)-style scores for transporting trial effects to a target population.
 #'
 #' The function treats \code{data} as a stacked dataset with a sample
 #' indicator \eqn{S} (\code{sample}) taking value 1 in the randomized trial
@@ -103,10 +103,10 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
   list(v = v, vsq = vsq)
 }
 
-#' Recursive split builder for weighted tree (internal function)
+#' Recursive split builder for weighted tree
 #'
 #' Recursively builds a weighted decision tree to optimize a global objective,
-#' using an exploration/exploitation trade-off. Internal; used by ROOT().
+#' using an exploration/exploitation trade-off.
 #'
 #' @param split_feature Named numeric vector of feature selection probabilities (must include "leaf").
 #' @param X Data frame of current observations (includes candidate split feature columns; may include a working copy of weights `w`).

@@ -4,31 +4,31 @@
 #' ROOT (Rashomon Set of Optimal Trees) is a general-purpose functional
 #' optimization algorithm that learns interpretable, tree-structured binary
 #' weight functions \eqn{w(X) \in \{0, 1\}}. Given a dataset \eqn{D_n} and a
-#' loss function \eqn{L(w, D_n)}, ROOT searches over the space of decision
-#' trees to find weight assignments that minimize the loss while remaining
-#' human-interpretable.
+#' global objective function \eqn{L(w, D_n)}, ROOT searches over the space of
+#' decision trees to find weight assignments that minimize the objective function.
 #'
-#' @section The optimization problem:
+#' @section The optimization problem.
 #' ROOT solves the functional optimization problem:
 #'
 #' \deqn{w^* \in \arg\min_w L(D_n, w)}
 #'
 #' where \eqn{w: \mathbb{R}^p \to \{0, 1\}} maps a \eqn{p}-dimensional
 #' covariate vector to a binary include/exclude decision. The key challenge is
-#' that, unlike standard tree algorithms (e.g., CART), the global loss
+#' that, unlike standard tree algorithms, the global loss
 #' \eqn{L(D_n, w)} is \emph{not} decomposable as a sum of losses over
 #' independent subsets of the data. This means conventional greedy,
 #' divide-and-conquer tree-building strategies do not apply. ROOT addresses
 #' this through a randomization-based tree construction with an
 #' explore-exploit strategy.
 #'
-#' @section How ROOT works:
+#' @section How ROOT works.
 #' The algorithm proceeds in several stages:
 #'
 #' \enumerate{
 #'   \item \strong{Feature importance estimation:} Split probabilities are
-#'     estimated using Ridge regression, GBM, or a user-supplied function,
-#'     biasing the search toward covariates likely to be informative.
+#'     estimated using Ridge regression, Gradiant Boosting Machine (GBM),
+#'     or a user-supplied function,biasing the search toward covariates likely
+#'     to be informative.
 #'   \item \strong{Stochastic tree construction:} \code{num_trees} trees are
 #'     grown. At each internal node, a feature is drawn according to the
 #'     estimated split probabilities (or a "leaf" token is drawn, terminating
@@ -40,10 +40,8 @@
 #'   \item \strong{Rashomon set selection:} Trees are ranked by their global
 #'     objective values. The top-\code{k} trees (or all trees below a cutoff)
 #'     form the \emph{Rashomon set}: a collection of near-optimal but
-#'     potentially different models, each providing a valid characterization
-#'     of the optimal weight function. The name refers to the classic Kurosawa
-#'     film in which multiple characters give competing but plausible
-#'     interpretations of the same event.
+#'     potentially different models, each providing a characterization
+#'     of the optimal weight function.
 #'   \item \strong{Aggregation:} Per-observation votes from the Rashomon set
 #'     are combined (by default, majority vote) to produce the final weight
 #'     vector \code{w_opt}.
@@ -52,7 +50,7 @@
 #'     interpretable description of the weight function.
 #' }
 #'
-#' @section Generalizability mode:
+#' @section Generalizability mode.
 #' When \code{generalizability_path = TRUE}, ROOT implements the methodology
 #' of Parikh et al. (2025) for characterizing underrepresented subgroups in
 #' trial-to-target generalizability analyses. In this mode:
@@ -79,25 +77,14 @@
 #' additionally produces a leaf-level summary table, and
 #' \code{vignette("generalizability_path_example")} for a worked example.
 #'
-#' @section General optimization mode:
+#' @section General optimization mode.
 #' When \code{generalizability_path = FALSE}, ROOT operates as a general
 #' functional optimizer. The user supplies any \code{data.frame} and
 #' (optionally) a custom \code{global_objective_fn}. If no objective is
 #' supplied, ROOT uses a default variance-based loss operating on the
-#' \code{vsq} column (per-unit variance proxy). This mode is suitable for any
-#' problem expressible as learning an interpretable binary inclusion rule. See
+#' \code{vsq} column (per-unit variance proxy). See
 #' \code{vignette("optimization_path_example")} for an example.
 #'
-#' @section Relationship to CART and other tree methods:
-#' ROOT differs from standard tree algorithms in two important ways.
-#' First, ROOT optimizes a \emph{global} objective rather than local
-#' node-purity measures (e.g., Gini impurity or information gain). The
-#' objective function is evaluated over the entire dataset at every candidate
-#' split, not just the observations in the current node. Second, ROOT does
-#' not have outcome labels to predict; instead, it learns weights that
-#' minimize an externally defined loss. These properties make ROOT better
-#' suited to problems where the goal is to optimize a complex, non-additive
-#' criterion subject to interpretability constraints.
 #'
 #' @param data A data.frame containing the dataset.
 #'
@@ -115,9 +102,7 @@
 #'   \code{function(D) -> numeric} scoring the entire state and minimized by
 #'   ROOT. \code{D} is the working data frame containing at least a column
 #'   \code{w} with the current weight assignments. If \code{NULL} (default), a
-#'   variance-based objective is used. See
-#'   \code{vignette("optimization_path_example")} for custom objective
-#'   examples.
+#'   variance-based objective is used.
 #' @param generalizability_path \code{Logical(1)}. If \code{TRUE}, use the
 #'   built-in transportability objective for trial-to-target generalizability.
 #'   If \code{FALSE}, treat \code{data} as arbitrary and rely on
