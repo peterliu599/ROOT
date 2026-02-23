@@ -116,7 +116,7 @@ portfolio_fit <- ROOT(
   num_trees   = 20,
   top_k_trees = TRUE,
   k           = 10,
-  seed        = 123
+  seed        = 42
 )
 
 summary(portfolio_fit) # for a full summary output
