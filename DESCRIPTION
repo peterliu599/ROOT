@@ -7,14 +7,16 @@ Authors@R: c(
          role = c("aut", "cre")),
   person(given = "Yiren", family = "Hou",
          email = "yiren.hou@yale.edu",
-         role = "aut"), 
+         role = "aut", 
+         comment = c(ORCID = "0009-0005-0422-4268)),
   person(given = "Sean", family = "McGrath", 
-        email = "sean.mcgrath514@gmail.com", 
-        role = "aut", 
-        comment = c(ORCID = "0000-0002-7281-3516")), 
+         email = "sean.mcgrath514@gmail.com", 
+         role = "aut", 
+         comment = c(ORCID = "0000-0002-7281-3516")), 
   person(given = "Harsh", family = "Parikh", 
-        email = "harsh.parikh@yale.edu", 
-        role = "aut")
+         email = "harsh.parikh@yale.edu", 
+         role = "aut",
+         comment = c(ORCID = "0000-0003-1927-8646"))
  )
 Description: Implements a general framework for globally optimizing 
   user-specified objective functionals over interpretable binary weight functions 
