@@ -468,3 +468,48 @@ test_that("ROOT issues message when Rashomon set empty with baseline cutoff", {
 
   expect_true(inherits(result, "ROOT") || inherits(result, "error"))
 })
+
+test_that("ROOT coerce01 handles logical S and Tr columns", {
+  skip_if_not_installed("MASS")
+
+  set.seed(10)
+  n <- 40
+  df <- data.frame(
+    Y  = rnorm(n),
+    Tr = rep(c(TRUE, FALSE), n / 2),
+    S  = c(rep(TRUE, n - 5), rep(FALSE, 5)),
+    X1 = rnorm(n)
+  )
+
+  result <- suppressWarnings(
+    ROOT(df, generalizability_path = TRUE, num_trees = 2,
+         top_k_trees = TRUE, k = 2, seed = 1,
+         vote_threshold = "majority")
+  )
+
+  expect_s3_class(result, "ROOT")
+  expect_true(all(result$D_rash$w_opt %in% 0:1))
+})
+
+test_that("ROOT coerce01 handles factor S and Tr columns", {
+  skip_if_not_installed("MASS")
+
+  set.seed(11)
+  n <- 40
+  df <- data.frame(
+    Y  = rnorm(n),
+    Tr = factor(rep(c("treated", "control"), n / 2)),
+    S  = factor(c(rep("yes", n - 5), rep("no", 5))),
+    X1 = rnorm(n)
+  )
+
+  result <- suppressWarnings(
+    ROOT(df, generalizability_path = TRUE, num_trees = 2,
+         top_k_trees = TRUE, k = 2, seed = 1,
+         vote_threshold = "majority")
+  )
+
+  expect_s3_class(result, "ROOT")
+  expect_true(all(result$D_rash$w_opt %in% 0:1))
+})
+
