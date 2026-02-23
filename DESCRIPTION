@@ -4,7 +4,8 @@ Version: 0.1.0
 Authors@R: c(
   person(given = "Peter", family = "Liu",
          email = "bliu68@jh.edu",
-         role = c("aut", "cre")),
+         role = c("aut", "cre"),
+         comment = c("0009-0000-2691-5637")),
   person(given = "Yiren", family = "Hou",
          email = "yiren.hou@yale.edu",
          role = "aut", 
