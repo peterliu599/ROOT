@@ -116,7 +116,7 @@ portfolio_fit <- ROOT(
   num_trees   = 20,
   top_k_trees = TRUE,
   k           = 10,
-  seed        = 123
+  seed        = 42
 )
 
 summary(portfolio_fit) # for a full summary output
@@ -131,10 +131,10 @@ summary(portfolio_fit) # for a full summary output
     ## node), split, n, loss, yval, (yprob)
     ##       * denotes terminal node
     ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000) 
-    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)   
+    ## 1) root 100 4 1 (0.0400000 0.9600000)  
+    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
     ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
-    ##     5)  vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
+    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
     ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
     ## 
     ## Global objective function:
@@ -144,7 +144,7 @@ summary(portfolio_fit) # for a full summary output
     ##   Number of trees grown: 20
     ##   Rashomon set size: 10
     ##   % observations with w_opt == 1: 96.0%
-    
+
 ``` r
 print(portfolio_fit) # for a brief summary print
 ```
@@ -158,7 +158,7 @@ print(portfolio_fit) # for a brief summary print
     ## node), split, n, loss, yval, (yprob)
     ##       * denotes terminal node
     ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000)    
+    ## 1) root 100 4 1 (0.0400000 0.9600000)  
     ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
     ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
     ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
