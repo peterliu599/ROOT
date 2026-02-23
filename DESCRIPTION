@@ -2,14 +2,14 @@ Package: ROOT
 Title: Rashomon Set of Optimal Trees
 Version: 0.1.0
 Authors@R: c(
-  person(given = "Peter", family = "Liu",
-         email = "bliu68@jh.edu",
-         role = c("aut", "cre"),
-         comment = c("0009-0000-2691-5637")),
   person(given = "Yiren", family = "Hou",
          email = "yiren.hou@yale.edu",
          role = "aut", 
-         comment = c(ORCID = "0009-0005-0422-4268")),
+         comment = c(ORCID = "0009-0005-0422-4268","Equal contribution")),
+  person(given = "Peter", family = "Liu",
+         email = "bliu68@jh.edu",
+         role = c("aut", "cre"),
+         comment = c("0009-0000-2691-5637","Equal contribution")),
   person(given = "Sean", family = "McGrath", 
          email = "sean.mcgrath514@gmail.com", 
          role = "aut", 
