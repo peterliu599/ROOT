@@ -52,8 +52,7 @@ The summary also reports:
 }
 
 \examples{
-\dontrun{
 ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 summary(ROOT.output)
-}
+
 }

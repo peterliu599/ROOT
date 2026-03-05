@@ -191,7 +191,6 @@ available for splitting.
 }
 
 \examples{
-\dontrun{
 # --- Generalizability analysis ---
 # diabetes_data has columns Y, Tr, S, and covariates
 data(diabetes_data, package = "ROOT")
@@ -213,7 +212,7 @@ char_fit$leaf_summary
 
 # Treatment effect estimates (SATE and WTATE)
 char_fit$root$estimate
-}
+
 }
 \references{
 Parikh H, Ross RK, Stuart E, Rudolph KE (2025).

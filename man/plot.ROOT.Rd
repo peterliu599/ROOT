@@ -21,8 +21,7 @@ Visualizes the decision tree that characterizes the weighted subgroup
 using \code{rpart.plot::prp()}.
 }
 \examples{
-\dontrun{
 ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 plot(ROOT.output)
-}
+
 }

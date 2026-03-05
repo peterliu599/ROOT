@@ -31,3 +31,8 @@ which subgroups are represented where \code{w = 1} versus underrepresented
 where \code{w = 0} in generalizability mode, or simply \code{w(x)} in \code{\{0,1\}}
 in general optimization mode.
 }
+\examples{
+char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+plot(char.output)
+
+}

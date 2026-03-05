@@ -41,8 +41,7 @@ Previews up to ten terminal rules when a summary tree exists.
 }
 
 \examples{
-\dontrun{
 char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
 summary(char.output)
-}
+
 }

@@ -42,8 +42,7 @@ are imposed.
 }
 
 \examples{
-\dontrun{
 ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 print(ROOT.output)
-}
+
 }

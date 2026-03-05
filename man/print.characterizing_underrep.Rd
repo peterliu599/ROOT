@@ -39,8 +39,7 @@ Delegates core statistics and estimands to \code{print(x$root)}.
 }
 
 \examples{
-\dontrun{
 char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
 print(char.output)
-}
+
 }
