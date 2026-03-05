@@ -38,11 +38,11 @@
 #' @return \code{object} returned invisibly. Printed output is for inspection.
 #'
 #' @method summary ROOT
+#'
 #' @examples
-#' \dontrun{
 #' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 #' summary(ROOT.output)
-#' }
+#'
 #' @export
 summary.ROOT <- function(object, ...) {
   x <- object
@@ -151,11 +151,11 @@ summary.ROOT <- function(object, ...) {
 #' @return \code{object} returned invisibly. Printed output is for inspection.
 #'
 #' @method print ROOT
+#'
 #' @examples
-#' \dontrun{
 #' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 #' print(ROOT.output)
-#' }
+#'
 #' @export
 print.ROOT <- function(x, ...) {
   cat("ROOT object\n")
@@ -200,10 +200,9 @@ print.ROOT <- function(x, ...) {
 #' @importFrom rpart.plot prp
 #'
 #' @examples
-#' \dontrun{
 #' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
 #' plot(ROOT.output)
-#' }
+#'
 #' @export
 plot.ROOT <- function(x, ...) {
   if (is.null(x$f) || !inherits(x$f, "rpart")) {

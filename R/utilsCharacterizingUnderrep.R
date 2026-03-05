@@ -29,11 +29,11 @@
 #' Previews up to ten terminal rules when a summary tree exists.
 #'
 #' @method summary characterizing_underrep
+#'
 #' @examples
-#' \dontrun{
 #' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
 #' summary(char.output)
-#' }
+#'
 #' @export
 summary.characterizing_underrep <- function(object, ...) {
   if (!inherits(object, "characterizing_underrep")) {
@@ -90,11 +90,11 @@ summary.characterizing_underrep <- function(object, ...) {
 #' Delegates core statistics and estimands to \code{print(x$root)}.
 #'
 #' @method print characterizing_underrep
+#'
 #' @examples
-#' \dontrun{
 #' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
 #' print(char.output)
-#' }
+#'
 #' @export
 print.characterizing_underrep <- function(x, ...) {
   if (!inherits(x, "characterizing_underrep")) {
@@ -124,6 +124,10 @@ print.characterizing_underrep <- function(x, ...) {
 #' @param ... Additional arguments passed to \code{rpart.plot::prp()}.
 #'
 #' @return \code{NULL}. The plot is drawn to the active graphics device.
+#'
+#' @examples
+#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' plot(char.output)
 #'
 #' @importFrom rpart.plot prp
 #' @importFrom graphics par legend title

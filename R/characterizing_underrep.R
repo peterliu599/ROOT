@@ -154,7 +154,6 @@
 #' \code{vignette("optimization_path_example")} for general optimization mode.
 #'
 #' @examples
-#' \dontrun{
 #' # --- Generalizability analysis ---
 #' # diabetes_data has columns Y, Tr, S, and covariates
 #' data(diabetes_data, package = "ROOT")
@@ -176,7 +175,7 @@
 #'
 #' # Treatment effect estimates (SATE and WTATE)
 #' char_fit$root$estimate
-#' }
+#'
 #' @export
 characterizing_underrep <- function(data,
                                     global_objective_fn   = NULL,

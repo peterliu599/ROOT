@@ -199,7 +199,6 @@
 #' \code{vignette("optimization_path_example")} for general optimization.
 #'
 #' @examples
-#' \dontrun{
 #' # --- Generalizability mode ---
 #' data(diabetes_data, package = "ROOT")
 #' root_fit <- ROOT(
@@ -210,22 +209,44 @@
 #'   k                     = 10,
 #'   seed                  = 123
 #' )
-#' summary(root_fit)
-#' plot(root_fit)
-#'
 #' # --- General optimization mode (custom objective) ---
 #' my_objective <- function(D) {
 #'   w <- D$w
 #'   if (sum(w) == 0) return(Inf)
 #'   sqrt(sum(w * D$vsq) / sum(w)^2)
 #' }
+#' set.seed(123)
+#' n_assets <- 100
+#'
+#' # Asset features
+#' volatility <- runif(n_assets, 0.05, 0.40)  # annualised volatility
+#' beta       <- runif(n_assets, 0.5,  1.8)   # market beta
+#' sector     <- sample(c("Tech", "Finance", "Energy", "Health"),
+#'                     n_assets, replace = TRUE)
+#'
+#' # Simulate returns: r_i = beta_i * r_market + epsilon_i
+#' market      <- rnorm(1000, 0.0005, 0.01)
+#' returns_mat <- sapply(seq_len(n_assets), function(i)
+#'   beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
+#' )
+#'
+#' # Per-asset return variance (the objective proxy ROOT will minimize)
+#' vsq <- apply(returns_mat, 2, var)
+#'
+#' my_data <- data.frame(
+#'   vsq    = vsq,
+#'   vol    = volatility,
+#'  beta   = beta,
+#'  sector = as.integer(factor(sector))
+#')
+#'
 #' opt_fit <- ROOT(
 #'   data                = my_data,
 #'   global_objective_fn = my_objective,
 #'   num_trees           = 20,
 #'   seed                = 42
 #' )
-#' }
+#'
 #' @export
 ROOT <- function(data,
                  global_objective_fn   = NULL,
