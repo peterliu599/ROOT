@@ -1,6 +1,6 @@
 Package: ROOT
 Title: Rashomon Set of Optimal Trees
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
   person(given = "Yiren", family = "Hou",
          email = "yiren.hou@yale.edu",
