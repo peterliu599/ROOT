@@ -100,7 +100,7 @@ ROOT will attempt to characterize.
 ## Fitting ROOT in Generalizability Mode
 
 We use `characterizing_underrep()`, which is the high-level wrapper around
-`ROOT()` for generalizability analyses. It expects `data` to contain `Y`,
+`ROOT()` for generalizability/transportability analyses. It expects `data` to contain `Y`,
 `Tr`, and `S`, and internally:
 
 1. Estimates transportability scores using logistic regression models (default) for

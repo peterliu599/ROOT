@@ -70,5 +70,5 @@ plot(fit)       # visualize the characteristic tree
 ## Next steps
 
 - **General optimization:** See `vignette("optimization_path_example")` for a detailed walkthrough.
-- **Generalizability analysis:** See `vignette("generalizability_path_example")` for applying ROOT to treatment effect transportability.
+- **Generalizability/transportability analysis:** See `vignette("generalizability_path_example")` for applying ROOT to treatment effect transportability.
 - **Help:** `?ROOT` for full argument documentation.
