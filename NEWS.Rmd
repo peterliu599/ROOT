@@ -8,6 +8,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Package Updates
 
+### Changes in Version 0.2.0 (2026-04-09)
+
+#### New features
+*  Added `positivity_trim` argument to `ROOT()` and `characterizing_underrep()` for pre-trimming target observations with structural positivity violations prior to optimization. Supports a fixed numeric threshold (e.g., `positivity_trim = 0.05`) or the data-driven rule of Crump, Hotz, Imbens & Mitnik (2009, *Biometrika*) via `positivity_trim = "crump"`. Only active in generalizability mode. Trimming metadata is stored in the returned object as `positivity_trim_info` and reported by `summary()`.
+*  Added `split_strategy` argument to `ROOT()` and `characterizing_underrep()` with options `"midpoint"` (default, backward-compatible) and `"random_quantile"`. The random quantile strategy draws a uniform random quantile within `quantile_range` (default 10th–90th percentile) at each split, improving covariate-space coverage across the forest. The strategy used is stored in the returned object and reported by `summary()`.
+*  New internal helpers: `crump_alpha()`, `trim_positivity_violations()`, and `split_point()`.
+
+#### Documentation
+*  Added roxygen documentation for all new arguments and helper functions.
+*  Added Crump et al. (2009) to `@references` in `ROOT()`.
+*  `summary.ROOT()` now reports the split strategy and positivity trimming diagnostics.
+
+#### Testing
+*  New test files: `test-positivity.R` and `test-split-strategy.R`.
+
 ### Changes in Version 0.1.1 (2026-03-04)
 *  Updated help files
 *  Expanded unit testing
