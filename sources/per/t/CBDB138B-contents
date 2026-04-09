@@ -1,0 +1,53 @@
+Package: ROOT
+Title: Rashomon Set of Optimal Trees
+Version: 0.1.1
+Authors@R: c(
+  person(given = "Yiren", family = "Hou",
+         email = "yiren.hou@yale.edu",
+         role = "aut", 
+         comment = c(ORCID = "0009-0005-0422-4268","Equal contribution")),
+  person(given = "Peter", family = "Liu",
+         email = "bliu68@jh.edu",
+         role = c("aut", "cre"),
+         comment = c("0009-0000-2691-5637","Equal contribution")),
+  person(given = "Sean", family = "McGrath", 
+         email = "sean.mcgrath514@gmail.com", 
+         role = "aut", 
+         comment = c(ORCID = "0000-0002-7281-3516")), 
+  person(given = "Harsh", family = "Parikh", 
+         email = "harsh.parikh@yale.edu", 
+         role = "aut",
+         comment = c(ORCID = "0000-0003-1927-8646"))
+ )
+Description: Implements a general framework for globally optimizing 
+  user-specified objective functionals over interpretable binary weight functions 
+  represented as sparse decision trees, called ROOT (Rashomon Set of Optimal Trees). 
+  It searches over candidate trees to construct a 
+  Rashomon set of near-optimal solutions and derives a summary tree highlighting stable 
+  patterns in the optimized weights. ROOT includes a built-in generalizability mode for 
+  identifying subgroups in trial settings for transportability analyses 
+  (Parikh et al. (2025) <doi:10.1080/01621459.2025.2495319>).
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Suggests:
+    mlbench,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    ragg
+Config/testthat/edition: 3
+Imports:
+    MASS,
+    rpart,
+    gbm,
+    stats,
+    withr,
+    rpart.plot
+URL: https://github.com/peterliu599/ROOT
+BugReports: https://github.com/peterliu599/ROOT/issues
+VignetteBuilder: knitr
+Depends: 
+    R (>= 3.5)
+LazyData: true

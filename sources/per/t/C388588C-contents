@@ -1,0 +1,80 @@
+library("ROOT")
+set.seed(99)
+n <- 500
+x1 <- rbinom(n, 1, 0.5)
+x2 <- rbinom(n, 1, 0.25)
+x3 <- rbinom(n, 1, 0.1)
+
+gamma_score <- exp(0.5 * x1 + 1.0 * x2 + 1.2 * x3 + rnorm(n, 0, 2))
+lambda_score <- 3.0 * x1 + 4.0 * x2 + 3.5 * x3 + rnorm(n, 0, 1)
+
+custom_obj <- function(D) {
+  w <- D$w
+  lam <- D$lambda_score
+  gam <- D$gamma_score
+  lam_bar_w <- sum(w * lam) / sum(w * gam)
+  numerator <- sum((w * lam - lam_bar_w)^2)
+  denominator <- (sum(w * gam))^2
+  return(numerator / denominator)
+}
+
+dat <- data.frame(x1 = x1, x2 = x2, x3 = x3,
+                  lambda_score = lambda_score, gamma_score = gamma_score)
+
+fit_custom <- ROOT(data = dat,
+                   global_objective_fn = custom_obj,
+                   num_trees = 30, top_k_trees = TRUE, k = 15, vote_threshold = 0.7)
+
+summary(fit_custom)
+plot(fit_custom)
+
+
+## Print summary -- COPY THIS OUTPUT INTO THE PAPER
+cat("\n========== summary(fit_custom) ==========\n\n")
+summary(fit_custom)
+
+## Examine the weights
+cat("\n========== Weight distribution ==========\n\n")
+dat$w_opt <- fit_custom$D_rash$w_opt
+cat("Included (w=1):", sum(dat$w_opt == 1), "\n")
+cat("Excluded (w=0):", sum(dat$w_opt == 0), "\n")
+
+## Compare scores between included/excluded
+cat("\n========== Score comparison ==========\n\n")
+included <- dat[dat$w_opt == 1, ]
+excluded <- dat[dat$w_opt == 0, ]
+cat("Mean lambda (included):", round(mean(included$lambda_score), 3), "\n")
+cat("Mean lambda (excluded):", round(mean(excluded$lambda_score), 3), "\n")
+cat("Mean gamma  (included):", round(mean(included$gamma_score), 3), "\n")
+cat("Mean gamma  (excluded):", round(mean(excluded$gamma_score), 3), "\n")
+
+## Compare objective values: baseline (w=1 for all) vs optimized
+cat("\n========== Objective comparison ==========\n\n")
+dat_baseline <- dat
+dat_baseline$w <- 1
+obj_baseline <- custom_obj(dat_baseline)
+dat_optimized <- dat
+dat_optimized$w <- dat$w_opt
+obj_optimized <- custom_obj(dat_optimized)
+cat("Objective (baseline, all w=1):", round(obj_baseline, 6), "\n")
+cat("Objective (ROOT optimized):   ", round(obj_optimized, 6), "\n")
+cat("Reduction:                    ",
+    round((1 - obj_optimized / obj_baseline) * 100, 1), "%\n")
+
+## Plot -- SAVE THIS FIGURE FOR THE PAPER
+cat("\n========== Plotting characteristic tree ==========\n\n")
+plot(fit_custom)
+
+## Cross-tabulation of w_opt by covariates
+cat("\n========== w_opt by covariates ==========\n\n")
+cat("By x1:\n")
+print(table(x1 = dat$x1, w_opt = dat$w_opt))
+cat("\nBy x2:\n")
+print(table(x2 = dat$x2, w_opt = dat$w_opt))
+cat("\nBy x1 x x2:\n")
+print(table(x1 = dat$x1, x2 = dat$x2, w_opt = dat$w_opt))
+
+
+
+
+

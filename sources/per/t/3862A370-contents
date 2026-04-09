@@ -127,19 +127,6 @@
 #'   recursion in pathological cases. Default \code{10}.
 #' @param verbose Logical; if \code{TRUE}, prints the unweighted and weighted
 #'   estimands with standard errors. Default \code{FALSE}.
-#' @param positivity_trim Controls pre-trimming of target observations with
-#'   near-zero trial selection probability. Only used when
-#'   \code{generalizability_path = TRUE}. Accepts \code{NULL} (no trimming,
-#'   default), a numeric in \eqn{(0, 0.5)}, or \code{"crump"} for the
-#'   data-driven threshold of Crump et al. (2009). See \code{\link{ROOT}} for
-#'   details.
-#' @param split_strategy Character; either \code{"midpoint"} (default) or
-#'   \code{"random_quantile"}. Controls how split points are chosen at each
-#'   tree node. See \code{\link{ROOT}} for details.
-#' @param quantile_range Numeric vector of length 2 giving the lower and upper
-#'   bounds of the quantile range when
-#'   \code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
-#'   Ignored when \code{split_strategy = "midpoint"}.
 #'
 #' @return A \code{characterizing_underrep} S3 object (a \code{list}) with:
 #'   \item{root}{The \code{\link{ROOT}} object returned by \code{ROOT()}.
@@ -206,10 +193,7 @@ characterizing_underrep <- function(data,
                                     max_depth             = 8L,
                                     min_leaf_n            = 2L,
                                     max_rejects_per_node  = 10L,
-                                    verbose               = FALSE,
-                                    positivity_trim       = NULL,
-                                    split_strategy        = "midpoint",
-                                    quantile_range        = c(0.1, 0.9)) {
+                                    verbose               = FALSE) {
   # Data frame check
   if (!is.data.frame(data)) {
     stop("`data` must be a data.frame.", call. = FALSE)
@@ -251,10 +235,7 @@ characterizing_underrep <- function(data,
     min_leaf_n            = min_leaf_n,
     max_rejects_per_node  = max_rejects_per_node,
     verbose               = verbose,
-    global_objective_fn   = global_objective_fn,
-    positivity_trim       = positivity_trim,
-    split_strategy        = split_strategy,
-    quantile_range        = quantile_range
+    global_objective_fn   = global_objective_fn
   )
 
   # 2. Summarize terminal nodes (if characterization tree exists)

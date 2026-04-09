@@ -1,0 +1,22 @@
+#' Simulated diabetes dataset for examples
+#'
+#' A toy dataset for illustrating \code{ROOT} examples and tests.
+#'
+#'
+#' @format A \code{data.frame} with one row per individual and the columns:
+#' \describe{
+#'   \item{Age45}{Indicator in \code{0}/\code{1}: age >= 45.}
+#'   \item{DietYes}{Indicator in \code{0}/\code{1}: on a diet program.}
+#'   \item{Race_Black}{Indicator in \code{0}/\code{1}: race is Black.}
+#'   \item{S}{Sample indicator in \code{0}/\code{1}: \code{1} means RCT or source, \code{0} means target.}
+#'   \item{Sex_Male}{Indicator in \code{0}/\code{1}: male.}
+#'   \item{Tr}{Treatment assignment in \code{0}/\code{1}.}
+#'   \item{Y}{Observed outcome (\code{numeric} or \code{0}/\code{1}).}
+#' }
+#'
+#' @usage data(diabetes_data)
+#' @name diabetes_data
+#' @docType data
+#' @keywords datasets
+#' @aliases diabetes_data
+NULL

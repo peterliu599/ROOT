@@ -1,4 +1,4 @@
-#' Compute transport influence scores for generalizability mode
+##' Compute transport influence scores for generalizability mode
 #'
 #' Internal helper used in the \code{generalizability} path to construct
 #' generalized linear model (glm)-based, inverse probability weighting
@@ -80,7 +80,7 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
           "%d observation(s) had an estimated trial-inclusion probability ",
           "P(S=1|X) below the numerical floor of 0.01. ",
           "P(S=1|X) has been floored at 0.01 for those observations to prevent ",
-          "1/l(X) = P(S=0|X)/P(S=1|X) from becoming unbounded ",
+          "1/l(X)= P(S=0|X)/P(S=1|X) from becoming unbounded ",
           "(values below 0.01 would produce 1/l(X) > 99), where l(X) = P(S=1|X)/P(S=0|X) ",
           "is the selection ratio defined in Parikh et al. (2025). ",
           "This typically indicates near-perfect separation in the sampling model ",
@@ -121,14 +121,6 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
 #' @param min_leaf_n Integer min rows to attempt a split; else make leaf.
 #' @param log_fn Function for logging; default no-op.
 #' @param max_rejects_per_node Safety budget of rejected splits before forcing a leaf.
-#' @param split_strategy Character; either \code{"midpoint"} (default) or
-#'   \code{"random_quantile"}. Controls how the split point for a chosen
-#'   feature is determined. \code{"midpoint"} uses \code{(min + max) / 2};
-#'   \code{"random_quantile"} draws a uniform random quantile within
-#'   \code{quantile_range}, improving covariate-space coverage across the forest.
-#' @param quantile_range Numeric vector of length 2 giving the lower and upper
-#'   bounds of the quantile range when \code{split_strategy = "random_quantile"}.
-#'   Default \code{c(0.1, 0.9)}.
 #'
 #' @return A list representing the (sub)tree; includes updated `D` and `local objective`.
 #' @importFrom stats rbinom
@@ -141,9 +133,7 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
                        max_depth = 8,
                        min_leaf_n = 5,
                        log_fn = function(...) {},
-                       max_rejects_per_node = 1000,
-                       split_strategy = "midpoint",
-                       quantile_range = c(0.1, 0.9)) {
+                       max_rejects_per_node = 1000) {
   # Derive micro-evaluator: loss(val, indices, D) from global objective
   loss_fn <- loss_from_objective(global_objective_fn)
 
@@ -182,7 +172,7 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
   fj <- choose_feature_fn(split_feature, depth)
   if (identical(fj, "leaf")) return(make_leaf(X, D, depth, reason = "feature==leaf", fj = fj))
 
-  cj <- split_point(X[[fj]], strategy = split_strategy, quantile_range = quantile_range)
+  cj <- midpoint(X[[fj]])
   X_left  <- X[X[[fj]] <= cj, , drop = FALSE]
   X_right <- X[X[[fj]] >  cj, , drop = FALSE]
   if (nrow(X_left) == 0 || nrow(X_right) == 0) {
@@ -219,24 +209,20 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
     if (stats::rbinom(1, 1, 0.5) == 1) {
       left_res  <- split_node(split_feature, X_left,  D, new_loss, depth + 1,
                               explore_proba, choose_feature_fn, reduce_weight_fn,
-                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                              split_strategy, quantile_range)
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- left_res$D
       right_res <- split_node(split_feature, X_right, D, new_loss, depth + 1,
                               explore_proba, choose_feature_fn, reduce_weight_fn,
-                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                              split_strategy, quantile_range)
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- right_res$D
     } else {
       right_res <- split_node(split_feature, X_right, D, new_loss, depth + 1,
                               explore_proba, choose_feature_fn, reduce_weight_fn,
-                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                              split_strategy, quantile_range)
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- right_res$D
       left_res  <- split_node(split_feature, X_left,  D, new_loss, depth + 1,
                               explore_proba, choose_feature_fn, reduce_weight_fn,
-                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                              split_strategy, quantile_range)
+                              global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
       D <- left_res$D
     }
 
@@ -268,7 +254,7 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
       return(make_leaf(X, D, depth, reason = "feature==leaf-after-rejects", fj = fj))
     }
 
-    cj <- split_point(X[[fj]], strategy = split_strategy, quantile_range = quantile_range)
+    cj <- midpoint(X[[fj]])
     X_left  <- X[X[[fj]] <= cj, , drop = FALSE]
     X_right <- X[X[[fj]] >  cj, , drop = FALSE]
     if (nrow(X_left) == 0 || nrow(X_right) == 0) {
@@ -300,24 +286,20 @@ split_node <- function(split_feature, X, D, parent_loss, depth,
       if (stats::rbinom(1, 1, 0.5) == 1) {
         left_res  <- split_node(rej_sf, X_left,  D, new_loss, depth + 1,
                                 explore_proba, choose_feature_fn, reduce_weight_fn,
-                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                                split_strategy, quantile_range)
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- left_res$D
         right_res <- split_node(rej_sf, X_right, D, new_loss, depth + 1,
                                 explore_proba, choose_feature_fn, reduce_weight_fn,
-                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                                split_strategy, quantile_range)
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- right_res$D
       } else {
         right_res <- split_node(rej_sf, X_right, D, new_loss, depth + 1,
                                 explore_proba, choose_feature_fn, reduce_weight_fn,
-                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                                split_strategy, quantile_range)
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- right_res$D
         left_res  <- split_node(rej_sf, X_left,  D, new_loss, depth + 1,
                                 explore_proba, choose_feature_fn, reduce_weight_fn,
-                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node,
-                                split_strategy, quantile_range)
+                                global_objective_fn, max_depth, min_leaf_n, log_fn, max_rejects_per_node)
         D <- left_res$D
       }
 
@@ -456,62 +438,7 @@ midpoint <- function(X) {
   }
 
   rng <- range(x_fin)
-  (rng[1] + rng[2]) / 2
-}
-
-
-#' Compute a split point for a numeric vector
-#'
-#' Selects a split point according to one of two strategies:
-#' \describe{
-#'   \item{\code{"midpoint"}}{The classic \code{(min + max) / 2} rule.
-#'     Deterministic given the data in the node.}
-#'   \item{\code{"random_quantile"}}{Draws a uniform random quantile in
-#'     \code{[quantile_range[1], quantile_range[2]]} (default 10th–90th
-#'     percentile) and returns the corresponding data quantile. This
-#'     introduces controlled stochasticity into split-point selection,
-#'     improving coverage of the covariate space across a forest of trees.}
-#' }
-#'
-#' @param X A numeric vector of covariate values in the current node.
-#' @param strategy Character; either \code{"midpoint"} or
-#'   \code{"random_quantile"}. Default \code{"midpoint"}.
-#' @param quantile_range Numeric vector of length 2 giving the lower and
-#'   upper bounds of the quantile range when
-#'   \code{strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
-#'
-#' @return Numeric scalar split point, or \code{NA_real_} if no finite
-#'   values exist.
-#' @keywords internal
-split_point <- function(X, strategy = "midpoint",
-                        quantile_range = c(0.1, 0.9)) {
-  if (!is.numeric(X)) {
-    stop("`X` must be a numeric vector.", call. = FALSE)
-  }
-  if (length(X) == 0L) {
-    warning("Empty vector provided to split_point(). Returning NA.",
-            call. = FALSE)
-    return(NA_real_)
-  }
-
-  x_fin <- X[is.finite(X)]
-  if (length(x_fin) == 0L) {
-    warning("No finite values in `X`. Returning NA.", call. = FALSE)
-    return(NA_real_)
-  }
-
-  if (identical(strategy, "midpoint")) {
-    rng <- range(x_fin)
-    return((rng[1] + rng[2]) / 2)
-  }
-
-  if (identical(strategy, "random_quantile")) {
-    q <- stats::runif(1, min = quantile_range[1], max = quantile_range[2])
-    return(unname(stats::quantile(x_fin, probs = q)))
-  }
-
-  stop(sprintf("Unknown split strategy: '%s'. Use 'midpoint' or 'random_quantile'.",
-               strategy), call. = FALSE)
+  (rng[1  + rng[2]) / 2
 }
 
 

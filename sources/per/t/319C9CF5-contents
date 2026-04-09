@@ -167,32 +167,6 @@
 #' @param verbose \code{Logical(1)}. If \code{TRUE}, prints the unweighted and
 #'   (when available) weighted treatment effect estimates and standard errors
 #'   in generalizability mode.
-#' @param positivity_trim Controls pre-trimming of target observations with
-#'   near-zero trial selection probability \eqn{P(S = 1 \mid X)}, addressing
-#'   structural positivity violations before ROOT optimization. Only used when
-#'   \code{generalizability_path = TRUE}; ignored otherwise.
-#'   \itemize{
-#'     \item \code{NULL} (default): no positivity trimming.
-#'     \item A \strong{numeric} in \eqn{(0, 0.5)}: target observations with
-#'       \eqn{\hat P(S = 1 \mid X)} below this value are removed.
-#'     \item \code{"crump"}: use the data-driven threshold from Crump, Hotz,
-#'       Imbens & Mitnik (2009, \emph{Biometrika}), which solves for the
-#'       optimal symmetric trimming cutoff \eqn{\alpha} that minimizes the
-#'       asymptotic variance of the treatment-effect estimator.
-#'   }
-#'   Note that trimming changes the estimand: the WTATE is now estimated over
-#'   the subpopulation \eqn{\{x : \hat P(S = 1 \mid X = x) \ge \alpha\}}.
-#' @param split_strategy Character; either \code{"midpoint"} (default) or
-#'   \code{"random_quantile"}. Controls how the split point for a chosen
-#'   feature is determined at each tree node. \code{"midpoint"} uses the
-#'   classic \code{(min + max) / 2} rule; \code{"random_quantile"} draws a
-#'   uniform random quantile within \code{quantile_range}, introducing
-#'   controlled stochasticity that improves covariate-space coverage across
-#'   the forest.
-#' @param quantile_range Numeric vector of length 2 giving the lower and upper
-#'   bounds of the quantile range when
-#'   \code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
-#'   Ignored when \code{split_strategy = "midpoint"}.
 #'
 #' @return An object of class \code{"ROOT"} (a list) with elements:
 #'   \item{D_rash}{Data frame containing the Rashomon-set tree votes and the
@@ -210,10 +184,6 @@
 #'   \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
 #'     with the unweighted (SATE) and weighted (WTATE) point estimates, and standard errors}
 #'   \item{generalizability_path}{Logical flag echoing the input.}
-#'   \item{positivity_trim_info}{(Only when \code{positivity_trim} is not
-#'     \code{NULL}) A list with the threshold used (\code{alpha}), the number
-#'     of target observations removed (\code{n_trimmed}), and the method
-#'     (\code{method}).}
 #'
 #' @references
 #' Parikh H, Ross RK, Stuart E, Rudolph KE (2025).
@@ -221,10 +191,6 @@
 #' Underrepresented Population."
 #' \emph{Journal of the American Statistical Association}.
 #' \doi{10.1080/01621459.2025.2495319}
-#'
-#' Crump RK, Hotz VJ, Imbens GW, Mitnik OA (2009).
-#' "Dealing with Limited Overlap in Estimation of Average Treatment Effects."
-#' \emph{Biometrika}, \strong{96}(1), 187--199.
 #'
 #' @seealso
 #' \code{\link{characterizing_underrep}} for a higher-level wrapper with
@@ -298,10 +264,7 @@ ROOT <- function(data,
                  max_depth             = 8L,
                  min_leaf_n            = 2L,
                  max_rejects_per_node  = 10L,
-                 verbose               = FALSE,
-                 positivity_trim       = NULL,
-                 split_strategy        = "midpoint",
-                 quantile_range        = c(0.1, 0.9)) {
+                 verbose               = FALSE) {
 
   # ---- Small helpers ------------------------------------------------------
   coerce01 <- function(x, allow_na = TRUE) {
@@ -504,27 +467,6 @@ ROOT <- function(data,
       max_rejects_per_node < 1)
     stop("`max_rejects_per_node` must be a positive integer.", call. = FALSE)
   max_rejects_per_node <- as.integer(max_rejects_per_node)
-  # Validate positivity_trim
-  if (!is.null(positivity_trim)) {
-    if (!(identical(positivity_trim, "crump") ||
-          (is.numeric(positivity_trim) && length(positivity_trim) == 1L &&
-           positivity_trim > 0 && positivity_trim < 0.5))) {
-      stop('`positivity_trim` must be NULL, "crump", or a numeric in (0, 0.5).',
-           call. = FALSE)
-    }
-  }
-  # Validate split_strategy
-  if (!is.character(split_strategy) || length(split_strategy) != 1L ||
-      !split_strategy %in% c("midpoint", "random_quantile")) {
-    stop('`split_strategy` must be "midpoint" or "random_quantile".', call. = FALSE)
-  }
-  # Validate quantile_range
-  if (!is.numeric(quantile_range) || length(quantile_range) != 2L ||
-      quantile_range[1] < 0 || quantile_range[2] > 1 ||
-      quantile_range[1] >= quantile_range[2]) {
-    stop("`quantile_range` must be a numeric vector of length 2 with 0 <= lower < upper <= 1.",
-         call. = FALSE)
-  }
   user_supplied_objective <- !is.null(global_objective_fn)
   if (!user_supplied_objective) global_objective_fn <- objective_default
   if (!is.function(global_objective_fn))
@@ -568,34 +510,6 @@ ROOT <- function(data,
       stop("Tr (treatment) contains missing values among trial units (S == 1). Please handle NA before training.", call. = FALSE)
     }
 
-    # ---- Positivity trimming (Crump et al., 2009) ----------------------------
-    positivity_trim_info <- NULL
-    if (!is.null(positivity_trim)) {
-      trim_result <- trim_positivity_violations(
-        data          = data,
-        sample_col    = sample_col,
-        outcome_col   = outcome_col,
-        treatment_col = treatment_col,
-        threshold     = positivity_trim
-      )
-      if (trim_result$n_trimmed > 0L) {
-        message(sprintf(
-          paste0("Positivity trimming: removed %d target observation(s) with ",
-                 "P(S=1|X) < %g (method = %s)."),
-          trim_result$n_trimmed, trim_result$alpha,
-          if (identical(positivity_trim, "crump")) "crump" else "fixed"
-        ))
-      }
-      positivity_trim_info <- list(
-        method    = if (identical(positivity_trim, "crump")) "crump" else "fixed",
-        alpha     = trim_result$alpha,
-        n_trimmed = trim_result$n_trimmed
-      )
-      data <- trim_result$data
-      # Re-derive trial_mask after trimming
-      trial_mask <- data[[sample_col]] == 1
-    }
-
     scores <- compute_transport_scores(
       data     = data,
       outcome  = outcome_col,
@@ -615,7 +529,6 @@ ROOT <- function(data,
     vsq_vals     <- vsq_all[analysis_idx]
     S_vec        <- rep(1L, length(analysis_idx))
   } else {
-    positivity_trim_info <- NULL
     testing_data <- data
     n <- nrow(testing_data)
 
@@ -697,9 +610,7 @@ ROOT <- function(data,
         global_objective_fn  = global_objective_fn,
         max_depth            = max_depth,
         min_leaf_n           = min_leaf_n,
-        max_rejects_per_node = max_rejects_per_node,
-        split_strategy       = split_strategy,
-        quantile_range       = quantile_range
+        max_rejects_per_node = max_rejects_per_node
       )
     }
 
@@ -955,9 +866,7 @@ ROOT <- function(data,
     f                       = final_classifier,
     testing_data            = testing_data,
     estimate                = est_list,
-    generalizability_path   = generalizability_path,
-    positivity_trim_info    = positivity_trim_info,
-    split_strategy          = split_strategy
+    generalizability_path   = generalizability_path
   )
   class(res) <- c("ROOT", "list")
   res
