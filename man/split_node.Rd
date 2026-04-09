@@ -18,7 +18,9 @@ split_node(
   min_leaf_n = 5,
   log_fn = function(...) {
  },
-  max_rejects_per_node = 1000
+  max_rejects_per_node = 1000,
+  split_strategy = "midpoint",
+  quantile_range = c(0.1, 0.9)
 )
 }
 \arguments{
@@ -47,6 +49,16 @@ split_node(
 \item{log_fn}{Function for logging; default no-op.}
 
 \item{max_rejects_per_node}{Safety budget of rejected splits before forcing a leaf.}
+
+\item{split_strategy}{Character; either \code{"midpoint"} (default) or
+\code{"random_quantile"}. Controls how the split point for a chosen
+feature is determined. \code{"midpoint"} uses \code{(min + max) / 2};
+\code{"random_quantile"} draws a uniform random quantile within
+\code{quantile_range}, improving covariate-space coverage across the forest.}
+
+\item{quantile_range}{Numeric vector of length 2 giving the lower and upper
+bounds of the quantile range when \code{split_strategy = "random_quantile"}.
+Default \code{c(0.1, 0.9)}.}
 }
 \value{
 A list representing the (sub)tree; includes updated \code{D} and \verb{local objective}.

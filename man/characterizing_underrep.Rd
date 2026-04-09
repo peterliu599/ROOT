@@ -21,7 +21,10 @@ characterizing_underrep(
   max_depth = 8L,
   min_leaf_n = 2L,
   max_rejects_per_node = 10L,
-  verbose = FALSE
+  verbose = FALSE,
+  positivity_trim = NULL,
+  split_strategy = "midpoint",
+  quantile_range = c(0.1, 0.9)
 )
 }
 \arguments{
@@ -96,6 +99,22 @@ recursion in pathological cases. Default \code{10}.}
 
 \item{verbose}{Logical; if \code{TRUE}, prints the unweighted and weighted
 estimands with standard errors. Default \code{FALSE}.}
+
+\item{positivity_trim}{Controls pre-trimming of target observations with
+near-zero trial selection probability. Only used when
+\code{generalizability_path = TRUE}. Accepts \code{NULL} (no trimming,
+default), a numeric in \eqn{(0, 0.5)}, or \code{"crump"} for the
+data-driven threshold of Crump et al. (2009). See \code{\link{ROOT}} for
+details.}
+
+\item{split_strategy}{Character; either \code{"midpoint"} (default) or
+\code{"random_quantile"}. Controls how split points are chosen at each
+tree node. See \code{\link{ROOT}} for details.}
+
+\item{quantile_range}{Numeric vector of length 2 giving the lower and upper
+bounds of the quantile range when
+\code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
+Ignored when \code{split_strategy = "midpoint"}.}
 }
 \value{
 A \code{characterizing_underrep} S3 object (a \code{list}) with:

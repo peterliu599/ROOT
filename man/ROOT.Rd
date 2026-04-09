@@ -21,7 +21,10 @@ ROOT(
   max_depth = 8L,
   min_leaf_n = 2L,
   max_rejects_per_node = 10L,
-  verbose = FALSE
+  verbose = FALSE,
+  positivity_trim = NULL,
+  split_strategy = "midpoint",
+  quantile_range = c(0.1, 0.9)
 )
 }
 \arguments{
@@ -122,6 +125,35 @@ recursion in pathological cases. Default \code{10}.}
 \item{verbose}{\code{Logical(1)}. If \code{TRUE}, prints the unweighted and
 (when available) weighted treatment effect estimates and standard errors
 in generalizability mode.}
+
+\item{positivity_trim}{Controls pre-trimming of target observations with
+near-zero trial selection probability \eqn{P(S = 1 \mid X)}, addressing
+structural positivity violations before ROOT optimization. Only used when
+\code{generalizability_path = TRUE}; ignored otherwise.
+\itemize{
+\item \code{NULL} (default): no positivity trimming.
+\item A \strong{numeric} in \eqn{(0, 0.5)}: target observations with
+\eqn{\hat P(S = 1 \mid X)} below this value are removed.
+\item \code{"crump"}: use the data-driven threshold from Crump, Hotz,
+Imbens & Mitnik (2009, \emph{Biometrika}), which solves for the
+optimal symmetric trimming cutoff \eqn{\alpha} that minimizes the
+asymptotic variance of the treatment-effect estimator.
+}
+Note that trimming changes the estimand: the WTATE is now estimated over
+the subpopulation \eqn{\{x : \hat P(S = 1 \mid X = x) \ge \alpha\}}.}
+
+\item{split_strategy}{Character; either \code{"midpoint"} (default) or
+\code{"random_quantile"}. Controls how the split point for a chosen
+feature is determined at each tree node. \code{"midpoint"} uses the
+classic \code{(min + max) / 2} rule; \code{"random_quantile"} draws a
+uniform random quantile within \code{quantile_range}, introducing
+controlled stochasticity that improves covariate-space coverage across
+the forest.}
+
+\item{quantile_range}{Numeric vector of length 2 giving the lower and upper
+bounds of the quantile range when
+\code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
+Ignored when \code{split_strategy = "midpoint"}.}
 }
 \value{
 An object of class \code{"ROOT"} (a list) with elements:
@@ -140,6 +172,10 @@ weight or no covariates were available.}
 \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
 with the unweighted (SATE) and weighted (WTATE) point estimates, and standard errors}
 \item{generalizability_path}{Logical flag echoing the input.}
+\item{positivity_trim_info}{(Only when \code{positivity_trim} is not
+\code{NULL}) A list with the threshold used (\code{alpha}), the number
+of target observations removed (\code{n_trimmed}), and the method
+(\code{method}).}
 }
 \description{
 ROOT (Rashomon Set of Optimal Trees) is a general-purpose functional
@@ -290,6 +326,10 @@ Parikh H, Ross RK, Stuart E, Rudolph KE (2025).
 Underrepresented Population."
 \emph{Journal of the American Statistical Association}.
 \doi{10.1080/01621459.2025.2495319}
+
+Crump RK, Hotz VJ, Imbens GW, Mitnik OA (2009).
+"Dealing with Limited Overlap in Estimation of Average Treatment Effects."
+\emph{Biometrika}, \strong{96}(1), 187--199.
 }
 \seealso{
 \code{\link{characterizing_underrep}} for a higher-level wrapper with
