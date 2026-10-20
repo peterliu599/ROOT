@@ -28,7 +28,7 @@ split_node(
 
 \item{X}{Data frame of current observations (includes candidate split feature columns; may include a working copy of weights \code{w}).}
 
-\item{D}{Data frame representing the global state (must include columns \code{w} and \code{vsq}; row names align to observations).}
+\item{D}{Data frame representing the global state (must include column \code{w} plus whatever columns \code{global_objective_fn} reads; row names align to observations).}
 
 \item{parent_loss}{Numeric, the loss value of the parent node (used to decide if a split improves the objective).}
 

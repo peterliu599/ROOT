@@ -53,7 +53,7 @@ test_that("print.ROOT prints summary tree when f is present", {
 
 test_that("print.ROOT prints estimands in generalizability mode", {
   est <- list(
-    estimand_unweighted = "SATE",
+    estimand_unweighted = "STATE",
     value_unweighted    = 0.123,
     se_unweighted       = 0.045,
     estimand_weighted   = "WTATE",
@@ -71,7 +71,7 @@ test_that("print.ROOT prints estimands in generalizability mode", {
   expect_true(any(grepl("ROOT object", out)))
   expect_true(any(grepl("Generalizability mode.*TRUE", out)))
   expect_true(any(grepl("Estimand summary \\(generalization mode\\)", out)))
-  expect_true(any(grepl("Unweighted.*SATE", out)))
+  expect_true(any(grepl("Unweighted.*STATE", out)))
   expect_true(any(grepl("Weighted.*WTATE", out)))
 })
 
@@ -376,8 +376,8 @@ test_that("ROOT verbose output shows SE info with custom objective", {
   )
 
   expect_s3_class(result, "ROOT")
-  # verbose should print SATE/WTATE messages
-  expect_true(any(grepl("SATE|WTATE", msgs)))
+  # verbose should print STATE/WTATE messages
+  expect_true(any(grepl("STATE|WTATE", msgs)))
 })
 
 test_that("print.characterizing_underrep rejects wrong class", {
@@ -512,4 +512,3 @@ test_that("ROOT coerce01 handles factor S and Tr columns", {
   expect_s3_class(result, "ROOT")
   expect_true(all(result$D_rash$w_opt %in% 0:1))
 })
-

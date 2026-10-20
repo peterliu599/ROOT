@@ -8,6 +8,35 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Package Updates
 
+### Changes in Version 0.2.1 (2026-10-19)
+
+#### Bug fixes (generalizability mode)
+
+* `compute_transport_scores()` now includes the overall selection-odds
+  prefactor pi/(1 - pi) = n1/n0 in the IPW score `v`, as in Parikh et al.
+  (2025). Previously the reported unweighted and weighted estimates and their
+  SEs were inflated by (1 - pi)/pi.
+* New default objective `objective_generalizability()`: the finite-sample SE
+  of the IPW WTATE estimator, with residuals centered at the mean of the kept
+  units and scaled by `kappa_w`, which re-normalizes the selection odds to
+  pi_w = P(S = 1 | w(X) = 1). Previously the search minimized an uncentered
+  second moment, sqrt(sum(w * v^2)) / sum(w), which can select different trees.
+* The weighted estimate and SE are now `kappa_w * mean(v[A])` and
+  `kappa_w * sd(v[A]) / sqrt(n_A)`; `kappa_w` is returned in `$estimate`.
+
+#### Terminology
+
+* The unweighted generalizability estimate is now labelled `"STATE"` (sample
+  target average treatment effect, following Parikh et al. 2025) instead of
+  `"SATE"`, which conventionally denotes the trial-sample average treatment
+  effect. The weighted estimate remains `"WTATE"`.
+
+#### Bug fixes (general mode)
+
+* When only a `v` column is supplied, `vsq` is no longer precomputed around
+  the full-sample mean; `objective_default()` now centers `v` at the mean of
+  the currently included units at every evaluation.
+
 ### Changes in Version 0.2.0 (2026-04-09)
 
 #### New features

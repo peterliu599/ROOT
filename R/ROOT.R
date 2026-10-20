@@ -69,8 +69,8 @@
 #'     probability) and treatment effect heterogeneity, so that subgroups
 #'     are flagged as underrepresented only when they both lack trial
 #'     representation and exhibit effect modification.
-#'   \item The output includes the unweighted sample average treatment
-#'     effect (SATE) and the WTATE with standard errors.
+#'   \item The output includes the unweighted sample target average
+#'     treatment effect (STATE) and the WTATE with standard errors.
 #' }
 #'
 #' See \code{\link{characterizing_underrep}} for a higher-level wrapper that
@@ -208,7 +208,7 @@
 #'   \item{testing_data}{Data frame of observations used for optimization
 #'     (trial units when \code{generalizability_path = TRUE}).}
 #'   \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
-#'     with the unweighted (SATE) and weighted (WTATE) point estimates, and standard errors}
+#'     with the unweighted (STATE) and weighted (WTATE) point estimates, and standard errors}
 #'   \item{generalizability_path}{Logical flag echoing the input.}
 #'   \item{positivity_trim_info}{(Only when \code{positivity_trim} is not
 #'     \code{NULL}) A list with the threshold used (\code{alpha}), the number
@@ -526,7 +526,13 @@ ROOT <- function(data,
          call. = FALSE)
   }
   user_supplied_objective <- !is.null(global_objective_fn)
-  if (!user_supplied_objective) global_objective_fn <- objective_default
+  if (!user_supplied_objective) {
+    global_objective_fn <- if (isTRUE(generalizability_path)) {
+      objective_generalizability
+    } else {
+      objective_default
+    }
+  }
   if (!is.function(global_objective_fn))
     stop("`global_objective_fn` must be a function(D) -> numeric.", call. = FALSE)
 
@@ -602,8 +608,9 @@ ROOT <- function(data,
       treatment = treatment_col,
       sample   = sample_col
     )
-    v_all   <- scores$v
-    vsq_all <- scores$vsq
+    v_all    <- scores$v
+    vsq_all  <- scores$vsq
+    sel_all  <- scores$sel_odds
     S_full  <- data[[sample_col]]
 
     analysis_idx <- which(S_full == 1L)
@@ -613,7 +620,9 @@ ROOT <- function(data,
     testing_data <- data[analysis_idx, , drop = FALSE]
     v_vals       <- v_all[analysis_idx]
     vsq_vals     <- vsq_all[analysis_idx]
+    sel_vals     <- sel_all[analysis_idx]
     S_vec        <- rep(1L, length(analysis_idx))
+    include_vsq  <- TRUE   # kept so user-supplied objectives can still read D$vsq
   } else {
     positivity_trim_info <- NULL
     testing_data <- data
@@ -625,13 +634,21 @@ ROOT <- function(data,
       v_vals <- rep(0, n)
     }
 
+    sel_vals <- NULL
     if ("vsq" %in% names(testing_data)) {
-      vsq_vals <- testing_data[["vsq"]]
+      vsq_vals    <- testing_data[["vsq"]]
+      include_vsq <- TRUE
     } else if ("v" %in% names(testing_data) && is.numeric(v_vals)) {
-      mu_v <- mean(v_vals, na.rm = TRUE)
-      vsq_vals <- (v_vals - mu_v)^2
+      # Only `v` supplied: do NOT pass a precomputed vsq to the objective.
+      # objective_default() then centers v at the mean of the currently
+      # included units on every evaluation. The fixed-mean version below is
+      # used only to guide feature-importance sampling.
+      mu_v        <- mean(v_vals, na.rm = TRUE)
+      vsq_vals    <- (v_vals - mu_v)^2
+      include_vsq <- FALSE
     } else {
-      vsq_vals <- rep(1, n)
+      vsq_vals    <- rep(1, n)
+      include_vsq <- TRUE
     }
 
     if ("S" %in% names(testing_data)) {
@@ -646,7 +663,7 @@ ROOT <- function(data,
   # ---- Step 2: Prepare covariates for splitting --------------------------
   drop_cols <- intersect(
     names(testing_data),
-    c("Y", "Tr", "S", "v", "vsq", "w", "lX")
+    c("Y", "Tr", "S", "v", "vsq", "w", "lX", "sel_odds")
   )
   X_df <- testing_data[, setdiff(names(testing_data), drop_cols), drop = FALSE]
 
@@ -663,24 +680,20 @@ ROOT <- function(data,
   }
 
   # ---- Step 3: Build forest ----------------------------------------------
-  D_forest <- data.frame(
-    X_df,
-    v   = v_vals,
-    vsq = vsq_vals,
-    S   = S_vec,
-    stringsAsFactors = FALSE
-  )
+  # Working-state builder: columns read by the objective functions
+  make_state <- function(with_w) {
+    D <- data.frame(X_df, v = v_vals, stringsAsFactors = FALSE)
+    if (include_vsq)       D$vsq      <- vsq_vals
+    if (!is.null(sel_vals)) D$sel_odds <- sel_vals
+    if (with_w)            D$w        <- rep(1, n)
+    D$S <- S_vec
+    D
+  }
+  D_forest <- make_state(with_w = FALSE)
 
   w_forest <- vector("list", num_trees)
   for (t_idx in seq_len(num_trees)) {
-    D_tree <- data.frame(
-      X_df,
-      v   = v_vals,
-      vsq = vsq_vals,
-      w   = rep(1, n),
-      S   = S_vec,
-      stringsAsFactors = FALSE
-    )
+    D_tree <- make_state(with_w = TRUE)
     rownames(D_tree) <- as.character(seq_len(n))
     rownames(X_df)   <- as.character(seq_len(n))
 
@@ -857,11 +870,12 @@ ROOT <- function(data,
   est_list <- NULL
   if (generalizability_path) {
     in_S  <- rep(TRUE, n)  # we already subset to S == 1
-    v_sel <- v_vals
+    v_sel <- v_vals        # IPW scores, already scaled by pi/(1-pi)
+    r_sel <- sel_vals      # inverse selection odds (1 - pi(X)) / pi(X)
     w_sel <- if ("w_opt" %in% names(D_rash)) D_rash$w_opt[in_S] else rep(1L, length(v_sel))
 
-    ## Unweighted SATE
-    est_label_unw <- "SATE"
+    ## Unweighted STATE (sample target average treatment effect)
+    est_label_unw <- "STATE"
     ok_unw        <- !is.na(v_sel)
     n_eff_unw     <- sum(ok_unw)
     mu_unw        <- if (n_eff_unw > 0) mean(v_sel[ok_unw]) else NA_real_
@@ -881,17 +895,23 @@ ROOT <- function(data,
       n_A   <- sum(ok_w)
       den_w <- sum(w_sel == 1L, na.rm = TRUE)
       if (n_A > 0) {
-        mu_w <- mean(v_sel[ok_w])
+        # Re-normalize from pi/(1-pi) to pi_w/(1-pi_w),
+        # pi_w = P(S = 1 | w(X) = 1); see objective_generalizability().
+        kappa_w <- wtate_kappa(r_sel, ok_w, ok_unw)
+        vbar_A  <- mean(v_sel[ok_w])
+        mu_w    <- kappa_w * vbar_A
         se_w <- if (n_A > 1) {
-          diffs2_A <- (v_sel[ok_w] - mu_w)^2
-          sqrt(sum(diffs2_A) / (n_A * (n_A - 1)))
+          diffs2_A <- (v_sel[ok_w] - vbar_A)^2
+          kappa_w * sqrt(sum(diffs2_A) / (n_A * (n_A - 1)))
         } else NA_real_
 
         se_w_note <- paste0(
-          "Calculation of SE for WTATE uses sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
-          "  Here A = { i : w_i = 1 }, n_A = |A|, v_i are unit-level orthogonal scores, and vbar_A is their mean.\n"
+          "WTATE = kappa_w * vbar_A; SE = kappa_w * sqrt( sum_{A} (v_i - vbar_A)^2 / ( n_A * (n_A - 1) ) ).\n",
+          "  Here A = { i : S_i = 1, w_i = 1 }, n_A = |A|, v_i are the IPW transported scores, vbar_A is\n",
+          "  their mean, and kappa_w = [n_A / sum_A r_i] / [n_1 / sum_{S=1} r_i] with r_i = (1 - pi(X_i)) / pi(X_i).\n",
+          "  The SE treats w and the nuisance models as fixed.\n"
         )
-        if (!identical(global_objective_fn, objective_default)) {
+        if (user_supplied_objective) {
           se_w_note <- paste0(
             se_w_note,
             "\nYou supplied a custom global_objective_fn; please verify this SE matches your ",
@@ -902,12 +922,16 @@ ROOT <- function(data,
       } else {
         mu_w     <- NA_real_
         se_w     <- NA_real_
+        kappa_w  <- NA_real_
         den_w    <- 0L
         n_A      <- 0L
         se_w_note <- "SE omitted: no kept observations (A = { i : w_i = 1 } is empty)."
       }
     } else {
-      mu_w     <- mu_w_any
+      ok_nb    <- ok_unw & !is.na(w_sel)
+      kappa_w  <- (sum(w_sel[ok_nb]) / sum(w_sel[ok_nb] * r_sel[ok_nb])) /
+        (sum(ok_unw) / sum(r_sel[ok_unw]))
+      mu_w     <- kappa_w * mu_w_any
       den_w    <- den_w_any
       n_A      <- NA_integer_
       se_w     <- NA_real_
@@ -940,6 +964,7 @@ ROOT <- function(data,
       se_weighted_note    = se_w_note,
       n_analysis          = sum(in_S),
       sum_w               = den_w,
+      kappa_w             = kappa_w,
       n_A                 = if (is_binary_w) n_A else NA_integer_
     )
   }

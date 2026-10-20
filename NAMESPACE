@@ -8,8 +8,10 @@ S3method(summary,ROOT)
 S3method(summary,characterizing_underrep)
 export(ROOT)
 export(characterizing_underrep)
-importFrom(graphics,legend)
-importFrom(graphics,par)
-importFrom(graphics,title)
+importFrom(graphics,
+  legend,
+  par,
+  title
+)
 importFrom(rpart.plot,prp)
 importFrom(stats,rbinom)

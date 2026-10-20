@@ -25,10 +25,13 @@ indicator column in \code{data}, with 1 for trial rows and 0 for target
 rows.}
 }
 \value{
-A list with two numeric vectors of length \code{nrow(data)}:
+A list with three numeric vectors of length \code{nrow(data)}:
 \describe{
 \item{\code{v}}{The transported influence-style score.}
-\item{\code{vsq}}{The element-wise square of \code{v}, i.e., \code{v^2}.}
+\item{\code{vsq}}{Squared deviation of \code{v} from its trial-sample
+mean; used only to guide feature-importance estimation.}
+\item{\code{sel_odds}}{Inverse selection odds \eqn{(1-\hat\pi(X))/\hat\pi(X)}
+after flooring.}
 }
 }
 \description{
@@ -45,15 +48,18 @@ and 0 in the target sample. It proceeds in three steps:
 on all rows of \code{data}.
 \item Within the trial subset \eqn{S = 1}, fit a treatment model
 \eqn{P(T = 1 | X, S = 1)} using logistic regression.
-\item For each row, form the density ratio
-\eqn{r(X) = P(S = 0 | X) / P(S = 1 | X)}
-and compute a Horvitz-Thompson-style transported score
-\deqn{v(X, T, Y) = r(X) \left[ \frac{T Y}{e(X)} - \frac{(1 - T) Y}{1 - e(X)} \right],}
-where \eqn{e(X) = P(T = 1 | X, S = 1)}.
+\item For each row, form the inverse selection odds
+\eqn{r(X) = P(S = 0 | X) / P(S = 1 | X) = 1/\ell(X)}
+and compute the IPW transported score of Parikh et al. (2025),
+\deqn{v(X, T, Y) = \frac{\hat\pi}{1 - \hat\pi} r(X) \left[ \frac{T Y}{e(X)} - \frac{(1 - T) Y}{1 - e(X)} \right],}
+where \eqn{e(X) = P(T = 1 | X, S = 1)} and
+\eqn{\hat\pi = n_1 / n} is the overall trial fraction.
 }
 
-The resulting score vector \code{v} and its squared version \code{vsq}
-can be used as pseudo-outcomes for tree-based search over transported
-treatment effects.
+Because of the \eqn{\hat\pi/(1-\hat\pi)} normalization, the trial-sample
+mean of \code{v} is the IPW estimate of the target average treatment
+effect. The inverse selection odds \code{sel_odds} \eqn{= r(X)} are also
+returned; they are needed to re-normalize the estimator for a refined
+population \eqn{w(X) = 1} (see \code{objective_generalizability}).
 }
 \keyword{internal}

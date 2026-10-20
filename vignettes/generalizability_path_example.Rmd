@@ -23,8 +23,9 @@ are "underrepresented" or "insufficiently represented" often occupy regions of t
 covariate space with heterogeneous treatment effects and insufficient representation
 in the trial data. If certain subgroups are underrepresented in the trial, estimates
 of the **Target Average Treatment Effect (TATE)** can be imprecise or misleading when 
-transported to that population. The **Sample Average Treatment Effect (SATE)** is a
-finite sample equivalent version of the TATE.
+transported to that population. The **Sample Target Average Treatment Effect (STATE)**, the average
+treatment effect over the target sample, is a finite sample equivalent
+version of the TATE.
 
 The resulting estimand from ROOT is the **Weighted Target Average Treatment Effect
 (WTATE)**: the average treatment effect restricted to the sufficiently represented
@@ -144,10 +145,10 @@ estimands with their standard errors.
 summary(gen_fit)
 ```
 
-The **SATE** (unweighted) is the simple trial average treatment effect
-transported to the full target population. The **WTATE** (weighted) restricts
+The **STATE** (unweighted) is the trial evidence transported to the full
+target sample. The **WTATE** (weighted) restricts
 this estimate to the well-represented subpopulation, where the trial provides
-more reliable evidence. A smaller standard error (SE) for the WTATE relative to the SATE
+more reliable evidence. A smaller standard error (SE) for the WTATE relative to the STATE
 reflects the variance reduction achieved by this restriction.
 
 ### Terminal node rules

@@ -148,7 +148,7 @@ test_that("summary.ROOT prints basic info", {
     D_rash   = data.frame(w_opt = c(1L, 1L, 0L)),
     rashomon_set = 1L,
     estimate = list(
-      estimand_unweighted = "SATE",
+      estimand_unweighted = "STATE",
       value_unweighted    = 0.1,
       se_unweighted       = 0.2,
       estimand_weighted   = "WTATE",
@@ -450,7 +450,7 @@ test_that("summary.ROOT: prints full estimand summary in generalizability mode",
     D_rash   = data.frame(w_opt = c(1L, 1L, 0L)),
     rashomon_set = 1L,
     estimate = list(
-      estimand_unweighted = "SATE",
+      estimand_unweighted = "STATE",
       value_unweighted    = 0.123,
       se_unweighted       = 0.045,
       estimand_weighted   = "WTATE",
@@ -465,7 +465,7 @@ test_that("summary.ROOT: prints full estimand summary in generalizability mode",
   expect_true(any(grepl("ROOT object", out)))
   expect_true(any(grepl("Generalizability mode:\\s*TRUE", out)))
   expect_true(any(grepl("Estimand summary \\(generalization mode\\)", out)))
-  expect_true(any(grepl("Unweighted.*SATE", out)))
+  expect_true(any(grepl("Unweighted.*STATE", out)))
   expect_true(any(grepl("Weighted.*WTATE", out)))
 })
 

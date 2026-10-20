@@ -145,11 +145,11 @@ trim_positivity_violations <- function(data, sample_col, outcome_col,
 #'   \item{SE}{Standard error.}
 #'   \item{TATE}{Transported average treatment effect.}
 #'   \item{WTATE}{Weighted transported average treatment effect.}
-#'   \item{SATE}{Sample average treatment effect.}
+#'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
 #' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
-#' to a SATE-type quantity and the weighted estimand to a WTATE-type
+#' to a STATE-type quantity and the weighted estimand to a WTATE-type
 #' quantity for the transported target population. When \code{generalizability_path = FALSE},
 #' ROOT is used for general functional optimization and no causal labels
 #' are imposed; the summary focuses on the tree and diagnostics.
@@ -278,11 +278,11 @@ summary.ROOT <- function(object, ...) {
 #'   \item{SE}{Standard error.}
 #'   \item{TATE}{Transported average treatment effect.}
 #'   \item{WTATE}{Weighted transported average treatment effect.}
-#'   \item{SATE}{Sample average treatment effect.}
+#'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
 #' When \code{generalizability_path = TRUE}, the unweighted estimand corresponds
-#' to a SATE-type quantity and the weighted estimand to a WTATE-type
+#' to a STATE-type quantity and the weighted estimand to a WTATE-type
 #' quantity for the transported target population. When \code{generalizability_path = FALSE},
 #' ROOT is used for general functional optimization and no causal labels
 #' are imposed.

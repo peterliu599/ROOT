@@ -21,11 +21,16 @@ check_no_na <- function(data, cols) {
 
 #' Generic objective interface
 #'
-#' Default objective that serves as a proxy for standard error in weighted transported
-#' average treatment effect (WTATE) and sample average treatment effect (SATE).
+#' Default objective for general optimization mode: the standard error of a
+#' weighted mean of per-unit scores.
 #'
-#' Computes \code{sqrt(sum(vsq_i * w_i)) / (sum(w_i))^2}.
-#' Requires columns \code{vsq} and \code{w} in \code{D}. The goal is to minimize the value.
+#' Computes \code{sqrt(sum(w_i * vsq_i) / (sum(w_i))^2)}. If \code{D} has a
+#' \code{vsq} column it is used as supplied. Otherwise, if \code{D} has a
+#' \code{v} column, \code{vsq_i = (v_i - vbar_w)^2} is recomputed at every
+#' call, where \code{vbar_w} is the mean of \code{v} over the currently
+#' included units, so the criterion is a genuine (w-dependent) variance.
+#' The goal is to minimize the value. The generalizability path uses
+#' \code{objective_generalizability} instead.
 #' Supply your own \code{function(D) -> numeric} to use a different objective.
 #'
 #' @param D A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.
@@ -59,6 +64,61 @@ objective_default <- function(D) {
   den <- sum(w, na.rm = TRUE)^2
   if (!is.finite(num) || !is.finite(den) || den <= 0) return(Inf)
   sqrt(num / den)
+}
+
+#' Default objective for generalizability mode: SE of the IPW WTATE estimator
+#'
+#' Finite-sample standard error of the IPW estimator of the weighted target
+#' average treatment effect (Parikh et al. 2025; Appendix A of the ROOT paper),
+#' \deqn{L(w) = \kappa_w \sqrt{\sum_{i \in A} (v_i - \bar v_A)^2} / n_A,}
+#' where \eqn{A = \{i : S_i = 1, w_i = 1\}}, \eqn{n_A = |A|}, \eqn{\bar v_A}
+#' is the mean of \code{v} over \eqn{A}, and
+#' \deqn{\kappa_w = \frac{n_A / \sum_{i \in A} r_i}{n_1 / \sum_{S_i = 1} r_i}}
+#' re-normalizes the selection odds from the full population,
+#' \eqn{\pi/(1-\pi)}, to the refined population,
+#' \eqn{\pi_w/(1-\pi_w)} with \eqn{\pi_w = P(S = 1 \mid w(X) = 1)}.
+#' Here \eqn{r_i = (1-\hat\pi(X_i))/\hat\pi(X_i)} (column \code{sel_odds}),
+#' and \eqn{\sum_{i \in A} r_i} estimates the number of target units with
+#' \eqn{w = 1}, because \eqn{E[S\,w(X)\,r(X)] = E[(1-S)\,w(X)]}.
+#' \eqn{\kappa_w = 1} when \eqn{w \equiv 1}.
+#' This equals \eqn{\sqrt{\hat V^{ipw,w}/n_1}}.
+#'
+#' @param D A \code{data.frame} with numeric columns \code{w}, \code{v}
+#'   (from \code{compute_transport_scores}, trial rows only) and \code{sel_odds}.
+#' @return A \code{numeric(1)} objective value; \code{Inf} when undefined.
+#' @keywords internal
+#' @noRd
+objective_generalizability <- function(D) {
+  if (!all(c("w", "v", "sel_odds") %in% names(D))) {
+    stop("objective_generalizability() expects columns `w`, `v`, and `sel_odds` in D.",
+         call. = FALSE)
+  }
+  ok <- !is.na(D$v) & is.finite(D$v) & !is.na(D$sel_odds)
+  w  <- D$w
+  A  <- ok & !is.na(w) & w == 1
+  n_A <- sum(A)
+  if (n_A < 2L) return(Inf)
+  kappa <- wtate_kappa(D$sel_odds, A, ok)
+  v_A <- D$v[A]
+  val <- kappa * sqrt(sum((v_A - mean(v_A))^2)) / n_A
+  if (!is.finite(val)) return(Inf)
+  val
+}
+
+#' Selection-odds re-normalization for a refined population
+#'
+#' Returns \eqn{\kappa_w = (n_A / \sum_{A} r_i) / (n_1 / \sum_{trial} r_i)},
+#' the factor converting the full-population IPW scores \code{v} to the
+#' refined population \eqn{w = 1}.
+#'
+#' @param sel_odds Numeric vector of \eqn{r_i} for trial units.
+#' @param A Logical vector: units with \eqn{w = 1}.
+#' @param ok Logical vector: usable trial units.
+#' @return \code{numeric(1)}.
+#' @keywords internal
+#' @noRd
+wtate_kappa <- function(sel_odds, A, ok = rep(TRUE, length(sel_odds))) {
+  (sum(A) / sum(sel_odds[A])) / (sum(ok) / sum(sel_odds[ok]))
 }
 
 #' Helper to evaluate the objective after a hypothetical local change

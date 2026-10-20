@@ -152,8 +152,9 @@ and the conditional average treatment effect. Subgroups where \eqn{\ell(x)}
 is small, and conditional average treatment effect deviates from the
 overall TATE, contribute disproportionately to estimator variance. These are
 the subgroups that \code{characterizing_underrep()} identifies and
-characterizes. The sample average treatment effect (SATE) is a
-finite sample equivalent version of the TATE.
+characterizes. The sample target average treatment effect (STATE),
+the average treatment effect over the target sample, is a finite sample
+equivalent version of the TATE.
 }
 
 \section{The generalizability workflow}{
@@ -175,10 +176,10 @@ estimand trades some generality for greater precision and credibility.
 
 The key estimands are:
 \itemize{
-\item \strong{SATE} (Sample Average Treatment Effect): the treatment
-effect for the full target population based on the trial sample, which
-may be imprecise if certain subgroups are underrepresented. It is a
-finite sample equivalent version of the TATE.
+\item \strong{STATE} (Sample Target Average Treatment Effect): the
+treatment effect for the full target sample, estimated by transporting
+the trial results, which may be imprecise if certain subgroups are
+underrepresented. It is a finite sample equivalent version of the TATE.
 \item \strong{WTATE} (Weighted Target Average Treatment Effect): the
 treatment effect restricted to the sufficiently represented
 subpopulation, estimated with lower variance.
@@ -229,7 +230,7 @@ plot(char_fit)
 # Inspect which subgroups are underrepresented
 char_fit$leaf_summary
 
-# Treatment effect estimates (SATE and WTATE)
+# Treatment effect estimates (STATE and WTATE)
 char_fit$root$estimate
 
 }

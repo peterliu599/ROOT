@@ -38,14 +38,17 @@ muffle_vt <- function(expr) {
 }
 
 # Run ROOT with small fixed settings so tests stay fast.
-root_vt <- function(data, vote_threshold, seed = 1) {
+# `k` is the Rashomon-set size. "mean" and "median" deliberately error when an
+# observation's vote is exactly 0.5, which can happen whenever k is even, so
+# tests of those rules use an odd k.
+root_vt <- function(data, vote_threshold, seed = 1, k = 4) {
   muffle_vt(ROOT(
     data                  = data,
     generalizability_path = TRUE,
     seed                  = seed,
     num_trees             = 6,
     top_k_trees           = TRUE,
-    k                     = 4,
+    k                     = k,
     vote_threshold        = vote_threshold
   ))
 }
@@ -98,7 +101,7 @@ test_that("vote_threshold 'majority': w_opt binary and string stored", {
 
 test_that("vote_threshold 'mean': w_opt binary and string stored", {
   d   <- mk_vt_data()
-  out <- root_vt(d, "mean")
+  out <- root_vt(d, "mean", k = 5)   # odd k: a 0.5 tie is impossible
 
   expect_s3_class(out, "ROOT")
   expect_true(all(out$D_rash$w_opt %in% 0:1))
@@ -107,7 +110,7 @@ test_that("vote_threshold 'mean': w_opt binary and string stored", {
 
 test_that("vote_threshold 'median': w_opt binary and string stored", {
   d   <- mk_vt_data()
-  out <- root_vt(d, "median")
+  out <- root_vt(d, "median", k = 5) # odd k: a 0.5 tie is impossible
 
   expect_s3_class(out, "ROOT")
   expect_true(all(out$D_rash$w_opt %in% 0:1))
@@ -124,8 +127,8 @@ test_that("'majority' and numeric 2/3 give identical w_opt (same seed)", {
 
 test_that("'mean' and numeric 0.5 give identical w_opt (same seed)", {
   d       <- mk_vt_data()
-  out_num <- root_vt(d, 0.5,    seed = 21)
-  out_str <- root_vt(d, "mean", seed = 21)
+  out_num <- root_vt(d, 0.5,    seed = 21, k = 5)
+  out_str <- root_vt(d, "mean", seed = 21, k = 5)
 
   expect_equal(out_num$D_rash$w_opt, out_str$D_rash$w_opt)
 })

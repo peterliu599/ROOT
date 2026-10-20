@@ -12,7 +12,7 @@
 #'   \item{SE}{Standard error.}
 #'   \item{TATE}{Transported average treatment effect.}
 #'   \item{WTATE}{Weighted transported average treatment effect.}
-#'   \item{SATE}{Sample average treatment effect.}
+#'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
 #' @param object A \code{characterizing_underrep} S3 object. Expected components include
@@ -74,7 +74,7 @@ summary.characterizing_underrep <- function(object, ...) {
 #'   \item{SE}{Standard error.}
 #'   \item{TATE}{Transported average treatment effect.}
 #'   \item{WTATE}{Weighted transported average treatment effect.}
-#'   \item{SATE}{Sample average treatment effect.}
+#'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
 #' @param x A \code{characterizing_underrep} S3 object. Expected components include

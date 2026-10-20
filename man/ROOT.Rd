@@ -170,7 +170,7 @@ weight or no covariates were available.}
 \item{testing_data}{Data frame of observations used for optimization
 (trial units when \code{generalizability_path = TRUE}).}
 \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
-with the unweighted (SATE) and weighted (WTATE) point estimates, and standard errors}
+with the unweighted (STATE) and weighted (WTATE) point estimates, and standard errors}
 \item{generalizability_path}{Logical flag echoing the input.}
 \item{positivity_trim_info}{(Only when \code{positivity_trim} is not
 \code{NULL}) A list with the threshold used (\code{alpha}), the number
@@ -251,8 +251,8 @@ accounts for both the selection odds (trial participation
 probability) and treatment effect heterogeneity, so that subgroups
 are flagged as underrepresented only when they both lack trial
 representation and exhibit effect modification.
-\item The output includes the unweighted sample average treatment
-effect (SATE) and the WTATE with standard errors.
+\item The output includes the unweighted sample target average
+treatment effect (STATE) and the WTATE with standard errors.
 }
 
 See \code{\link{characterizing_underrep}} for a higher-level wrapper that
