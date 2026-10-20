@@ -22,12 +22,31 @@
   target average treatment effect, following Parikh et al. 2025) instead of
   `"SATE"`, which conventionally denotes the trial-sample average treatment
   effect. The weighted estimate remains `"WTATE"`.
+* TATE and WTATE are now described as *target* (not *transported*) average
+  treatment effects, and `v` is described as an inverse propensity weighting
+  (IPW) transported score.
+* `summary()` and `print()` now label the estimates block
+  "Estimand summary (generalizability mode)".
 
 #### Bug fixes (general mode)
 
 * When only a `v` column is supplied, `vsq` is no longer precomputed around
   the full-sample mean; `objective_default()` now centers `v` at the mean of
   the currently included units at every evaluation.
+* When the data contain neither `vsq` nor `v` and no `global_objective_fn`
+  is supplied, ROOT uses `vsq = 1` and now issues a message explaining that
+  the default objective then favors keeping all observations.
+
+#### Documentation
+
+* The portfolio example (README, `optimization_path_example` vignette, and
+  `?ROOT`) now minimizes the variance of the equally weighted portfolio,
+  w' Sigma w / (1'w)^2, using the full return covariance matrix, instead of
+  summing marginal variances.
+* The `generalizability_path_example` vignette interpretation now reflects
+  the corrected results and checks them against the data-generating process.
+* The quickstart vignette now correctly describes how the default objective
+  reads the `vsq` or `v` column (it is not the first column of `data`).
 
 ### Changes in Version 0.2.0 (2026-04-09)
 

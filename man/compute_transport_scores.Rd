@@ -2,7 +2,7 @@
 % Please edit documentation in R/treeBuilding.R
 \name{compute_transport_scores}
 \alias{compute_transport_scores}
-\title{Compute transport influence scores for generalizability mode}
+\title{Compute inverse propensity weighting (IPW) transported scores for generalizability mode}
 \usage{
 compute_transport_scores(data, outcome, treatment, sample)
 }
@@ -27,7 +27,7 @@ rows.}
 \value{
 A list with three numeric vectors of length \code{nrow(data)}:
 \describe{
-\item{\code{v}}{The transported influence-style score.}
+\item{\code{v}}{The IPW transported score.}
 \item{\code{vsq}}{Squared deviation of \code{v} from its trial-sample
 mean; used only to guide feature-importance estimation.}
 \item{\code{sel_odds}}{Inverse selection odds \eqn{(1-\hat\pi(X))/\hat\pi(X)}

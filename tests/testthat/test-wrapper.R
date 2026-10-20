@@ -464,7 +464,7 @@ test_that("summary.ROOT: prints full estimand summary in generalizability mode",
   out <- capture.output(summary(obj))
   expect_true(any(grepl("ROOT object", out)))
   expect_true(any(grepl("Generalizability mode:\\s*TRUE", out)))
-  expect_true(any(grepl("Estimand summary \\(generalization mode\\)", out)))
+  expect_true(any(grepl("Estimand summary \\(generalizability mode\\)", out)))
   expect_true(any(grepl("Unweighted.*STATE", out)))
   expect_true(any(grepl("Weighted.*WTATE", out)))
 })

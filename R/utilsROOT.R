@@ -143,8 +143,8 @@ trim_positivity_violations <- function(data, sample_col, outcome_col,
 #'   \item{ATE}{Average treatment effect.}
 #'   \item{RCT}{Randomized controlled trial.}
 #'   \item{SE}{Standard error.}
-#'   \item{TATE}{Transported average treatment effect.}
-#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{TATE}{Target average treatment effect.}
+#'   \item{WTATE}{Weighted target average treatment effect.}
 #'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
@@ -210,7 +210,7 @@ summary.ROOT <- function(object, ...) {
   ## Estimands (only in generalizability mode)
   if (isTRUE(x$generalizability_path) && !is.null(x$estimate)) {
     est <- x$estimate
-    cat("Estimand summary (generalization mode):\n")
+    cat("Estimand summary (generalizability mode):\n")
     cat("  Unweighted ", est$estimand_unweighted,
         " = ", est$value_unweighted,
         ", SE = ", est$se_unweighted, "\n", sep = "")
@@ -276,8 +276,8 @@ summary.ROOT <- function(object, ...) {
 #'   \item{ATE}{Average treatment effect.}
 #'   \item{RCT}{Randomized controlled trial.}
 #'   \item{SE}{Standard error.}
-#'   \item{TATE}{Transported average treatment effect.}
-#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{TATE}{Target average treatment effect.}
+#'   \item{WTATE}{Weighted target average treatment effect.}
 #'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
@@ -315,7 +315,7 @@ print.ROOT <- function(x, ...) {
   ## Estimands (only in generalizability mode)
   if (isTRUE(x$generalizability_path) && !is.null(x$estimate)) {
     est <- x$estimate
-    cat("Estimand summary (generalization mode):\n")
+    cat("Estimand summary (generalizability mode):\n")
     cat("  Unweighted ", est$estimand_unweighted,
         " = ", est$value_unweighted,
         ", SE = ", est$se_unweighted, "\n", sep = "")

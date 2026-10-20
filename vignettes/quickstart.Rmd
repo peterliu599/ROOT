@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("peterliu599/ROOT-R-Package")
+devtools::install_github("peterliu599/ROOT")
 ```
 
 ## What is ROOT?
@@ -29,7 +29,7 @@ Rather than returning a single solution, ROOT returns a **Rashomon set** of near
 
 ## Basic usage
 
-The main function is `ROOT()`. At minimum, you supply a data frame where the **first column is the outcome to minimize**, and the remaining columns are covariates.
+The main function is `ROOT()`. At minimum, you supply a data frame of covariates together with either a custom objective (`global_objective_fn`) or an auxiliary column for the default objective: `vsq`, a per-unit variance contribution, or `v`, a per-unit score that ROOT centers at the mean of the included units. In the example below, `vsq` is the auxiliary column and `x1` and `x2` are the covariates available for splitting; columns named `vsq` and `v` are never used for splitting.
 
 ```{r basic-example}
 library(ROOT)
@@ -66,6 +66,11 @@ summary(fit)    # full summary including Rashomon set details
 ```{r plot, fig.width = 6, fig.height = 4}
 plot(fit)       # visualize the characteristic tree
 ```
+
+In this example, ROOT excludes the units with `x2 = 1` (the high-variance
+group) and keeps the units with `x2 = 0`, so half of the units receive
+$w = 1$. The covariate `x1`, which is unrelated to `vsq`, does not appear in
+the tree.
 
 ## Next steps
 

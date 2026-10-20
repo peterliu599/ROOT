@@ -29,7 +29,8 @@ version of the TATE.
 
 The resulting estimand from ROOT is the **Weighted Target Average Treatment Effect
 (WTATE)**: the average treatment effect restricted to the sufficiently represented
-subpopulation, estimated with lower variance than the unweighted TATE.
+subpopulation, which can be estimated with lower variance than the unweighted
+STATE.
 
 This vignette walks through a complete generalizability analysis using the
 built-in `diabetes_data` dataset.
@@ -106,11 +107,12 @@ We use `characterizing_underrep()`, which is the high-level wrapper around
 
 1. Estimates transportability scores using logistic regression models (default) for
    $P(S = 1 \mid X)$ and $P(\text{Tr} = 1 \mid X, S = 1)$.
-2. Constructs Horvitz–Thompson-style influence scores $v_i$.
+2. Constructs inverse propensity weighting (IPW) transported scores $v_i$.
 3. Grows a forest of weighted trees that minimize the variance of the
    weighted estimator $\widehat{\text{WTATE}}$.
 4. Selects a Rashomon set of the top-$k$ trees and aggregates their weight
-   assignments by majority vote (default).
+   assignments by vote: by default, a unit is kept if more than two-thirds of
+   the Rashomon-set trees keep it.
 5. Fits a single summary tree characterizing the final $w_{\text{opt}}$
    assignments.
 
@@ -187,14 +189,31 @@ the complete inclusion/exclusion rule for that subgroup.
 From the characterized tree and leaf summary, we can describe the
 underrepresented subgroups in plain language:
 
-- **Black participants** are flagged as underrepresented ($w = 0$) regardless
-  of other characteristics.
-- **Participants aged 45 or older who are not Black** are also underrepresented.
-- **Participants on a diet programme who are neither Black nor aged 45+** are
+- **Participants aged 45 or older** are flagged as underrepresented
+  ($w = 0$).
+- **Participants under 45 who are on a diet programme** are also
   underrepresented.
-- The remaining participants, those who are not Black, under 45, and not on a
-  diet programme, form the **well-represented subpopulation** ($w = 1$) for
-  whom the WTATE is estimated.
+- The remaining participants, those under 45 and not on a diet programme,
+  form the **well-represented subpopulation** ($w = 1$; 76.5% of the trial
+  sample) for whom the WTATE is estimated.
+
+Notably, Black participants are **not** excluded, even though they are the
+most underrepresented group in the trial (17.2% of the trial versus 31.5% of
+the target sample). In the data-generating process, race does not modify the
+treatment effect, whereas age and diet do. The default objective penalizes a
+subgroup mainly when it is both poorly represented and effect-modifying, so
+ROOT flags the effect modifiers rather than the group with the largest
+representation gap. This is the central distinction drawn by Parikh et al.
+(2025) between ROOT and approaches based on selection scores alone.
+
+Because `diabetes_data` is simulated, the estimates can be checked against
+the truth. The conditional treatment effect is
+$1 + 1.6\,\text{DietYes} + 1.3\,\text{Age45}$, so the target average
+effect is about $1 + 1.6(0.099) + 1.3(0.153) \approx 1.36$, and the effect is
+exactly 1 in the retained subgroup (under 45, no diet programme). The
+reported estimates are close to these values: STATE = 1.37 (SE 0.11) and
+WTATE = 1.03 (SE 0.09). Restricting to the well-represented subpopulation also
+lowers the standard error, as intended.
 
 The Rashomon set provides multiple near-optimal characterizations of these
 subgroups. The final summary tree aggregates across all trees in the set,

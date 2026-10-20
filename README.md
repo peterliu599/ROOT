@@ -80,10 +80,17 @@ devtools::install_github("peterliu599/ROOT")
 
 ROOT can be applied to any optimization problem that can be expressed as
 a binary inclusion/exclusion decision. In this example, we use ROOT to
-select a **minimum-variance portfolio** from a universe of 100 simulated
-assets, each characterized by its market beta and annualized volatility.
-ROOT learns an interpretable tree-structured rule describing which
-assets to include ($w = 1$) to minimize portfolio return variance.
+choose which of 100 simulated assets to include in an **equally weighted,
+low-variance portfolio**. Each asset is characterized by its market beta
+and annualized volatility, and ROOT learns an interpretable tree-structured
+rule describing which assets to include ($w = 1$).
+
+The objective is the return variance of the equally weighted portfolio of
+the included assets, $L(w) = w^\top \Sigma w / (\mathbf{1}^\top w)^2$, where
+$\Sigma$ is the return covariance matrix. Because every pair of included
+assets contributes a covariance term, the objective cannot be split into
+independent per-asset contributions; it is supplied to ROOT as a custom
+`global_objective_fn`.
 
 ``` r
 library(ROOT)
@@ -97,87 +104,47 @@ beta       <- runif(n_assets, 0.5,  1.8)   # market beta
 sector     <- sample(c("Tech", "Finance", "Energy", "Health"),
                      n_assets, replace = TRUE)
 
-# Simulate returns correlated with beta and volatility
+# Simulate returns from a single-factor market model
 market      <- rnorm(1000, 0.0005, 0.01)
 returns_mat <- sapply(seq_len(n_assets), function(i)
   beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
 )
-vsq <- apply(returns_mat, 2, var)  # per-asset return variance (objective)
+Sigma_hat <- cov(returns_mat)  # estimated return covariance matrix
+
+# Variance of the equally weighted portfolio of included assets
+portfolio_variance <- function(D) {
+  w <- D$w
+  if (sum(w) == 0) return(Inf)
+  sum(Sigma_hat[w == 1, w == 1]) / sum(w)^2  # = w' Sigma w / (1'w)^2
+}
 
 dat_portfolio <- data.frame(
-  vsq    = vsq,
+  vsq    = diag(Sigma_hat),  # marginal variances; guide split sampling only
   vol    = volatility,
   beta   = beta,
   sector = as.integer(factor(sector))
 )
 
 portfolio_fit <- ROOT(
-  data        = dat_portfolio,
-  num_trees   = 20,
-  top_k_trees = TRUE,
-  k           = 10,
-  seed        = 42
+  data                = dat_portfolio,
+  global_objective_fn = portfolio_variance,
+  num_trees           = 20,
+  top_k_trees         = TRUE,
+  k                   = 10,
+  seed                = 42
 )
 
-summary(portfolio_fit) # for a full summary output
+summary(portfolio_fit)  # full summary
+print(portfolio_fit)    # brief summary
+plot(portfolio_fit)     # characterized tree
 ```
 
-    ## ROOT object
-    ##   Generalizability mode: FALSE 
-    ## 
-    ## Summary classifier (f):
-    ## n= 100 
-    ## 
-    ## node), split, n, loss, yval, (yprob)
-    ##       * denotes terminal node
-    ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000)  
-    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
-    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
-    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
-    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
-    ## 
-    ## Global objective function:
-    ##   User-supplied: No (default objective used)
-    ## 
-    ## Diagnostics:
-    ##   Number of trees grown: 20
-    ##   Rashomon set size: 10
-    ##   % observations with w_opt == 1: 96.0%
-
-``` r
-print(portfolio_fit) # for a brief summary print
-```
-
-    ## ROOT object
-    ##   Generalizability mode: FALSE 
-    ## 
-    ## Summary classifier (f):
-    ## n= 100 
-    ## 
-    ## node), split, n, loss, yval, (yprob)
-    ##       * denotes terminal node
-    ## 
-    ## 1) root 100 4 1 (0.0400000 0.9600000)  
-    ##   2) beta>=1.658134 12 4 1 (0.3333333 0.6666667)  
-    ##     4) vol>=0.3285209 4 0 0 (1.0000000 0.0000000) *
-    ##     5) vol< 0.3285209 8 0 1 (0.0000000 1.0000000) *
-    ##   3) beta< 1.658134 88 0 1 (0.0000000 1.0000000) *
-
-``` r
-plot(portfolio_fit)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
-
-The characterized tree recovers an intuitive and interpretable portfolio
-construction rule. Assets with **beta \< 1.7** are included (88% of the
-universe). Among the remaining high-beta **beta $\geq$ 1.7** assets,
-those with **volatility $\geq$ 0.33** are excluded ($w = 0$, 4%), while
-high-beta assets with **volatility \< 0.33** are retained (8%). Overall,
-the final majority vote by the Rashomon set of 10 near-optimal trees
-includes 96% of assets in the final portfolio and screens out only the
-most risk-concentrated subset.
+The characterized tree gives a plain-language rule for which asset types
+belong in the portfolio, and `portfolio_fit$D_rash$w_opt` holds the final
+inclusion decision for each asset. In this example the rule is driven mainly
+by market beta: ROOT keeps 33 mostly low-beta assets (beta below about 0.98),
+and the equally weighted portfolio of those assets has about 47% lower return
+variance than the equally weighted portfolio of all 100 assets.
 
 For a detailed worked example of ROOT in optimization mode, see the
 [`optimization_path_example`

@@ -22,19 +22,20 @@ an interpretable binary weight function $w(X) \in \{0, 1\}$ over a set of
 groups by covariates of interest.
 
 In general optimization mode (`generalizability_path = FALSE`), the user
-provides a `data.frame` with an optional column `vsq` (a per-unit variance
-proxy, or the outcome to minimize) and any covariates to split on. ROOT 
-searches over tree-structured weight functions to minimize the supplied 
-objective, then returns a Rashomon set of near-optimal trees and a single 
-summary tree characterizing the final weight assignments. The decision to vote
-on a single summary tree can be by default majority vote, or the user can 
-specify their own voting functions.
+provides a `data.frame` of covariates to split on and either a custom
+`global_objective_fn` or an auxiliary column read by the default objective
+(`vsq`, a per-unit variance contribution, or `v`, a per-unit score). ROOT
+searches over tree-structured weight functions to minimize the objective,
+then returns a Rashomon set of near-optimal trees and a single summary tree
+characterizing the final weight assignments. The Rashomon-set trees are
+combined by a vote (a 2/3 threshold by default), or by a user-specified
+voting function.
 
 This vignette demonstrates ROOT in general optimization mode using a
 **portfolio selection** problem: given a universe of 100 simulated assets
 characterized by their market beta and annualized volatility, ROOT learns
-an interpretable rule for which assets to include ($w = 1$) in order to
-minimize portfolio return variance.
+an interpretable rule for which assets to include ($w = 1$) in an
+equally weighted portfolio so as to minimize the portfolio's return variance.
 
 ---
 
@@ -42,30 +43,37 @@ minimize portfolio return variance.
 
 ### Why portfolio selection?
 
-Constructing a minimum-variance portfolio could be framed as an optimization problem.
-The standard approach could produce weights that are continuous and can be hard 
-to interpret or communicate. ROOT offers a complementary perspective: it returns a 
-**binary inclusion rule** - a sparse decision tree that describes, in plain language, 
-which types of assets belong in the low-variance portfolio.
+Constructing a minimum-variance portfolio is a classic optimization problem.
+The standard solution produces continuous weights that can be hard to
+interpret or communicate. ROOT offers a complementary perspective: it returns
+a **binary inclusion rule**, a sparse decision tree that describes in plain
+language which types of assets belong in a low-variance, equally weighted
+portfolio.
 
-### Mapping to ROOT's framework
+### A globally coupled objective
 
-The default global objective function ROOT minimizes is as follows: $L(w, D) = \sqrt{\frac{\sum_i w_i \cdot v_i^2}{\left(\sum_i w_i\right)^2}}$
-
-where $v_i^2$ (`vsq`) is a pseudo outcome value, known as the per-unit variance 
-proxy in the optimization example. In the portfolio context, we set `vsq` to the 
-historical return variance of each asset. ROOT then finds the binary weight 
-$w(X) \in \{0, 1\}$, described as a decision tree over asset features such as beta 
-and volatility that minimizes this quantity. Users can also supply the global 
-objective function they wish to minimize as well.
+Let $\Sigma$ be the covariance matrix of asset returns. The return variance of
+the equally weighted portfolio of the included assets is
+$$
+L(w) = \frac{w^\top \Sigma\, w}{(\mathbf{1}^\top w)^2}
+     = \frac{1}{(\sum_i w_i)^2} \sum_{i}\sum_{j} w_i w_j \Sigma_{ij}.
+$$
+Because every pair of included assets contributes a covariance term
+$\Sigma_{ij}$, adding or removing one asset changes the contribution of every
+other included asset. The objective therefore cannot be written as a sum of
+independent per-asset (or per-leaf) contributions. This is exactly the kind of
+non-decomposable objective ROOT is designed for. The objective also encodes a
+genuine trade-off: including more assets diversifies away idiosyncratic risk,
+while including high-beta assets increases exposure to the common market
+factor.
 
 ---
 
 ## Simulating the Data
 
 We simulate 100 assets with two features: annualized volatility and market
-beta. Returns are generated as a market factor model, and per-asset return
-variance is computed from 1,000 simulated return observations.
+beta. Returns follow a single-factor market model, and the return covariance
+matrix is estimated from 1,000 simulated return observations.
 
 ```{r simulate}
 library(ROOT)
@@ -85,11 +93,11 @@ returns_mat <- sapply(seq_len(n_assets), function(i)
   beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
 )
 
-# Per-asset return variance (the objective proxy ROOT will minimize)
-vsq <- apply(returns_mat, 2, var)
+# Estimated return covariance matrix (100 x 100)
+Sigma_hat <- cov(returns_mat)
 
 dat_portfolio <- data.frame(
-  vsq    = vsq,
+  vsq    = diag(Sigma_hat),        # marginal variances (guide split sampling)
   vol    = volatility,
   beta   = beta,
   sector = as.integer(factor(sector))
@@ -98,9 +106,26 @@ dat_portfolio <- data.frame(
 head(dat_portfolio)
 ```
 
-The `vsq` column is recognized by ROOT's default objective function as the
-per-unit variance proxy. The columns `vol`, `beta`, and `sector` are the
-splitting features available to the tree.
+The columns `vol`, `beta`, and `sector` are the splitting features available
+to the tree. The `vsq` column (each asset's marginal return variance) is
+auxiliary: it is never used for splitting, and here it only guides ROOT's
+feature-importance step, which biases which features are proposed for splits.
+
+### The objective function
+
+The objective receives the working data frame `D`, whose column `w` holds the
+current inclusion decisions in the same row order as `dat_portfolio`.
+
+```{r objective}
+portfolio_variance <- function(D) {
+  w <- D$w
+  if (sum(w) == 0) return(Inf)
+  sum(Sigma_hat[w == 1, w == 1]) / sum(w)^2  # = w' Sigma w / (1'w)^2
+}
+
+# Benchmark: equally weighted portfolio of all 100 assets
+portfolio_variance(data.frame(w = rep(1, n_assets)))
+```
 
 ### Distribution of asset risk
 
@@ -113,8 +138,8 @@ plot(
 )
 ```
 
-We expect ROOT to identify the high-beta, high-volatility corner of this space
-as the region to exclude.
+Because all assets share a common market factor, we expect market beta to
+drive the inclusion rule, with volatility playing a secondary role.
 
 ---
 
@@ -122,17 +147,18 @@ as the region to exclude.
 
 ```{r fit, message = FALSE, warning = FALSE}
 portfolio_fit <- ROOT(
-  data        = dat_portfolio,
-  num_trees   = 20,
-  top_k_trees = TRUE,
-  k           = 10,
-  seed        = 42
+  data                = dat_portfolio,
+  global_objective_fn = portfolio_variance,
+  num_trees           = 20,
+  top_k_trees         = TRUE,
+  k                   = 10,
+  seed                = 42
 )
 ```
 
 ROOT grows 20 trees and selects the 10 with the lowest objective value as the
-Rashomon set. Final asset weights $w_{\text{opt}}$ are determined by majority
-vote across those 10 trees.
+Rashomon set. Final asset weights $w_{\text{opt}}$ are determined by the vote
+across those 10 trees.
 
 ---
 
@@ -150,10 +176,9 @@ print(portfolio_fit)
 summary(portfolio_fit)
 ```
 
-The **Diagnostics** section confirms that 20 trees were grown, 10 were
-selected into the Rashomon set, and 96% of assets received $w_{\text{opt}} = 1$
-(included in the portfolio). Only the 4 most risk-concentrated assets are
-screened out.
+The **Diagnostics** section reports the number of trees grown, the Rashomon
+set size, and the share of assets with $w_{\text{opt}} = 1$ (included in the
+portfolio).
 
 ---
 
@@ -163,26 +188,37 @@ screened out.
 plot(portfolio_fit)
 ```
 
-The tree encodes a simple, actionable rule:
+The tree reads as a plain-language portfolio rule:
 
-- **`beta < 1.7`**: include the asset unconditionally (88 assets).
-- **`beta >= 1.7` and `vol < 0.33`**: include the asset despite high market
-  sensitivity, because some risk may be controlled (8 assets).
-- **`beta >= 1.7` and `vol >= 0.33`**: exclude the asset — high market
-  sensitivity combined with high volatility drives up portfolio
-  variance (4 assets, $w = 0$).
+- **Market beta drives the decision.** Assets with beta of about 0.98 or
+  higher are almost all excluded ($w = 0$); assets with lower beta are almost
+  all included ($w = 1$).
+- **Volatility refines the rule among low-beta assets.** Low-beta assets with
+  very high volatility (about 0.38 or higher) are excluded.
+- The remaining splits (a narrow band of beta between about 1.03 and 1.07, and
+  very low volatility below about 0.10) each involve only two to seven assets,
+  and some of those leaves are not pure. They reflect disagreement among the
+  Rashomon-set trees over a handful of borderline assets rather than a
+  substantive pattern; the characteristic tree is a summary of the vote, not a
+  separately optimized rule.
+- `sector` does not appear in the tree.
+
+This matches the structure of the problem: every asset loads on a common
+market factor, so the market component of portfolio variance is driven by the
+average beta of the included assets, while including more assets diversifies
+away idiosyncratic (volatility-driven) risk.
 
 ---
 
 ## Examining the Weights
 
 The final weight assignments are stored in `portfolio_fit$D_rash$w_opt`. We
-can compare the included and excluded assets directly.
+can compare the included and excluded assets and evaluate the objective for
+the selected portfolio.
 
 ```{r weights}
 dat_portfolio$w_opt <- portfolio_fit$D_rash$w_opt
 
-# Summary statistics by inclusion decision
 included <- dat_portfolio[dat_portfolio$w_opt == 1, ]
 excluded <- dat_portfolio[dat_portfolio$w_opt == 0, ]
 
@@ -192,12 +228,22 @@ cat("  Mean volatility: ", round(mean(included$vol),  3), "\n\n")
 
 cat("Excluded assets (w = 0):", nrow(excluded), "\n")
 cat("  Mean beta:       ", round(mean(excluded$beta), 3), "\n")
-cat("  Mean volatility: ", round(mean(excluded$vol),  3), "\n")
+cat("  Mean volatility: ", round(mean(excluded$vol),  3), "\n\n")
+
+var_all <- portfolio_variance(data.frame(w = rep(1, n_assets)))
+var_opt <- portfolio_variance(data.frame(w = dat_portfolio$w_opt))
+cat("Portfolio variance, all assets:     ", signif(var_all, 4), "\n")
+cat("Portfolio variance, ROOT selection: ", signif(var_opt, 4), "\n")
+cat("Relative reduction:                 ",
+    round(100 * (1 - var_opt / var_all), 1), "%\n")
 ```
 
-The excluded assets have substantially higher beta and volatility than the
-included ones, confirming that ROOT correctly targets the risk-concentrated
-corner of the asset universe.
+ROOT keeps 33 of the 100 assets. The included assets have a much lower mean
+beta than the excluded ones (0.81 versus 1.34) but similar mean volatility
+(0.24 versus 0.22), confirming that market exposure, not idiosyncratic
+volatility, drives the rule. The equally weighted portfolio of the selected
+assets has about 47% lower return variance than the equally weighted
+portfolio of all 100 assets.
 
 ### Visualizing the inclusion decision
 
@@ -220,27 +266,33 @@ legend(
 
 ---
 
-## Using a Custom Objective Function
+## The Default Objective
 
-ROOT's general optimization mode is not limited to the default variance
-objective. You can supply any function of the form `function(D) -> numeric`
-where `D` is the working data frame with a column `w` containing the current
-weight assignments.
+If no `global_objective_fn` is supplied, ROOT uses its default objective,
+$L(w) = \sqrt{\sum_i w_i\, vsq_i / (\sum_i w_i)^2}$, with `vsq` read from the
+data. With `vsq` set to each asset's marginal variance, this would treat the
+assets as uncorrelated and ignore the covariance terms above, which dominate
+portfolio risk under a common market factor. That is why this example
+supplies the full portfolio variance as a custom objective.
 
-For example, suppose we want to minimize the **interquartile range** of
-portfolio returns rather than variance. We can define a custom objective:
+## Using Other Custom Objectives
+
+Any function of the form `function(D) -> numeric` can be used, where `D` is
+the working data frame with a column `w` containing the current weight
+assignments. For example, to make the included assets as homogeneous as
+possible in their marginal risk, we can minimize the interquartile range of
+their marginal variances:
 
 ```{r custom-obj, message = FALSE, warning = FALSE}
 iqr_objective <- function(D) {
   w <- D$w
   if (sum(w) == 0) return(Inf)
-  # Weighted IQR: compute quantiles using the included assets only
   included_vsq <- D$vsq[w == 1]
   diff(quantile(included_vsq, probs = c(0.25, 0.75)))
 }
 
 portfolio_fit_iqr <- ROOT(
-  data                = dat_portfolio,
+  data                = dat_portfolio[, c("vsq", "vol", "beta", "sector")],
   global_objective_fn = iqr_objective,
   num_trees           = 20,
   top_k_trees         = TRUE,
@@ -249,9 +301,9 @@ portfolio_fit_iqr <- ROOT(
 )
 ```
 
-The custom objective illustrates ROOT's flexibility: any scalar-valued
-function of the weighted dataset can be used as the optimization target,
-and the resulting characterized tree would still be interpretable.
+Any scalar-valued function of the weighted dataset can be used as the
+optimization target, and the resulting characterized tree remains
+interpretable.
 
 ---
 
@@ -264,7 +316,7 @@ and the resulting characterized tree would still be interpretable.
 | `k`                  | Rashomon set size when `top_k_trees = TRUE`                          | `10`           |
 | `cutoff`             | Rashomon threshold when `top_k_trees = FALSE`; `"baseline"` uses objective at $w \equiv 1$ | `"baseline"` |
 | `vote_threshold`     | Fraction of Rashomon-set trees that must vote $w = 1$ for inclusion  | `2/3`          |
-| `global_objective_fn`| Custom objective `function(D) -> numeric`; if `NULL`, uses default variance objective | `NULL` |
+| `global_objective_fn`| Custom objective `function(D) -> numeric`; if `NULL`, uses the default objective on `vsq` or `v` | `NULL` |
 | `seed`               | Random seed for reproducibility                                      | `NULL`         |
 | `feature_est`        | Feature importance method for split selection (`"Ridge"`, `"GBM"`, or custom) | `"Ridge"` |
 | `leaf_proba`         | Controls tree depth by increasing the probability of stopping at a leaf | `0.25`      |

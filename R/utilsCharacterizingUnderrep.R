@@ -10,8 +10,8 @@
 #'   \item{ATE}{Average treatment effect.}
 #'   \item{RCT}{Randomized controlled trial.}
 #'   \item{SE}{Standard error.}
-#'   \item{TATE}{Transported average treatment effect.}
-#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{TATE}{Target average treatment effect.}
+#'   \item{WTATE}{Weighted target average treatment effect.}
 #'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'
@@ -72,8 +72,8 @@ summary.characterizing_underrep <- function(object, ...) {
 #'   \item{ATE}{Average treatment effect.}
 #'   \item{RCT}{Randomized controlled trial.}
 #'   \item{SE}{Standard error.}
-#'   \item{TATE}{Transported average treatment effect.}
-#'   \item{WTATE}{Weighted transported average treatment effect.}
+#'   \item{TATE}{Target average treatment effect.}
+#'   \item{WTATE}{Weighted target average treatment effect.}
 #'   \item{STATE}{Sample target average treatment effect.}
 #' }
 #'

@@ -61,13 +61,13 @@
 #'     target).
 #'   \item ROOT internally computes transportability scores based on
 #'     inverse-probability weighting (IPW), estimates the selection model
-#'     \eqn{P(S = 1 \mid X)}, and constructs Horvitz-Thompson-style
-#'     influence scores.
+#'     \eqn{P(S = 1 \mid X)}, and constructs inverse propensity weighting
+#'     (IPW) transported scores.
 #'   \item The default objective minimizes the variance of the weighted
 #'     target average treatment effect (WTATE) estimator. This objective
 #'     accounts for both the selection odds (trial participation
 #'     probability) and treatment effect heterogeneity, so that subgroups
-#'     are flagged as underrepresented only when they both lack trial
+#'     are flagged as underrepresented primarily when they both lack trial
 #'     representation and exhibit effect modification.
 #'   \item The output includes the unweighted sample target average
 #'     treatment effect (STATE) and the WTATE with standard errors.
@@ -81,17 +81,34 @@
 #' When \code{generalizability_path = FALSE}, ROOT operates as a general
 #' functional optimizer. The user supplies any \code{data.frame} and
 #' (optionally) a custom \code{global_objective_fn}. If no objective is
-#' supplied, ROOT uses a default variance-based loss operating on the
-#' \code{vsq} column (per-unit variance proxy). See
-#' \code{vignette("optimization_path_example")} for an example.
+#' supplied, ROOT uses the default variance-based loss
+#' \deqn{L(w) = \sqrt{\sum_i w_i\, vsq_i / (\sum_i w_i)^2},}
+#' where \code{vsq} is taken from the data as follows:
+#' \itemize{
+#'   \item if \code{data} has a \code{vsq} column (per-unit variance
+#'     contribution), it is used as supplied;
+#'   \item otherwise, if \code{data} has a \code{v} column (per-unit score),
+#'     \eqn{vsq_i = (v_i - \bar v_w)^2} is recomputed for every candidate
+#'     rule, where \eqn{\bar v_w} is the mean of \code{v} over the
+#'     currently included units;
+#'   \item otherwise, \eqn{vsq_i = 1} is used as a fallback. The loss then
+#'     equals \eqn{1/\sqrt{n_{kept}}}, which is minimized by keeping every
+#'     observation, so a message is issued and users should supply
+#'     \code{vsq}, \code{v}, or a \code{global_objective_fn}.
+#' }
+#' See \code{vignette("optimization_path_example")} for an example with a
+#' user-supplied, covariance-based objective.
 #'
 #'
 #' @param data A data.frame containing the dataset.
 #'
 #'   In \strong{general optimization mode} (\code{generalizability_path =
 #'   FALSE}), \code{data} can contain any covariates and auxiliary columns.
-#'   The user supplies a \code{global_objective_fn} that takes a data frame
-#'   with a column \code{w} and returns a scalar loss.
+#'   The user either supplies a \code{global_objective_fn} that takes a data
+#'   frame with a column \code{w} and returns a scalar loss, or relies on the
+#'   default objective, which reads an optional \code{vsq} or \code{v}
+#'   column (see the General optimization mode section). Columns named
+#'   \code{vsq} and \code{v} are auxiliary and are never used for splitting.
 #'
 #'   In \strong{generalizability mode} (\code{generalizability_path = TRUE}),
 #'   \code{data} must contain columns \code{"Y"} (outcome), \code{"Tr"}
@@ -208,7 +225,11 @@
 #'   \item{testing_data}{Data frame of observations used for optimization
 #'     (trial units when \code{generalizability_path = TRUE}).}
 #'   \item{estimate}{(Only when \code{generalizability_path = TRUE}) A list
-#'     with the unweighted (STATE) and weighted (WTATE) point estimates, and standard errors}
+#'     with the unweighted (STATE) and weighted (WTATE) point estimates and
+#'     their standard errors, the number of analysis observations
+#'     (\code{n_analysis}), the size of the kept set (\code{n_A}), the
+#'     selection-odds re-normalization factor \code{kappa_w}, and
+#'     \code{se_weighted_note}.}
 #'   \item{generalizability_path}{Logical flag echoing the input.}
 #'   \item{positivity_trim_info}{(Only when \code{positivity_trim} is not
 #'     \code{NULL}) A list with the threshold used (\code{alpha}), the number
@@ -243,12 +264,7 @@
 #'   k                     = 10,
 #'   seed                  = 123
 #' )
-#' # --- General optimization mode (custom objective) ---
-#' my_objective <- function(D) {
-#'   w <- D$w
-#'   if (sum(w) == 0) return(Inf)
-#'   sqrt(sum(w * D$vsq) / sum(w)^2)
-#' }
+#' # --- General optimization mode (custom, covariance-based objective) ---
 #' set.seed(123)
 #' n_assets <- 100
 #'
@@ -256,28 +272,37 @@
 #' volatility <- runif(n_assets, 0.05, 0.40)  # annualised volatility
 #' beta       <- runif(n_assets, 0.5,  1.8)   # market beta
 #' sector     <- sample(c("Tech", "Finance", "Energy", "Health"),
-#'                     n_assets, replace = TRUE)
+#'                      n_assets, replace = TRUE)
 #'
 #' # Simulate returns: r_i = beta_i * r_market + epsilon_i
 #' market      <- rnorm(1000, 0.0005, 0.01)
 #' returns_mat <- sapply(seq_len(n_assets), function(i)
 #'   beta[i] * market + rnorm(1000, 0, volatility[i] / sqrt(252))
 #' )
+#' Sigma_hat <- stats::cov(returns_mat)   # 100 x 100 return covariance
 #'
-#' # Per-asset return variance (the objective proxy ROOT will minimize)
-#' vsq <- apply(returns_mat, 2, var)
+#' # Variance of the equal-weight portfolio of the included assets:
+#' # L(w) = w' Sigma w / (1'w)^2. It depends on all pairwise covariances,
+#' # so it cannot be split into independent per-asset contributions.
+#' portfolio_variance <- function(D) {
+#'   w <- D$w
+#'   if (sum(w) == 0) return(Inf)
+#'   sum(Sigma_hat[w == 1, w == 1]) / sum(w)^2  # = w' Sigma w / (1'w)^2
+#' }
 #'
 #' my_data <- data.frame(
-#'   vsq    = vsq,
+#'   vsq    = diag(Sigma_hat),   # marginal variances; guide split sampling only
 #'   vol    = volatility,
-#'  beta   = beta,
-#'  sector = as.integer(factor(sector))
-#')
+#'   beta   = beta,
+#'   sector = as.integer(factor(sector))
+#' )
 #'
 #' opt_fit <- ROOT(
 #'   data                = my_data,
-#'   global_objective_fn = my_objective,
+#'   global_objective_fn = portfolio_variance,
 #'   num_trees           = 20,
+#'   top_k_trees         = TRUE,
+#'   k                   = 10,
 #'   seed                = 42
 #' )
 #'
@@ -647,8 +672,18 @@ ROOT <- function(data,
       vsq_vals    <- (v_vals - mu_v)^2
       include_vsq <- FALSE
     } else {
+      # Fallback: vsq = 1. The default objective is then 1 / sqrt(n_kept),
+      # which is minimized by keeping every observation.
       vsq_vals    <- rep(1, n)
       include_vsq <- TRUE
+      if (!user_supplied_objective) {
+        message(
+          "No `vsq` or `v` column and no `global_objective_fn` supplied; using ",
+          "vsq = 1. The default objective then reduces to 1 / sqrt(n_kept), ",
+          "which favors keeping all observations. Supply `vsq`, `v`, or a ",
+          "custom `global_objective_fn` for a meaningful optimization."
+        )
+      }
     }
 
     if ("S" %in% names(testing_data)) {
@@ -928,6 +963,8 @@ ROOT <- function(data,
         se_w_note <- "SE omitted: no kept observations (A = { i : w_i = 1 } is empty)."
       }
     } else {
+      # nocov start
+      # Defensive only: w_opt is validated as binary during vote aggregation.
       ok_nb    <- ok_unw & !is.na(w_sel)
       kappa_w  <- (sum(w_sel[ok_nb]) / sum(w_sel[ok_nb] * r_sel[ok_nb])) /
         (sum(ok_unw) / sum(r_sel[ok_unw]))
@@ -941,6 +978,7 @@ ROOT <- function(data,
         "please conduct further variance analysis tailored to that objective."
       )
       warning("Non-binary w_opt detected; omitting weighted SE.", call. = FALSE)
+      # nocov end
     }
 
     if (verbose) {

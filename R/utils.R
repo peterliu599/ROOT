@@ -29,11 +29,15 @@ check_no_na <- function(data, cols) {
 #' \code{v} column, \code{vsq_i = (v_i - vbar_w)^2} is recomputed at every
 #' call, where \code{vbar_w} is the mean of \code{v} over the currently
 #' included units, so the criterion is a genuine (w-dependent) variance.
+#' If neither column is usable, it falls back to the standard error of a
+#' Bernoulli mean. (Within \code{ROOT()}, data without \code{vsq} or
+#' \code{v} receive \code{vsq = 1}, so this last branch is reached only when
+#' the function is called directly.)
 #' The goal is to minimize the value. The generalizability path uses
 #' \code{objective_generalizability} instead.
 #' Supply your own \code{function(D) -> numeric} to use a different objective.
 #'
-#' @param D A \code{data.frame} with at least numeric columns \code{vsq} and \code{w}.
+#' @param D A \code{data.frame} with a numeric column \code{w} and, optionally, \code{vsq} or \code{v}.
 #'
 #' @return A \code{numeric(1)} objective value. Returns \code{Inf} when undefined.
 #' @keywords internal
@@ -128,7 +132,7 @@ wtate_kappa <- function(sel_odds, A, ok = rep(TRUE, length(sel_odds))) {
 #'
 #' @param val A \code{numeric(1)} that must be either \code{0} or \code{1}.
 #' @param indices An \code{integer} vector of row indices or a \code{character} vector of row names that receive \code{val}.
-#' @param D A \code{data.frame} used by \code{global_objective_fn}. Must contain columns \code{w} and \code{vsq}.
+#' @param D A \code{data.frame} used by \code{global_objective_fn}. Must contain column \code{w} plus any columns the objective reads.
 #' @param global_objective_fn A \code{function} with signature \code{function(D) -> numeric}.
 #'
 #' @return A \code{numeric(1)} objective value after the hypothetical change.

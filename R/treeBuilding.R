@@ -1,4 +1,4 @@
-#' Compute transport influence scores for generalizability mode
+#' Compute inverse propensity weighting (IPW) transported scores for generalizability mode
 #'
 #' Internal helper used in the \code{generalizability} path to construct
 #' generalized linear model (glm)-based, inverse probability weighting
@@ -41,7 +41,7 @@
 #'   rows.
 #' @return A list with three numeric vectors of length \code{nrow(data)}:
 #' \describe{
-#'   \item{\code{v}}{The transported influence-style score.}
+#'   \item{\code{v}}{The IPW transported score.}
 #'   \item{\code{vsq}}{Squared deviation of \code{v} from its trial-sample
 #'     mean; used only to guide feature-importance estimation.}
 #'   \item{\code{sel_odds}}{Inverse selection odds \eqn{(1-\hat\pi(X))/\hat\pi(X)}
@@ -72,11 +72,11 @@ compute_transport_scores <- function(data, outcome, treatment, sample) {
   Y     <- data[[outcome]]
   T_ind <- data[[treatment]]
 
-  # The influence score v uses 1/l(X) = P(S=0|X) / P(S=1|X) directly, where
+  # The IPW transported score v uses 1/l(X) = P(S=0|X) / P(S=1|X) directly, where
   # l(X) = P(S=1|X) / P(S=0|X) is the selection ratio defined in Parikh et al.
   # (2025). 1/l(X) is unbounded when pi_s -> 0, i.e. when some observations are
   # almost never selected into the trial, producing numerically extreme or
-  # infinite influence scores v. We therefore floor pi_s at 0.01 before dividing.
+  # infinite IPW transported scores v. We therefore floor pi_s at 0.01 before dividing.
   .floor <- 0.01
   n_floored <- sum(pi_s < .floor, na.rm = TRUE)
   if (n_floored > 0L) {
