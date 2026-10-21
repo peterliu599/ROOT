@@ -1,6 +1,19 @@
 ## Package Updates
 
-### Changes in Version 0.2.1
+### Changes in Version 0.2.1 (2026-10-19)
+
+#### New features
+
+* New argument `summary_max_depth` in `ROOT()` and `characterizing_underrep()`
+  sets the maximum depth of the characteristic (summary) tree (default `3`,
+  the previous fixed value). Larger values let the summary tree describe rules
+  that exclude more separate subgroups.
+* New argument `min_kept` (default `0.1`) in `ROOT()` and
+  `characterizing_underrep()`. In generalizability mode with the default
+  objective, rules that keep fewer than 10% of trial units are rejected.
+  Without this bound the estimated standard error can be driven to nearly zero
+  by keeping a handful of units with similar scores, a degenerate solution
+  that a thorough search finds. Set `min_kept = 0` to remove the bound.
 
 #### Bug fixes (generalizability mode)
 
@@ -38,6 +51,16 @@
   the default objective then favors keeping all observations.
 
 #### Documentation
+
+* `diabetes_data` has been replaced by a richer simulated dataset with ten
+  covariates (continuous `Age`, `BMI`, and `HbA1c`; binary `Sex_Male`,
+  `Race_Black`, `Rural`, `Insulin`, `CKD`, `HeartFailure`, and `DietYes`). Its
+  design includes covariates that are under-sampled in the trial with and
+  without modifying the treatment effect. The simulation code is in
+  `data-raw/diabetes_data.R`.
+* Examples for `print()`, `summary()`, and `plot()` now fix the Rashomon set
+  size (`top_k_trees = TRUE, k = 10`) so that the default 2/3 vote threshold
+  cannot produce exact ties.
 
 * The portfolio example (README, `optimization_path_example` vignette, and
   `?ROOT`) now minimizes the variance of the equally weighted portfolio,

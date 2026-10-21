@@ -39,7 +39,8 @@ Delegates core statistics and estimands to \code{print(x$root)}.
 }
 
 \examples{
-char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE,
+                                     num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 print(char.output)
 
 }

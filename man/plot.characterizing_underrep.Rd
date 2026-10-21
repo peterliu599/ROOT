@@ -32,7 +32,8 @@ where \code{w = 0} in generalizability mode, or simply \code{w(x)} in \code{\{0,
 in general optimization mode.
 }
 \examples{
-char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE,
+                                     num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 plot(char.output)
 
 }

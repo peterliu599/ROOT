@@ -24,7 +24,9 @@ characterizing_underrep(
   verbose = FALSE,
   positivity_trim = NULL,
   split_strategy = "midpoint",
-  quantile_range = c(0.1, 0.9)
+  quantile_range = c(0.1, 0.9),
+  summary_max_depth = 3L,
+  min_kept = 0.1
 )
 }
 \arguments{
@@ -115,6 +117,14 @@ tree node. See \code{\link{ROOT}} for details.}
 bounds of the quantile range when
 \code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
 Ignored when \code{split_strategy = "midpoint"}.}
+
+\item{summary_max_depth}{Positive integer. Maximum depth of the
+characteristic (summary) tree. Default \code{3}. See \code{\link{ROOT}}
+for details.}
+
+\item{min_kept}{Numeric in \eqn{[0, 1)}. Generalizability mode only: the
+smallest share of trial units a candidate rule may keep under the default
+objective. Default \code{0.1}. See \code{\link{ROOT}} for details.}
 }
 \value{
 A \code{characterizing_underrep} S3 object (a \code{list}) with:

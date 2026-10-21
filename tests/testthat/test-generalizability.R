@@ -167,3 +167,101 @@ test_that("covariance-based portfolio objective runs in general mode", {
   expect_true(all(fit$D_rash$w_opt %in% 0:1))
   expect_false("vsq" %in% c(names(fit$f$variable.importance)))  # vsq never a split feature
 })
+
+# ---------------------------------------------------------------------------
+# summary_max_depth
+# ---------------------------------------------------------------------------
+
+test_that("summary_max_depth is validated", {
+  df <- data.frame(x1 = rbinom(40, 1, 0.5), v = rnorm(40))
+  for (bad in list(0, 31, 2.5, NA, "3", c(2, 3))) {
+    expect_error(
+      ROOT(data = df, num_trees = 5, top_k_trees = TRUE, k = 5, seed = 1,
+           summary_max_depth = bad),
+      "summary_max_depth"
+    )
+  }
+})
+
+test_that("summary_max_depth limits the depth of the characteristic tree", {
+  set.seed(8)
+  n  <- 400
+  df <- data.frame(x1 = rbinom(n, 1, 0.5), x2 = rbinom(n, 1, 0.5),
+                   x3 = rbinom(n, 1, 0.5))
+  # high-variance units in three separate subgroups
+  df$vsq <- ifelse(df$x1 == 1 | df$x2 == 1 | df$x3 == 1, 50, 1) * runif(n, 0.9, 1.1)
+  fit1 <- suppressWarnings(suppressMessages(
+    ROOT(data = df, num_trees = 25, top_k_trees = TRUE, k = 5, seed = 2,
+         summary_max_depth = 1)
+  ))
+  skip_if(is.null(fit1$f), "single-class w_opt; no summary tree to check")
+  node_ids <- as.integer(rownames(fit1$f$frame))
+  # with depth 1, the only possible node ids are 1 (root), 2 and 3
+  expect_true(all(node_ids <= 3L))
+})
+
+test_that("characterizing_underrep passes summary_max_depth to ROOT", {
+  d <- sim_gen(13)
+  fit <- suppressWarnings(suppressMessages(characterizing_underrep(
+    data = d$df, generalizability_path = TRUE,
+    num_trees = 5, top_k_trees = TRUE, k = 5, seed = 2,
+    summary_max_depth = 1
+  )))
+  skip_if(is.null(fit$root$f), "single-class w_opt; no summary tree to check")
+  expect_true(all(as.integer(rownames(fit$root$f$frame)) <= 3L))
+})
+
+# ---------------------------------------------------------------------------
+# min_kept
+# ---------------------------------------------------------------------------
+
+test_that("min_kept is validated", {
+  d <- sim_gen(14, n = 2000)
+  for (bad in list(-0.1, 1, 1.5, NA, "0.1", c(0.1, 0.2))) {
+    expect_error(
+      suppressWarnings(ROOT(data = d$df, generalizability_path = TRUE,
+                            num_trees = 5, top_k_trees = TRUE, k = 5,
+                            seed = 1, min_kept = bad)),
+      "min_kept"
+    )
+  }
+})
+
+test_that("default objective rejects kept sets smaller than min_kept", {
+  d <- sim_gen(15, n = 2000)
+  fit <- suppressWarnings(suppressMessages(ROOT(
+    data = d$df, generalizability_path = TRUE,
+    num_trees = 5, top_k_trees = TRUE, k = 5, seed = 1, min_kept = 0.2
+  )))
+  D <- fit$D_forest
+  n <- nrow(D)
+  D$w <- 0
+  D$w[seq_len(ceiling(0.2 * n) - 1L)] <- 1      # one unit short of the bound
+  expect_identical(fit$global_objective_fn(D), Inf)
+  D$w <- 1
+  expect_true(is.finite(fit$global_objective_fn(D)))
+})
+
+test_that("min_kept = 0 still requires at least two kept units", {
+  d <- sim_gen(16, n = 2000)
+  fit <- suppressWarnings(suppressMessages(ROOT(
+    data = d$df, generalizability_path = TRUE,
+    num_trees = 5, top_k_trees = TRUE, k = 5, seed = 1, min_kept = 0
+  )))
+  D <- fit$D_forest
+  D$w <- 0; D$w[1] <- 1
+  expect_identical(fit$global_objective_fn(D), Inf)
+  D$w[2] <- 1
+  expect_false(identical(fit$global_objective_fn(D), Inf))
+})
+
+test_that("min_kept does not constrain a user-supplied objective", {
+  d <- sim_gen(17, n = 2000)
+  my_obj <- function(D) sum(D$w)        # minimized by keeping no one
+  fit <- suppressWarnings(suppressMessages(ROOT(
+    data = d$df, generalizability_path = TRUE, global_objective_fn = my_obj,
+    num_trees = 5, top_k_trees = TRUE, k = 5, seed = 1, min_kept = 0.5
+  )))
+  D <- fit$D_forest; D$w <- 0
+  expect_identical(fit$global_objective_fn(D), 0)
+})

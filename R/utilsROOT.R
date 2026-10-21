@@ -170,7 +170,8 @@ trim_positivity_violations <- function(data, sample_col, outcome_col,
 #' @method summary ROOT
 #'
 #' @examples
-#' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' ROOT.output = ROOT(diabetes_data, generalizability_path = TRUE,
+#'                    num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' summary(ROOT.output)
 #'
 #' @export
@@ -295,7 +296,8 @@ summary.ROOT <- function(object, ...) {
 #' @method print ROOT
 #'
 #' @examples
-#' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' ROOT.output = ROOT(diabetes_data, generalizability_path = TRUE,
+#'                    num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' print(ROOT.output)
 #'
 #' @export
@@ -342,7 +344,8 @@ print.ROOT <- function(x, ...) {
 #' @importFrom rpart.plot prp
 #'
 #' @examples
-#' ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' ROOT.output = ROOT(diabetes_data, generalizability_path = TRUE,
+#'                    num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' plot(ROOT.output)
 #'
 #' @export

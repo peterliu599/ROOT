@@ -39,12 +39,4 @@ VignetteBuilder: knitr
 Depends: R (>= 3.5)
 LazyData: true
 NeedsCompilation: no
-Packaged: 2026-07-31 17:17:48 UTC; yh785
-Author: Yiren Hou [aut] (ORCID: <https://orcid.org/0009-0005-0422-4268>, Equal
-    contribution),
-  Peter Liu [aut, cre] (ORCID: <https://orcid.org/0009-0000-2691-5637>,
-    Equal contribution),
-  Sean McGrath [aut] (ORCID: <https://orcid.org/0000-0002-7281-3516>),
-  Harsh Parikh [aut] (ORCID: <https://orcid.org/0000-0003-1927-8646>)
-Maintainer: Peter Liu <bliu68@jh.edu>
 Config/roxygen2/version: 8.1.1

@@ -18,19 +18,21 @@ knitr::opts_chunk$set(
 
 A common challenge in translating evidence from randomized controlled trials
 (RCTs) to real-world practice is that trial participants may not reflect the
-broader target population. By definition in Parikh et al. 2025, subgroups that
-are "underrepresented" or "insufficiently represented" often occupy regions of the 
-covariate space with heterogeneous treatment effects and insufficient representation
-in the trial data. If certain subgroups are underrepresented in the trial, estimates
-of the **Target Average Treatment Effect (TATE)** can be imprecise or misleading when 
-transported to that population. The **Sample Target Average Treatment Effect (STATE)**, the average
-treatment effect over the target sample, is a finite sample equivalent
-version of the TATE.
+broader target population. Following Parikh et al. (2025), a subgroup is
+"underrepresented" or "insufficiently represented" when the trial contains too
+little information about it to estimate its treatment effect precisely. This
+happens mainly when the subgroup is both poorly represented in the trial and
+has a treatment effect that differs from the rest of the population. If such
+subgroups are present, estimates of the **Target Average Treatment Effect
+(TATE)** can be imprecise when the trial results are transported to the target
+population. The **Sample Target Average Treatment Effect (STATE)**, the average
+treatment effect over the target sample, is a finite sample equivalent version
+of the TATE.
 
-The resulting estimand from ROOT is the **Weighted Target Average Treatment Effect
-(WTATE)**: the average treatment effect restricted to the sufficiently represented
-subpopulation, which can be estimated with lower variance than the unweighted
-STATE.
+ROOT identifies these subgroups with an interpretable decision tree and
+reports the **Weighted Target Average Treatment Effect (WTATE)**: the average
+treatment effect in the sufficiently represented subpopulation, which can be
+estimated with lower variance than the unweighted STATE.
 
 This vignette walks through a complete generalizability analysis using the
 built-in `diabetes_data` dataset.
@@ -39,10 +41,11 @@ built-in `diabetes_data` dataset.
 
 ## The `diabetes_data` Dataset
 
-`diabetes_data` is a simulated dataset that mimics a diabetes intervention
-study. There are 2,000 individuals in a randomized controlled trial (RCT) sample,
-and there are 8,000 individuals in this simulated population we are making inferences
-to.
+`diabetes_data` is a simulated dataset that mimics a randomized trial of a
+glucose-lowering drug (`S = 1`) and a broader target population of adults with
+type 2 diabetes (`S = 0`). The outcome `Y` is the reduction in HbA1c
+(percentage points) at 6 months; treatment and outcome are observed only in
+the trial.
 
 ```{r load-data}
 library(ROOT)
@@ -51,17 +54,23 @@ data(diabetes_data, package = "ROOT")
 str(diabetes_data)
 ```
 
-The key columns are:
+The columns are:
 
-| Column       | Description                                      |
-|:-------------|:-------------------------------------------------|
-| `Y`          | Observed outcome (numeric)                       |
-| `Tr`         | Treatment assignment (0 = control, 1 = treated)  |
-| `S`          | Sample indicator (1 = RCT, 0 = target population)|
-| `Age45`      | Age ≥ 45 (binary indicator)                      |
-| `DietYes`    | Currently on a diet programme (binary indicator) |
-| `Race_Black` | Race: Black (binary indicator)                   |
-| `Sex_Male`   | Sex: Male (binary indicator)                     |
+| Column       | Description                                              |
+|:-------------|:---------------------------------------------------------|
+| `Age`        | Age in years                                             |
+| `Sex_Male`   | Sex: male (binary indicator)                             |
+| `Race_Black` | Race: Black (binary indicator)                           |
+| `Rural`      | Lives in a rural area (binary indicator)                 |
+| `BMI`        | Body mass index (kg/m^2^)                                |
+| `HbA1c`      | Baseline HbA1c (%)                                       |
+| `Insulin`    | Currently uses insulin (binary indicator)                |
+| `CKD`        | Chronic kidney disease (binary indicator)                |
+| `HeartFailure` | Heart failure (binary indicator)                       |
+| `DietYes`    | Enrolled in a diet programme (binary indicator)          |
+| `S`          | Sample indicator (1 = RCT, 0 = target population)        |
+| `Tr`         | Treatment assignment (0 = control, 1 = treated; trial only) |
+| `Y`          | Reduction in HbA1c at 6 months (trial only)              |
 
 ```{r explore-data}
 # How many trial vs target population units?
@@ -71,17 +80,39 @@ table(S = diabetes_data$S)
 table(Tr = diabetes_data$Tr[diabetes_data$S == 1])
 ```
 
+### How the data were generated
+
+Because the data are simulated, we know which covariates matter. The
+simulation was designed so that the example contains every combination of
+trial under-sampling and treatment-effect modification:
+
+|                    | Modifies the treatment effect | Does not modify the effect |
+|:-------------------|:------------------------------|:---------------------------|
+| **Under-sampled**  | `CKD`, `HeartFailure`, `Insulin`, age 70 or older | `Race_Black`, `Rural` |
+| **Well sampled**   | `HbA1c` (mildly)              | `Sex_Male`, `BMI`, `DietYes` |
+
+The true conditional average treatment effect is
+$$
+\tau(X) = 1 + 0.1\,(\text{HbA1c} - 8) - 2.0\,\text{CKD} - 2.4\,\text{HeartFailure} + 1.5\,\text{Insulin} + 2.0\,\mathbf{1}\{\text{Age} \ge 70\},
+$$
+so the drug is counterproductive for people with chronic kidney disease or
+heart failure and has a much larger benefit for insulin users and people aged
+70 or older (the effects are illustrative). Trial participation is lower for
+people with CKD or heart failure, insulin users, older people, Black
+participants, and rural residents. Race, rural residence, BMI, and diet affect the outcome level but not the
+treatment effect. See `?diabetes_data` for the full data-generating
+process.
+
 ---
 
 ## Checking Covariate Overlap
 
 Before running ROOT, it is good practice to check whether trial participants
-differ from the target population on key covariates. Systematic differences
-signal which subgroups may be underrepresented.
+differ from the target population on key covariates.
 
 ```{r overlap}
-# Mean of each covariate by S
-covariate_cols <- c("Age45", "DietYes", "Race_Black", "Sex_Male")
+covariate_cols <- c("Age", "Sex_Male", "Race_Black", "Rural", "BMI",
+                    "HbA1c", "Insulin", "CKD", "HeartFailure", "DietYes")
 
 overlap <- sapply(covariate_cols, function(v) {
   tapply(diabetes_data[[v]], diabetes_data$S, mean, na.rm = TRUE)
@@ -94,21 +125,24 @@ knitr::kable(
 )
 ```
 
-Differences across rows flag potential sources of underrepresentation that
-ROOT will attempt to characterize.
+Chronic kidney disease, heart failure, insulin use, Black race, rural
+residence, and older age are all less common in the trial than in the target population. A comparison of
+covariate means cannot tell us which of these differences matter for
+transporting the treatment effect: that depends on which covariates also
+modify the effect. ROOT answers this question directly.
 
 ---
 
 ## Fitting ROOT in Generalizability Mode
 
 We use `characterizing_underrep()`, which is the high-level wrapper around
-`ROOT()` for generalizability/transportability analyses. It expects `data` to contain `Y`,
-`Tr`, and `S`, and internally:
+`ROOT()` for generalizability/transportability analyses. It expects `data` to
+contain `Y`, `Tr`, and `S`, and internally:
 
 1. Estimates transportability scores using logistic regression models (default) for
    $P(S = 1 \mid X)$ and $P(\text{Tr} = 1 \mid X, S = 1)$.
 2. Constructs inverse propensity weighting (IPW) transported scores $v_i$.
-3. Grows a forest of weighted trees that minimize the variance of the
+3. Grows a forest of randomized trees that minimize the variance of the
    weighted estimator $\widehat{\text{WTATE}}$.
 4. Selects a Rashomon set of the top-$k$ trees and aggregates their weight
    assignments by vote: by default, a unit is kept if more than two-thirds of
@@ -116,13 +150,31 @@ We use `characterizing_underrep()`, which is the high-level wrapper around
 5. Fits a single summary tree characterizing the final $w_{\text{opt}}$
    assignments.
 
+Because `Age`, `BMI`, and `HbA1c` are continuous, we use
+`split_strategy = "random_quantile"`, which proposes split points at random
+quantiles of each covariate rather than always at the midpoint of its range.
+This lets the trees search over many candidate thresholds. We also grow more
+trees than the default to explore the larger covariate space, and lower
+`leaf_proba` from its default of 0.25 to 0.1 so that individual trees can grow
+deep enough to isolate several subgroups. Because the final rule excludes four
+separate subgroups, we also set `summary_max_depth = 4` so that the summary
+tree is deep enough to describe it (the default is 3). By default, ROOT also
+requires every candidate rule to keep at least 10% of the trial participants
+(`min_kept = 0.1`). This guards against a degenerate solution: the estimated
+standard error can be made almost zero by keeping only a handful of
+participants whose scores happen to be similar, which a thorough search would
+otherwise find.
+
 ```{r fit, message = FALSE, warning = FALSE}
 gen_fit <- characterizing_underrep(
   data                  = diabetes_data,
   generalizability_path = TRUE,
-  num_trees             = 20,
+  num_trees             = 500,
   top_k_trees           = TRUE,
   k                     = 10,
+  split_strategy        = "random_quantile",
+  leaf_proba            = 0.1,
+  summary_max_depth     = 4,
   seed                  = 123
 )
 ```
@@ -148,9 +200,9 @@ summary(gen_fit)
 ```
 
 The **STATE** (unweighted) is the trial evidence transported to the full
-target sample. The **WTATE** (weighted) restricts
-this estimate to the well-represented subpopulation, where the trial provides
-more reliable evidence. A smaller standard error (SE) for the WTATE relative to the STATE
+target sample. The **WTATE** (weighted) restricts this estimate to the
+well-represented subpopulation, where the trial provides more reliable
+evidence. A smaller standard error (SE) for the WTATE relative to the STATE
 reflects the variance reduction achieved by this restriction.
 
 ### Terminal node rules
@@ -177,10 +229,9 @@ share of trial units falling into that node.
 plot(gen_fit)
 ```
 
-The tree reads top-down as a decision rule: starting from the root (all trial
-units), the first split separates subgroups that are wholly underrepresented
-from those that may be included. Follow the branches down to each leaf to read
-the complete inclusion/exclusion rule for that subgroup.
+The tree reads top-down as a decision rule. Follow the branches from the root
+(all trial units) to each leaf to read the complete inclusion/exclusion rule
+for that subgroup.
 
 ---
 
@@ -189,31 +240,117 @@ the complete inclusion/exclusion rule for that subgroup.
 From the characterized tree and leaf summary, we can describe the
 underrepresented subgroups in plain language:
 
-- **Participants aged 45 or older** are flagged as underrepresented
-  ($w = 0$).
-- **Participants under 45 who are on a diet programme** are also
+- **Participants who use insulin** are flagged as underrepresented
+  ($w = 0$), regardless of their other characteristics.
+- **Participants aged 67 or older** who do not use insulin are flagged as
   underrepresented.
-- The remaining participants, those under 45 and not on a diet programme,
-  form the **well-represented subpopulation** ($w = 1$; 76.5% of the trial
-  sample) for whom the WTATE is estimated.
+- **Participants with heart failure** among the remaining (younger,
+  non-insulin) participants are flagged as underrepresented.
+- The remaining participants, those younger than 67 who use neither insulin
+  nor have heart failure, form the **well-represented subpopulation**
+  ($w = 1$) for whom the WTATE is estimated.
 
-Notably, Black participants are **not** excluded, even though they are the
-most underrepresented group in the trial (17.2% of the trial versus 31.5% of
-the target sample). In the data-generating process, race does not modify the
-treatment effect, whereas age and diet do. The default objective penalizes a
-subgroup mainly when it is both poorly represented and effect-modifying, so
-ROOT flags the effect modifiers rather than the group with the largest
-representation gap. This is the central distinction drawn by Parikh et al.
-(2025) between ROOT and approaches based on selection scores alone.
+These flags match three of the four effect modifiers in the simulation.
+Insulin use, older age, and heart failure are all under-sampled in the trial
+and strongly modify the treatment effect.
 
-Because `diabetes_data` is simulated, the estimates can be checked against
-the truth. The conditional treatment effect is
-$1 + 1.6\,\text{DietYes} + 1.3\,\text{Age45}$, so the target average
-effect is about $1 + 1.6(0.099) + 1.3(0.153) \approx 1.36$, and the effect is
-exactly 1 in the retained subgroup (under 45, no diet programme). The
-reported estimates are close to these values: STATE = 1.37 (SE 0.11) and
-WTATE = 1.03 (SE 0.09). Restricting to the well-represented subpopulation also
-lowers the standard error, as intended.
+The age cut-off ROOT selects (67) is a few years below the true threshold of
+70. Trial participation declines steadily with age, so participants aged 67 to
+69 are also somewhat under-sampled, and excluding them costs little precision
+because their treatment effect is the same as that of younger participants. A
+cut-off a few years early is therefore a conservative choice rather than an
+error.
+
+The fourth effect modifier, **chronic kidney disease, is not flagged
+consistently**. Only about 45 trial participants fall in the retained region
+and have CKD, and the Rashomon-set vote excludes only some of them; they are
+spread across the large retained leaf, so the depth-limited summary tree does
+not split on CKD at all. ROOT is a randomized search without an optimality
+guarantee, and a small subgroup like this one is the hardest to isolate:
+each candidate tree must find it in addition to the three larger subgroups.
+Growing more trees, or trying other seeds, makes it more likely that the
+Rashomon set excludes it. The consequence for the estimand is visible in the
+comparison with the truth below.
+
+Equally important is what the tree leaves out:
+
+- **Black participants and rural residents are kept**, even though both groups
+  are clearly under-sampled in the trial. Their treatment effect is no
+  different from that of other participants, so excluding them would shrink
+  the target population without improving precision.
+- **Baseline HbA1c**, a mild effect modifier that is well represented in the
+  trial, does not appear in the tree.
+- `Sex_Male`, `BMI`, and `DietYes` do not appear in the tree.
+
+An approach that flagged subgroups by their trial participation probability
+alone would treat Black and rural participants the same way as participants
+with CKD or heart failure. ROOT distinguishes them because it accounts for both representation
+and treatment-effect heterogeneity, which is the central idea of Parikh et al.
+(2025).
+
+### How well does the summary tree describe the ensemble rule?
+
+The summary tree is a depth-limited approximation of the Rashomon-set vote
+$w_{\text{opt}}$, so it may not reproduce every individual decision. We can
+check how closely it agrees:
+
+```{r fidelity}
+trial_data <- subset(diabetes_data, S == 1)
+w_opt  <- gen_fit$root$D_rash$w_opt
+w_tree <- as.integer(as.character(
+  predict(gen_fit$root$f, newdata = trial_data, type = "class")
+))
+
+c(share_kept_w_opt = mean(w_opt),
+  share_kept_tree  = mean(w_tree),
+  agreement        = mean(w_opt == w_tree))
+```
+
+The summary tree gives a readable description of the rule, but the
+estimates reported by `summary()` are based on the ensemble rule
+$w_{\text{opt}}$ itself.
+
+### Checking the estimates against the truth
+
+Because `diabetes_data` is simulated, we can compute the true STATE and the
+true WTATE for the population described by the summary tree, and compare them
+with the estimates.
+
+```{r truth}
+true_cate <- function(d) {
+  with(d, 1 + 0.1 * (HbA1c - 8) - 2.0 * CKD - 2.4 * HeartFailure +
+         1.5 * Insulin + 2.0 * (Age >= 70))
+}
+
+target_data <- subset(diabetes_data, S == 0)
+tau_target  <- true_cate(target_data)
+w_target    <- as.integer(as.character(
+  predict(gen_fit$root$f, newdata = target_data, type = "class")
+))
+
+est <- gen_fit$root$estimate
+data.frame(
+  estimand = c("STATE", "WTATE"),
+  true     = c(mean(tau_target), mean(tau_target[w_target == 1])),
+  estimate = c(est$value_unweighted, est$value_weighted),
+  SE       = c(est$se_unweighted, est$se_weighted)
+)
+```
+
+The STATE estimate is close to its true value (within one standard error).
+
+The true WTATE for the population described by the summary tree is below 1.
+That population is mostly people for whom the treatment effect is about 1, but
+it also retains the participants with chronic kidney disease, for whom the
+effect is close to $-1$. The WTATE estimate is somewhat higher than this
+true value, partly because the two are computed for slightly different
+populations: the estimate is based on the ensemble rule $w_{\text{opt}}$,
+which excludes some of the CKD participants, whereas the true value uses the
+summary tree, which retains all of them. The reported standard errors also
+treat the estimated selection and propensity models as fixed, so they can
+understate the true variability. Restricting to the well-represented
+subpopulation nonetheless lowers the standard error substantially, from about
+0.083 for the STATE to about 0.045 for the WTATE.
 
 The Rashomon set provides multiple near-optimal characterizations of these
 subgroups. The final summary tree aggregates across all trees in the set,
@@ -230,9 +367,12 @@ giving a single interpretable rule.
 | `k`              | Rashomon set size when `top_k_trees = TRUE`                          | `10`           |
 | `cutoff`         | Rashomon threshold when `top_k_trees = FALSE`; `"baseline"` uses the objective at $w \equiv 1$ | `"baseline"` |
 | `vote_threshold` | Fraction of Rashomon-set trees that must vote $w = 1$ for a unit to be included | `2/3` |
-| `seed`           | Random seed for reproducibility                                      | `NULL`         |
+| `split_strategy` | `"midpoint"` splits at the midpoint of a covariate's range; `"random_quantile"` splits at a random quantile within `quantile_range` | `"midpoint"` |
+| `seed`           | Random seed for reproducibility                                      | `NULL` (`123` in `characterizing_underrep()`) |
 | `feature_est`    | Feature importance method used to bias split selection (`"Ridge"`, `"GBM"`, or a custom function) | `"Ridge"` |
-| `leaf_proba`     | Controls tree depth by increasing the probability of stopping at a leaf | `0.25`      |
+| `leaf_proba`     | Probability of stopping at a leaf; smaller values allow deeper trees | `0.25`      |
+| `summary_max_depth` | Maximum depth of the summary (characteristic) tree | `3`       |
+| `min_kept`       | Smallest share of trial units a candidate rule may keep (default objective only) | `0.1` |
 
 ---
 

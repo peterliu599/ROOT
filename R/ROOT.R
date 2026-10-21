@@ -210,6 +210,23 @@
 #'   bounds of the quantile range when
 #'   \code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
 #'   Ignored when \code{split_strategy = "midpoint"}.
+#' @param min_kept Numeric in \eqn{[0, 1)}. Generalizability mode only:
+#'   the smallest share of analysis (trial) units that a candidate rule may
+#'   keep when the default objective is used. Rules keeping fewer than
+#'   \code{max(2, ceiling(min_kept * n))} units receive an infinite objective
+#'   value. Default \code{0.1}. Without this bound, the finite-sample standard
+#'   error can be made arbitrarily small by keeping a handful of units whose
+#'   scores happen to be similar, a degenerate solution that a thorough search
+#'   will find. Set \code{min_kept = 0} to remove the bound. Ignored when a
+#'   \code{global_objective_fn} is supplied or when
+#'   \code{generalizability_path = FALSE}.
+#' @param summary_max_depth Positive integer. Maximum depth of the single
+#'   characteristic (summary) tree fitted to the final rule \code{w_opt} with
+#'   \code{rpart}. Default \code{3}. A rule that excludes \eqn{m} separate
+#'   subgroups may need depth \eqn{m} to be described exactly; larger values
+#'   describe the ensemble rule more faithfully at the cost of a less compact
+#'   tree. This affects only the summary tree, not \code{w_opt} or the
+#'   reported estimates.
 #'
 #' @return An object of class \code{"ROOT"} (a list) with elements:
 #'   \item{D_rash}{Data frame containing the Rashomon-set tree votes and the
@@ -326,7 +343,9 @@ ROOT <- function(data,
                  verbose               = FALSE,
                  positivity_trim       = NULL,
                  split_strategy        = "midpoint",
-                 quantile_range        = c(0.1, 0.9)) {
+                 quantile_range        = c(0.1, 0.9),
+                 summary_max_depth     = 3L,
+                 min_kept              = 0.1) {
 
   # ---- Small helpers ------------------------------------------------------
   coerce01 <- function(x, allow_na = TRUE) {
@@ -550,6 +569,19 @@ ROOT <- function(data,
     stop("`quantile_range` must be a numeric vector of length 2 with 0 <= lower < upper <= 1.",
          call. = FALSE)
   }
+  # Validate summary_max_depth (rpart allows maxdepth up to 30)
+  if (!is.numeric(summary_max_depth) || length(summary_max_depth) != 1L ||
+      is.na(summary_max_depth) || summary_max_depth < 1 ||
+      summary_max_depth > 30 || summary_max_depth != round(summary_max_depth)) {
+    stop("`summary_max_depth` must be a single integer between 1 and 30.",
+         call. = FALSE)
+  }
+  summary_max_depth <- as.integer(summary_max_depth)
+  # Validate min_kept
+  if (!is.numeric(min_kept) || length(min_kept) != 1L || is.na(min_kept) ||
+      min_kept < 0 || min_kept >= 1) {
+    stop("`min_kept` must be a single number in [0, 1).", call. = FALSE)
+  }
   user_supplied_objective <- !is.null(global_objective_fn)
   if (!user_supplied_objective) {
     global_objective_fn <- if (isTRUE(generalizability_path)) {
@@ -694,6 +726,17 @@ ROOT <- function(data,
   }
 
   n <- nrow(testing_data)
+
+  # Minimum kept-set size for the default generalizability objective: without
+  # it, keeping a few units with similar scores drives the estimated SE to ~0.
+  if (isTRUE(generalizability_path) && !user_supplied_objective) {
+    n_min_kept <- max(2L, as.integer(ceiling(min_kept * n)))
+    base_objective <- global_objective_fn
+    global_objective_fn <- function(D) {
+      if (sum(D$w == 1, na.rm = TRUE) < n_min_kept) return(Inf)
+      base_objective(D)
+    }
+  }
 
   # ---- Step 2: Prepare covariates for splitting --------------------------
   drop_cols <- intersect(
@@ -879,7 +922,8 @@ ROOT <- function(data,
     w_classes <- unique(stats::na.omit(D_rash$w_opt))
 
     if (length(w_classes) == 2L && all(w_classes %in% c(0L, 1L))) {
-      final_classifier <- characterize_tree(X_df, D_rash$w_opt)
+      final_classifier <- characterize_tree(X_df, D_rash$w_opt,
+                                            max_depth = summary_max_depth)
     } else if (length(w_classes) == 1L) {
 
       # <-- This message is what your test-root.R:312 is expecting

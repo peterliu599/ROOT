@@ -31,7 +31,8 @@
 #' @method summary characterizing_underrep
 #'
 #' @examples
-#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE,
+#'                                      num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' summary(char.output)
 #'
 #' @export
@@ -92,7 +93,8 @@ summary.characterizing_underrep <- function(object, ...) {
 #' @method print characterizing_underrep
 #'
 #' @examples
-#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE,
+#'                                      num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' print(char.output)
 #'
 #' @export
@@ -126,7 +128,8 @@ print.characterizing_underrep <- function(x, ...) {
 #' @return \code{NULL}. The plot is drawn to the active graphics device.
 #'
 #' @examples
-#' char.output = characterizing_underrep(diabetes_data,generalizability_path = TRUE, seed = 123)
+#' char.output = characterizing_underrep(diabetes_data, generalizability_path = TRUE,
+#'                                      num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 #' plot(char.output)
 #'
 #' @importFrom rpart.plot prp

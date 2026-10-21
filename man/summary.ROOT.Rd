@@ -52,7 +52,8 @@ The summary also reports:
 }
 
 \examples{
-ROOT.output = ROOT(diabetes_data,generalizability_path = TRUE, seed = 123)
+ROOT.output = ROOT(diabetes_data, generalizability_path = TRUE,
+                   num_trees = 20, top_k_trees = TRUE, k = 10, seed = 123)
 summary(ROOT.output)
 
 }

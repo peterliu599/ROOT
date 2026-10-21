@@ -24,7 +24,9 @@ ROOT(
   verbose = FALSE,
   positivity_trim = NULL,
   split_strategy = "midpoint",
-  quantile_range = c(0.1, 0.9)
+  quantile_range = c(0.1, 0.9),
+  summary_max_depth = 3L,
+  min_kept = 0.1
 )
 }
 \arguments{
@@ -157,6 +159,25 @@ the forest.}
 bounds of the quantile range when
 \code{split_strategy = "random_quantile"}. Default \code{c(0.1, 0.9)}.
 Ignored when \code{split_strategy = "midpoint"}.}
+
+\item{summary_max_depth}{Positive integer. Maximum depth of the single
+characteristic (summary) tree fitted to the final rule \code{w_opt} with
+\code{rpart}. Default \code{3}. A rule that excludes \eqn{m} separate
+subgroups may need depth \eqn{m} to be described exactly; larger values
+describe the ensemble rule more faithfully at the cost of a less compact
+tree. This affects only the summary tree, not \code{w_opt} or the
+reported estimates.}
+
+\item{min_kept}{Numeric in \eqn{[0, 1)}. Generalizability mode only:
+the smallest share of analysis (trial) units that a candidate rule may
+keep when the default objective is used. Rules keeping fewer than
+\code{max(2, ceiling(min_kept * n))} units receive an infinite objective
+value. Default \code{0.1}. Without this bound, the finite-sample standard
+error can be made arbitrarily small by keeping a handful of units whose
+scores happen to be similar, a degenerate solution that a thorough search
+will find. Set \code{min_kept = 0} to remove the bound. Ignored when a
+\code{global_objective_fn} is supplied or when
+\code{generalizability_path = FALSE}.}
 }
 \value{
 An object of class \code{"ROOT"} (a list) with elements:
